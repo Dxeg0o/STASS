@@ -14,11 +14,8 @@
   ],
   "hosting": {
     "source": "my-project",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "public": "out",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "frameworksBackend": {
       "region": "us-central1"
     }

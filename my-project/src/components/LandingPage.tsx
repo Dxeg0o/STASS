@@ -46,6 +46,7 @@ export default function LandingPage() {
             alt="Logo"
             width={140} // Adjust the width as needed
             height={84} // Adjust the height as needed
+            unoptimized={true} // Agrega esta línea
           />
         </Link>
         <nav className="ml-auto hidden md:flex gap-4 sm:gap-6">
