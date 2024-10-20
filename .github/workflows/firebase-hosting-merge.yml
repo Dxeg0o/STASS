@@ -18,3 +18,5 @@ jobs:
           channelId: live
           projectId: stass-6561a
           entryPoint: my-project/
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
