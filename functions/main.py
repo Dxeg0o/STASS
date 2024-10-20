@@ -1,8 +1,12 @@
 from firebase_functions import https_fn
-from firebase_admin import initialize_app
+from firebase_admin import initialize_app, get_app
 from app import app  # Importa tu aplicación Flask desde app.py
 
-initialize_app()  # Inicializa la aplicación de Firebase
+# Inicializa Firebase Admin solo si no está ya inicializado
+try:
+    get_app()
+except ValueError:
+    initialize_app()
 
 @https_fn.on_request()
 def firebase_functions_handler(request: https_fn.Request) -> https_fn.Response:
