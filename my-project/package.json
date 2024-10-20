@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "export": "next build"
+    "deploy": "firebase deploy"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.1",
@@ -19,11 +19,13 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "firebase": "^10.14.1",
+    "firebase-tools": "^13.22.1",
     "framer-motion": "^11.11.8",
     "lucide-react": "^0.452.0",
     "next": "14.2.15",
     "react": "^18",
     "react-dom": "^18",
+    "react-firebase-hooks": "^5.1.1",
     "recharts": "^2.13.0",
     "tailwind-merge": "^2.5.3",
     "tailwindcss-animate": "^1.0.7"

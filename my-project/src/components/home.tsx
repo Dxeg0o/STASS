@@ -39,7 +39,7 @@ export default function Home({ imageResult }: HomeProps) {
       const data = imageResult; // Usamos el result pasado como prop
 
       const response = await axios.post(
-        "http://127.0.0.1:5000/api/calculate",
+        "https://firebase-functions-handler-to54ahtrgq-uc.a.run.app/api/calculate",
         data
       );
 

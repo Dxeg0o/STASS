@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, ChangeEvent } from "react";
 import { Upload, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import axios from "axios";
 import Home from "@/components/home";
 
-// Define a type for the result (you can adjust this based on the actual response structure)
 interface ImageResult {
   predictions: Array<{
     label: string;
@@ -36,23 +34,22 @@ export default function ImageUpload() {
     if (event.target.files && event.target.files.length > 0) {
       setSelectedFile(event.target.files[0]);
       setError(null);
-      handleSubmit(); // Automáticamente envía el archivo
     }
   };
 
   const handleSubmit = async () => {
-    setError(null);
-    setResult(null);
-
     if (!selectedFile) {
       setError("Por favor selecciona una imagen primero");
       return;
     }
 
-    const reader = new FileReader();
-    reader.readAsDataURL(selectedFile);
-    reader.onloadend = async () => {
-      try {
+    setError(null);
+    setResult(null);
+
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(selectedFile);
+      reader.onloadend = async () => {
         const imageBase64 = reader.result?.toString().split(",")[1];
 
         if (!imageBase64) {
@@ -71,15 +68,15 @@ export default function ImageUpload() {
           },
         });
 
-        setResult(response.data as ImageResult); // Guardamos el resultado aquí
-      } catch (error) {
-        console.error("Error al procesar la imagen: ", error);
-        setError(
-          "Hubo un error al procesar la imagen. Por favor, intenta de nuevo."
-        );
-      } finally {
-      }
-    };
+        setResult(response.data as ImageResult);
+        console.log(response.data);
+      };
+    } catch (error) {
+      console.error("Error al procesar la imagen: ", error);
+      setError(
+        "Hubo un error al procesar la imagen. Por favor, intenta de nuevo."
+      );
+    }
   };
 
   return (
@@ -109,7 +106,7 @@ export default function ImageUpload() {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={handleFileChange} // Aquí se hace la carga automática
+                onChange={handleFileChange}
               />
             </label>
           </div>
@@ -129,8 +126,15 @@ export default function ImageUpload() {
           )}
         </CardFooter>
       </Card>
-      {/* Renderizamos el componente Home pasando el result */}
-      {result && <Home imageResult={result} />} {/* Automáticamente se llama */}
+      {selectedFile && (
+        <button
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+          onClick={handleSubmit}
+        >
+          Procesar Imagen
+        </button>
+      )}
+      {result && <Home imageResult={result} />}
     </div>
   );
 }
