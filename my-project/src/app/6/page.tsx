@@ -40,7 +40,7 @@ export default function VideoUpload() {
 
   // Función para generar un identificador único para cada frame
   const generateImageId = () => {
-    return Math.random().toString(36).substr(2, 9);
+    return Math.random().toString(36).slice(2, 9);
   };
 
   // Función para procesar el video en múltiples frames
