@@ -22,59 +22,120 @@ interface ImageResult {
     width: number;
     height: number;
   }>;
-  image: string;
+  image: string; // Añadimos la imagen para asociarla con el resultado
+  imageId: string; // Identificador único para cada imagen
 }
 
-export default function ImageUpload() {
+export default function VideoUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [result, setResult] = useState<ImageResult | null>(null);
+  const [results, setResults] = useState<ImageResult[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
-      setSelectedFile(event.target.files[0]);
+      setSelectedFile(event.target.files[0]); // Almacena el archivo de video seleccionado
       setError(null);
     }
   };
 
+  // Función para generar un identificador único para cada frame
+  const generateImageId = () => {
+    return Math.random().toString(36).slice(2, 9);
+  };
+
+  // Función para procesar el video en múltiples frames
+  const extractFramesFromVideo = (videoFile: File, interval = 1000) => {
+    return new Promise<Array<{ id: string; base64: string }>>(
+      (resolve, reject) => {
+        const video = document.createElement("video");
+        video.src = URL.createObjectURL(videoFile);
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const frames: Array<{ id: string; base64: string }> = [];
+
+        video.addEventListener("loadeddata", () => {
+          const { videoWidth, videoHeight } = video;
+          canvas.width = videoWidth;
+          canvas.height = videoHeight;
+
+          let currentTime = 0;
+          const duration = video.duration;
+
+          const captureFrame = () => {
+            if (currentTime <= duration) {
+              video.currentTime = currentTime;
+              currentTime += interval / 1000; // Avanza el tiempo en intervalos
+
+              video.addEventListener(
+                "seeked",
+                () => {
+                  if (ctx) {
+                    ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
+                    const dataURL = canvas.toDataURL("image/jpeg");
+                    const imageId = generateImageId(); // Genera un ID único para el frame
+                    frames.push({ id: imageId, base64: dataURL.split(",")[1] }); // Añade el frame y su ID
+
+                    if (currentTime <= duration) {
+                      captureFrame();
+                    } else {
+                      resolve(frames); // Termina cuando se capturan todos los frames
+                    }
+                  }
+                },
+                { once: true }
+              );
+            }
+          };
+
+          captureFrame();
+        });
+
+        video.addEventListener("error", (err) => reject(err));
+      }
+    );
+  };
+
   const handleSubmit = async () => {
     if (!selectedFile) {
-      setError("Por favor selecciona una imagen primero");
+      setError("Por favor selecciona un video primero");
       return;
     }
 
     setError(null);
-    setResult(null);
+    setResults([]); // Reseteamos los resultados
 
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(selectedFile);
-      reader.onloadend = async () => {
-        const imageBase64 = reader.result?.toString().split(",")[1];
+      const frames = await extractFramesFromVideo(selectedFile);
 
-        if (!imageBase64) {
-          throw new Error("Hubo un error al procesar la imagen");
-        }
-
+      for (const frame of frames) {
         const response = await axios({
           method: "POST",
           url: "https://detect.roboflow.com/try2-u4gn9/1",
           params: {
             api_key: "xhZowC0XhfVttIdmFHKU",
           },
-          data: imageBase64,
+          data: frame.base64,
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
         });
 
-        setResult(response.data as ImageResult);
-        console.log(response.data);
-      };
+        // Guardamos el resultado con su imagen correspondiente
+        setResults((prevResults) => [
+          ...prevResults,
+          {
+            ...response.data,
+            image: `data:image/jpeg;base64,${frame.base64}`, // Almacenamos la imagen en base64
+            imageId: frame.id, // Asociamos el ID de la imagen
+          } as ImageResult,
+        ]);
+      }
     } catch (error) {
-      console.error("Error al procesar la imagen: ", error);
+      console.error("Error al procesar el video: ", error);
       setError(
-        "Hubo un error al procesar la imagen. Por favor, intenta de nuevo."
+        "Hubo un error al procesar el video. Por favor, intenta de nuevo."
       );
     }
   };
@@ -83,7 +144,7 @@ export default function ImageUpload() {
     <div>
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Sube una imagen</CardTitle>
+          <CardTitle className="text-2xl font-bold">Sube un video</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center w-full">
@@ -98,13 +159,13 @@ export default function ImageUpload() {
                   arrastra y suelta
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  SVG, PNG, JPG or GIF (MAX. 800x400px)
+                  Video MP4, WebM, (MAX. 10MB)
                 </p>
               </div>
               <Input
                 id="dropzone-file"
                 type="file"
-                accept="image/*"
+                accept="video/mp4,video/webm"
                 className="hidden"
                 onChange={handleFileChange}
               />
@@ -131,10 +192,16 @@ export default function ImageUpload() {
           className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
           onClick={handleSubmit}
         >
-          Procesar Imagen
+          Procesar Video
         </button>
       )}
-      {result && <Home imageResult={result} />}
+      {results.length > 0 &&
+        results.map((result, index) => (
+          <div key={index}>
+            <img src={result.image} alt={`Frame ${result.imageId}`} />
+            <Home key={result.imageId} imageResult={result} />
+          </div>
+        ))}
     </div>
   );
 }
