@@ -2,6 +2,12 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
+interface Prediction {
+  detection_id: string;
+  altura: number;
+  radio: number;
+}
+
 interface ImageResult {
   predictions: Array<{
     label: string;
@@ -19,10 +25,8 @@ interface HomeProps {
 }
 
 export default function Home({ imageResult }: HomeProps) {
-  const [altura, setAltura] = useState(null);
-  const [radio, setRadio] = useState(null);
-  const [grafico, setGrafico] = useState(null);
-  const [error] = useState(null);
+  const [resultados, setResultados] = useState<Prediction[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (imageResult) {
@@ -43,24 +47,26 @@ export default function Home({ imageResult }: HomeProps) {
         data
       );
 
-      setAltura(response.data.altura);
-      setRadio(response.data.radio);
-      setGrafico(response.data.grafico);
+      setResultados(response.data.results);
     } catch (err) {
       console.error("Error al calcular:", err);
+      setError("Hubo un error al calcular las dimensiones");
     }
   };
 
   return (
     <div>
       <h1>Calculadora de Espárragos</h1>
-      {altura && <p>Altura: {altura}</p>}
-      {radio && <p>Radio: {radio}</p>}
-      {grafico && (
-        <div>
-          <h2>Gráfico:</h2>
-          <img src={`data:image/png;base64,${grafico}`} alt="Gráfico" />
-        </div>
+      {resultados.length > 0 ? (
+        resultados.map((resultado, index) => (
+          <div key={resultado.detection_id || index}>
+            <h3>Predicción {index + 1}</h3>
+            <p>Altura: {resultado.altura.toFixed(2)} cm</p>
+            <p>Radio: {resultado.radio.toFixed(2)} cm</p>
+          </div>
+        ))
+      ) : (
+        <p>No hay predicciones disponibles.</p>
       )}
       {error && <p style={{ color: "red" }}>{error}</p>}
     </div>

@@ -26,56 +26,60 @@ interface ImageResult {
 }
 
 export default function ImageUpload() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [result, setResult] = useState<ImageResult | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [results, setResults] = useState<ImageResult[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
-      setSelectedFile(event.target.files[0]);
+      setSelectedFiles(Array.from(event.target.files)); // Almacena todas las imágenes seleccionadas
       setError(null);
     }
   };
 
   const handleSubmit = async () => {
-    if (!selectedFile) {
-      setError("Por favor selecciona una imagen primero");
+    if (selectedFiles.length === 0) {
+      setError("Por favor selecciona una o más imágenes primero");
       return;
     }
 
     setError(null);
-    setResult(null);
+    setResults([]); // Reseteamos los resultados
 
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(selectedFile);
-      reader.onloadend = async () => {
-        const imageBase64 = reader.result?.toString().split(",")[1];
+    for (const file of selectedFiles) {
+      try {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = async () => {
+          const imageBase64 = reader.result?.toString().split(",")[1];
 
-        if (!imageBase64) {
-          throw new Error("Hubo un error al procesar la imagen");
-        }
+          if (!imageBase64) {
+            throw new Error("Hubo un error al procesar la imagen");
+          }
 
-        const response = await axios({
-          method: "POST",
-          url: "https://detect.roboflow.com/try2-u4gn9/1",
-          params: {
-            api_key: "xhZowC0XhfVttIdmFHKU",
-          },
-          data: imageBase64,
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        });
+          const response = await axios({
+            method: "POST",
+            url: "https://detect.roboflow.com/try2-u4gn9/1",
+            params: {
+              api_key: "xhZowC0XhfVttIdmFHKU",
+            },
+            data: imageBase64,
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          });
 
-        setResult(response.data as ImageResult);
-        console.log(response.data);
-      };
-    } catch (error) {
-      console.error("Error al procesar la imagen: ", error);
-      setError(
-        "Hubo un error al procesar la imagen. Por favor, intenta de nuevo."
-      );
+          setResults((prevResults) => [
+            ...prevResults,
+            response.data as ImageResult,
+          ]);
+        };
+      } catch (error) {
+        console.error("Error al procesar la imagen: ", error);
+        setError(
+          "Hubo un error al procesar una o más imágenes. Por favor, intenta de nuevo."
+        );
+      }
     }
   };
 
@@ -83,7 +87,7 @@ export default function ImageUpload() {
     <div>
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Sube una imagen</CardTitle>
+          <CardTitle className="text-2xl font-bold">Sube imágenes</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center w-full">
@@ -106,13 +110,15 @@ export default function ImageUpload() {
                 type="file"
                 accept="image/*"
                 className="hidden"
+                multiple
                 onChange={handleFileChange}
               />
             </label>
           </div>
-          {selectedFile && (
+          {selectedFiles.length > 0 && (
             <p className="text-sm text-gray-500">
-              Archivo seleccionado: {selectedFile.name}
+              Archivos seleccionados:{" "}
+              {selectedFiles.map((file) => file.name).join(", ")}
             </p>
           )}
         </CardContent>
@@ -126,15 +132,18 @@ export default function ImageUpload() {
           )}
         </CardFooter>
       </Card>
-      {selectedFile && (
+      {selectedFiles.length > 0 && (
         <button
           className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
           onClick={handleSubmit}
         >
-          Procesar Imagen
+          Procesar Imágenes
         </button>
       )}
-      {result && <Home imageResult={result} />}
+      {results.length > 0 &&
+        results.map((result, index) => (
+          <Home key={index} imageResult={result} />
+        ))}
     </div>
   );
 }
