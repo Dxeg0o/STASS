@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { XCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -24,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export function CalidadEsparragosMejorado() {
+export default function CalidadEsparragosMejorado() {
   const data = [
     { name: "Aprobados", value: 65, color: "hsl(142, 76%, 36%)" },
     { name: "Fallos por largo", value: 20, color: "hsl(0, 84%, 60%)" },
@@ -41,12 +41,12 @@ export function CalidadEsparragosMejorado() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-5 w-5" />
-          <AlertTitle className="text-lg font-semibold">Advertencia</AlertTitle>
-          <AlertDescription className="text-sm">
-            El porcentaje de espárragos que cumplen los estándares de calidad
-            (65%) está por debajo del objetivo (80%).
+        <Alert variant="destructive" className="bg-red-600 text-white">
+          <XCircle className="h-6 w-6" />
+          <AlertTitle className="text-2xl font-bold">LOTE RECHAZADO</AlertTitle>
+          <AlertDescription className="text-lg">
+            Solo el 65% de los espárragos cumplen con los estándares de calidad.
+            Se requiere un mínimo del 80%.
           </AlertDescription>
         </Alert>
 
@@ -110,15 +110,14 @@ export function CalidadEsparragosMejorado() {
           </Card>
         </div>
 
-        <Card>
+        <Card className="bg-red-50 border-red-200">
           <CardContent className="pt-6">
-            <p className="text-xl font-semibold text-center mb-2">
-              Solo el <span className="text-red-600 text-2xl">65%</span> de los
-              espárragos cumplen con los estándares de calidad
+            <p className="text-2xl font-bold text-center mb-2 text-red-600">
+              Acción requerida: Revisión del proceso de producción
             </p>
-            <p className="text-sm text-muted-foreground text-center">
-              Se requiere un mínimo del 80% para cumplir con los objetivos de
-              calidad establecidos
+            <p className="text-lg text-red-800 text-center">
+              Es necesario investigar las causas de los fallos por largo (20%) y
+              calibre (15%) para mejorar la calidad general del lote.
             </p>
           </CardContent>
         </Card>
