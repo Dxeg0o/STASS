@@ -1,6 +1,10 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 interface Prediction {
   detection_id: string;
@@ -27,20 +31,23 @@ interface HomeProps {
 export default function Home({ imageResult }: HomeProps) {
   const [resultados, setResultados] = useState<Prediction[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (imageResult) {
-      calcular(); // Ejecuta el cálculo automáticamente si hay un result
+      calcular();
     }
   }, [imageResult]);
 
   const calcular = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       if (!imageResult) {
         return;
       }
 
-      const data = imageResult; // Usamos el result pasado como prop
+      const data = imageResult;
 
       const response = await axios.post(
         "https://firebase-functions-handler-to54ahtrgq-uc.a.run.app/api/calculate",
@@ -51,24 +58,66 @@ export default function Home({ imageResult }: HomeProps) {
     } catch (err) {
       console.error("Error al calcular:", err);
       setError("Hubo un error al calcular las dimensiones");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div>
-      <h1>Calculadora de Espárragos</h1>
-      {resultados.length > 0 ? (
-        resultados.map((resultado, index) => (
-          <div key={resultado.detection_id || index}>
-            <h3>Predicción {index + 1}</h3>
-            <p>Altura: {resultado.altura.toFixed(2)} cm</p>
-            <p>Radio: {resultado.radio.toFixed(2)} cm</p>
-          </div>
-        ))
-      ) : (
-        <p>No hay predicciones disponibles.</p>
-      )}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+    <div className="bg-gray-50 min-h-screen">
+      <div className="container mx-auto px-4 py-8">
+        <header className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-gray-800">Predicciones</h1>
+        </header>
+
+        <main className="max-w-3xl mx-auto">
+          {isLoading ? (
+            <Card className="p-8">
+              <div className="flex justify-center items-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2 text-lg">Calculando...</span>
+              </div>
+            </Card>
+          ) : resultados.length > 0 ? (
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+              {resultados.map((resultado, index) => (
+                <Card key={resultado.detection_id || index} className="w-full">
+                  <CardHeader className="bg-primary/10 p-3">
+                    <CardTitle className="text-lg font-semibold text-primary">
+                      Predicción {index + 1}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3">
+                    <p className="text-base break-words">
+                      <span className="font-semibold">Altura:</span>{" "}
+                      {resultado.altura.toFixed(2)} cm
+                    </p>
+                    <p className="text-base break-words">
+                      <span className="font-semibold">Radio:</span>{" "}
+                      {resultado.radio.toFixed(2)} cm
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="shadow-md">
+              <CardContent className="text-center py-8">
+                <p className="text-lg text-gray-600">
+                  No hay predicciones disponibles.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {error && (
+            <Alert variant="destructive" className="mt-6">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
