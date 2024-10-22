@@ -1,4 +1,4 @@
-import { CalidadEsparragosMejorado } from "@/components/calidad-esparragos-mejorado";
+import CalidadEsparragosMejorado from "@/components/calidad-esparragos-rechazados";
 
 export default function Home() {
   return (

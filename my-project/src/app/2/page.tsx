@@ -1,9 +1,9 @@
-import { AnalizadorVideo } from "@/components/analizador-video";
+import CalidadEsparragosAprobado from "@/components/calidad-esparragos-aceptados";
 
 export default function Home() {
   return (
     <h1 className="">
-      <AnalizadorVideo />
+      <CalidadEsparragosAprobado />
     </h1>
   );
 }
