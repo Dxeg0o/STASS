@@ -26,6 +26,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import Steps from "./landing/steps";
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -52,15 +53,9 @@ export default function LandingPage() {
         <nav className="ml-auto hidden md:flex gap-4 sm:gap-6">
           <Link
             className="text-sm font-medium text-green-700 hover:text-green-600 transition-colors"
-            href="#features"
+            href="#steps"
           >
-            Características
-          </Link>
-          <Link
-            className="text-sm font-medium text-green-700 hover:text-green-600 transition-colors"
-            href="#benefits"
-          >
-            Beneficios
+            Pasos
           </Link>
           <Link
             className="text-sm font-medium text-green-700 hover:text-green-600 transition-colors"
@@ -99,17 +94,10 @@ export default function LandingPage() {
           <nav className="flex flex-col items-center gap-4 p-4">
             <Link
               className="text-lg font-medium text-green-700 hover:text-green-600 transition-colors"
-              href="#features"
+              href="#steps"
               onClick={() => setIsMenuOpen(false)}
             >
-              Características
-            </Link>
-            <Link
-              className="text-lg font-medium text-green-700 hover:text-green-600 transition-colors"
-              href="#benefits"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Beneficios
+              Pasos
             </Link>
             <Link
               className="text-lg font-medium text-green-700 hover:text-green-600 transition-colors"
@@ -141,10 +129,10 @@ export default function LandingPage() {
               className="flex flex-col items-center space-y-4 text-center max-w-4xl mx-auto"
             >
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none text-green-800">
+                <h1 className="text-5xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none text-green-800 mb-6 md:mb-12">
                   Calidad de exportación para sus espárragos
                 </h1>
-                <p className="mx-auto max-w-[700px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <p className="mx-auto max-w-[700px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-balance">
                   Ayudamos a pymes exportadoras de espárragos a cumplir con los
                   estándares internacionales de calidad, utilizando tecnología
                   avanzada de escaneo que reduce errores y costos, sin requerir
@@ -165,225 +153,8 @@ export default function LandingPage() {
             </motion.div>
           </div>
         </section>
-
-        <section
-          id="key-data"
-          className="w-full py-12 md:py-24 lg:py-32 bg-white"
-        >
-          <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-8 text-green-800">
-              Datos Clave
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-center">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="bg-green-50 p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
-              >
-                <TrendingUp className="h-12 w-12 text-green-600 mb-4" />
-                <h3 className="text-2xl font-bold mb-2 text-green-800">300%</h3>
-                <p className="text-green-700">
-                  ROI promedio para nuestros clientes
-                </p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="bg-green-50 p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
-              >
-                <PieChart className="h-12 w-12 text-green-600 mb-4" />
-                <h3 className="text-2xl font-bold mb-2 text-green-800">25%</h3>
-                <p className="text-green-700">Reducción en costos operativos</p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="bg-green-50 p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
-              >
-                <Users className="h-12 w-12 text-green-600 mb-4" />
-                <h3 className="text-2xl font-bold mb-2 text-green-800">
-                  10,000+
-                </h3>
-                <p className="text-green-700">Agricultores beneficiados</p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="bg-green-50 p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
-              >
-                <ShieldCheck className="h-12 w-12 text-green-600 mb-4" />
-                <h3 className="text-2xl font-bold mb-2 text-green-800">
-                  99.9%
-                </h3>
-                <p className="text-green-700">
-                  Precisión en detección de calidad
-                </p>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="features"
-          className="w-full py-12 md:py-24 lg:py-32 bg-green-100"
-        >
-          <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-8 text-green-800">
-              Características Clave
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
-              >
-                <BarChart className="h-12 w-12 text-green-600 mb-4" />
-                <h3 className="text-xl font-bold mb-2 text-green-800">
-                  Escaneo Avanzado
-                </h3>
-                <p className="text-green-700">
-                  Tecnología de punta para detectar imperfecciones con
-                  precisión.
-                </p>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
-              >
-                <CheckCircle className="h-12 w-12 text-green-600 mb-4" />
-                <h3 className="text-xl font-bold mb-2 text-green-800">
-                  Cumplimiento de Estándares
-                </h3>
-                <p className="text-green-700">
-                  Aseguramos que su producto cumpla con las normas
-                  internacionales.
-                </p>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
-              >
-                <DollarSign className="h-12 w-12 text-green-600 mb-4" />
-                <h3 className="text-xl font-bold mb-2 text-green-800">
-                  Costos Reducidos
-                </h3>
-                <p className="text-green-700">
-                  Minimice errores y optimice sus recursos con nuestra solución.
-                </p>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
-              >
-                <Zap className="h-12 w-12 text-green-600 mb-4" />
-                <h3 className="text-xl font-bold mb-2 text-green-800">
-                  Eficiencia Mejorada
-                </h3>
-                <p className="text-green-700">
-                  Aumente la velocidad de procesamiento y reduzca los tiempos de
-                  espera.
-                </p>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
-              >
-                <Globe className="h-12 w-12 text-green-600 mb-4" />
-                <h3 className="text-xl font-bold mb-2 text-green-800">
-                  Alcance Global
-                </h3>
-                <p className="text-green-700">
-                  Expanda su mercado y llegue a clientes internacionales con
-                  confianza.
-                </p>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center"
-              >
-                <Leaf className="h-12 w-12 text-green-600 mb-4" />
-                <h3 className="text-xl font-bold mb-2 text-green-800">
-                  Sostenibilidad
-                </h3>
-                <p className="text-green-700">
-                  Optimice el uso de recursos y reduzca el desperdicio en su
-                  producción.
-                </p>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="benefits"
-          className="w-full py-12 md:py-24 lg:py-32 bg-white"
-        >
-          <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-8 text-green-800">
-              Beneficios para su Negocio
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5 }}
-                className="bg-green-50 p-6 rounded-lg shadow-md border-l-4 border-green-600"
-              >
-                <h3 className="text-xl font-bold mb-2 text-green-800">
-                  Aumento de la Calidad
-                </h3>
-                <p className="text-green-700">
-                  Mejore la calidad de sus exportaciones y gane la confianza de
-                  sus clientes internacionales.
-                </p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5 }}
-                className="bg-green-50 p-6 rounded-lg shadow-md border-l-4 border-green-600"
-              >
-                <h3 className="text-xl font-bold mb-2 text-green-800">
-                  Eficiencia Operativa
-                </h3>
-                <p className="text-green-700">
-                  Optimice sus procesos y reduzca los tiempos de inspección con
-                  nuestra tecnología automatizada.
-                </p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5 }}
-                className="bg-green-50 p-6 rounded-lg shadow-md border-l-4 border-green-600"
-              >
-                <h3 className="text-xl font-bold mb-2 text-green-800">
-                  Acceso a Nuevos Mercados
-                </h3>
-                <p className="text-green-700">
-                  Cumpla con los estándares internacionales y expanda su negocio
-                  a nuevos mercados globales.
-                </p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5 }}
-                className="bg-green-50 p-6 rounded-lg shadow-md border-l-4 border-green-600"
-              >
-                <h3 className="text-xl font-bold mb-2 text-green-800">
-                  Retorno de Inversión Rápido
-                </h3>
-                <p className="text-green-700">
-                  Vea resultados inmediatos sin necesidad de grandes inversiones
-                  iniciales en equipamiento.
-                </p>
-              </motion.div>
-            </div>
-          </div>
+        <section id="steps">
+          <Steps />
         </section>
 
         <section
@@ -391,7 +162,7 @@ export default function LandingPage() {
           className="w-full py-12 md:py-24 lg:py-32 bg-green-100"
         >
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-8 text-green-800">
+            <h2 className="text-4xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-8 text-green-800">
               Lo que dicen nuestros clientes
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -400,8 +171,8 @@ export default function LandingPage() {
                 className="bg-white p-6 rounded-lg shadow-lg"
               >
                 <p className="text-green-700 mb-4">
-                  &quot;EspárragoTech ha revolucionado nuestra forma de
-                  trabajar. La calidad de nuestras exportaciones ha mejorado
+                  &quot;STASS ha revolucionado nuestra forma de trabajar. La
+                  calidad de nuestras exportaciones ha mejorado
                   significativamente.&quot;
                 </p>
                 <p className="font-bold text-green-800">
@@ -426,8 +197,8 @@ export default function LandingPage() {
                 className="bg-white p-6 rounded-lg shadow-lg"
               >
                 <p className="text-green-700 mb-4">
-                  &quot;El soporte técnico de EspárragoTech es excepcional.
-                  Siempre están disponibles para ayudarnos a optimizar nuestros
+                  &quot;El soporte técnico de STASS es excepcional. Siempre
+                  están disponibles para ayudarnos a optimizar nuestros
                   procesos.&quot;
                 </p>
                 <p className="font-bold text-green-800">
@@ -453,9 +224,9 @@ export default function LandingPage() {
                   ¿Cómo funciona la tecnología de escaneo?
                 </AccordionTrigger>
                 <AccordionContent className="text-green-700">
-                  Nuestra tecnología utiliza cámaras de alta resolución y
-                  algoritmos de inteligencia artificial para detectar
-                  imperfecciones en los espárragos con una precisión del 99.9%.
+                  Nuestra tecnología utiliza cámaras y algoritmos de
+                  inteligencia artificial para detectar imperfecciones en los
+                  espárragos con una precisión del 99%.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-2">
@@ -504,7 +275,7 @@ export default function LandingPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="rounded-full"
+                    className="rounded-full bg-white"
                   />
                   <Button
                     type="submit"
@@ -520,7 +291,7 @@ export default function LandingPage() {
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-white">
         <p className="text-xs text-green-700">
-          © 2024 EspárragoTech. Todos los derechos reservados.
+          © 2024 STASS. Todos los derechos reservados.
         </p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link
