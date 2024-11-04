@@ -5,20 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Leaf,
-  BarChart,
-  CheckCircle,
-  DollarSign,
-  Menu,
-  X,
-  Zap,
-  Globe,
-  TrendingUp,
-  PieChart,
-  Users,
-  ShieldCheck,
-} from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Accordion,
