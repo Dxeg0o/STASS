@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
-
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,32 +25,32 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-green-50">
+    <div className="flex flex-col min-h-screen bg-white">
       <header className="px-4 lg:px-6 h-16 flex items-center fixed w-full bg-white/80 backdrop-blur-md z-50 shadow-sm">
         <Link className="flex items-center justify-center" href="#">
           <Image
             src="/images/logo2.png"
             alt="Logo"
-            width={140} // Adjust the width as needed
-            height={84} // Adjust the height as needed
-            unoptimized={true} // Agrega esta línea
+            width={140}
+            height={84}
+            unoptimized={true}
           />
         </Link>
         <nav className="ml-auto hidden md:flex gap-4 sm:gap-6">
           <Link
-            className="text-sm font-medium text-green-700 hover:text-green-600 transition-colors"
+            className="text-sm font-medium text-green-800 hover:text-green-600 transition-colors"
             href="#steps"
           >
             Pasos
           </Link>
           <Link
-            className="text-sm font-medium text-green-700 hover:text-green-600 transition-colors"
-            href="#testimonials"
+            className="text-sm font-medium text-green-800 hover:text-green-600 transition-colors"
+            href="#results"
           >
-            Testimonios
+            Resultados
           </Link>
           <Link
-            className="text-sm font-medium text-green-700 hover:text-green-600 transition-colors"
+            className="text-sm font-medium text-green-800 hover:text-green-600 transition-colors"
             href="#contact"
           >
             Contacto
@@ -59,7 +58,7 @@ export default function LandingPage() {
         </nav>
         <Button
           variant="outline"
-          className="ml-4 hidden md:inline-flex border-green-600 text-green-600 hover:bg-green-100"
+          className="ml-4 hidden md:inline-flex border-green-600 text-green-600 hover:bg-green-50"
         >
           Iniciar Sesión
         </Button>
@@ -77,24 +76,24 @@ export default function LandingPage() {
         </Button>
       </header>
       {isMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-green-50 md:hidden pt-16">
+        <div className="fixed inset-0 z-40 bg-white md:hidden pt-16">
           <nav className="flex flex-col items-center gap-4 p-4">
             <Link
-              className="text-lg font-medium text-green-700 hover:text-green-600 transition-colors"
+              className="text-lg font-medium text-green-800 hover:text-green-600 transition-colors"
               href="#steps"
               onClick={() => setIsMenuOpen(false)}
             >
               Pasos
             </Link>
             <Link
-              className="text-lg font-medium text-green-700 hover:text-green-600 transition-colors"
-              href="#testimonials"
+              className="text-lg font-medium text-green-800 hover:text-green-600 transition-colors"
+              href="#results"
               onClick={() => setIsMenuOpen(false)}
             >
-              Testimonios
+              Resultados
             </Link>
             <Link
-              className="text-lg font-medium text-green-700 hover:text-green-600 transition-colors"
+              className="text-lg font-medium text-green-800 hover:text-green-600 transition-colors"
               href="#contact"
               onClick={() => setIsMenuOpen(false)}
             >
@@ -107,37 +106,50 @@ export default function LandingPage() {
         </div>
       )}
       <main className="flex-1 pt-16">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-green-100">
+        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="flex flex-col items-center space-y-4 text-center max-w-4xl mx-auto"
-            >
-              <div className="space-y-2">
-                <h1 className="text-5xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none text-green-800 mb-6 md:mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="flex flex-col space-y-4"
+              >
+                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-green-800">
                   Calidad de exportación para sus espárragos
                 </h1>
-                <p className="mx-auto max-w-[700px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-balance">
-                  Ayudamos a pymes exportadoras de espárragos a cumplir con los
-                  estándares internacionales de calidad, utilizando tecnología
-                  avanzada de escaneo que reduce errores y costos, sin requerir
-                  grandes inversiones iniciales.
+                <p className="max-w-[600px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  Optimizamos la calidad de exportación de espárragos para
+                  pymes, utilizando tecnología avanzada de escaneo que reduce
+                  errores y costos, sin grandes inversiones iniciales.
                 </p>
-              </div>
-              <div className="space-x-4">
-                <Button className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full transition-all duration-200 transform hover:scale-105">
-                  Solicitar Demo
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-green-600 text-green-600 hover:bg-green-200 font-bold py-2 px-4 rounded-full transition-all duration-200 transform hover:scale-105"
-                >
-                  Más Información
-                </Button>
-              </div>
-            </motion.div>
+                <div className="flex flex-col sm:flex-row gap-4 mt-4">
+                  <Button className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105">
+                    Solicitar Demo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-green-600 text-green-600 hover:bg-green-50 font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105"
+                  >
+                    Más Información
+                  </Button>
+                </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="flex items-end justify-center"
+              >
+                <Image
+                  src="/images/esparraguin.png"
+                  alt="Asparagus quality control"
+                  width={350}
+                  height={300}
+                  className="rounded-lg w-3/4 md:w-full max-w-[350px] h-auto object-cover mt-6 md:mt-0"
+                />
+              </motion.div>
+            </div>
           </div>
         </section>
         <section id="steps">
@@ -145,51 +157,46 @@ export default function LandingPage() {
         </section>
 
         <section
-          id="testimonials"
-          className="w-full py-12 md:py-24 lg:py-32 bg-green-100"
+          id="results"
+          className="w-full py-12 md:py-24 lg:py-32 bg-green-50"
         >
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h2 className="text-4xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-8 text-green-800">
-              Lo que dicen nuestros clientes
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-green-800">
+              Resultados Comprobados
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-lg shadow-lg"
+                className="bg-white p-6 rounded-lg shadow-lg text-center"
               >
-                <p className="text-green-700 mb-4">
-                  &quot;STASS ha revolucionado nuestra forma de trabajar. La
-                  calidad de nuestras exportaciones ha mejorado
-                  significativamente.&quot;
+                <h3 className="text-4xl font-bold text-green-600 mb-2">30%</h3>
+                <p className="text-green-800 font-semibold">
+                  Reducción de Costos Operativos
                 </p>
-                <p className="font-bold text-green-800">
-                  - María Rodríguez, Gerente de Calidad
+                <p className="text-sm text-green-700 mt-2">
+                  Promedio entre nuestros clientes
                 </p>
               </motion.div>
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-lg shadow-lg"
+                className="bg-white p-6 rounded-lg shadow-lg text-center"
               >
-                <p className="text-green-700 mb-4">
-                  &quot;Gracias a su tecnología, hemos reducido nuestros costos
-                  operativos en un 30%. Una inversión que realmente vale la
-                  pena.&quot;
+                <h3 className="text-4xl font-bold text-green-600 mb-2">99%</h3>
+                <p className="text-green-800 font-semibold">
+                  Precisión en Control de Calidad
                 </p>
-                <p className="font-bold text-green-800">
-                  - Carlos Soler, Director de Operaciones
+                <p className="text-sm text-green-700 mt-2">
+                  Utilizando nuestra tecnología de escaneo
                 </p>
               </motion.div>
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-lg shadow-lg"
+                className="bg-white p-6 rounded-lg shadow-lg text-center"
               >
-                <p className="text-green-700 mb-4">
-                  &quot;El soporte técnico de STASS es excepcional. Siempre
-                  están disponibles para ayudarnos a optimizar nuestros
-                  procesos.&quot;
-                </p>
-                <p className="font-bold text-green-800">
-                  - Ana Gómez, Supervisora de Producción
+                <h3 className="text-4xl font-bold text-green-600 mb-2">25%</h3>
+                <p className="text-green-800 font-semibold">Aumento en ROI</p>
+                <p className="text-sm text-green-700 mt-2">
+                  En el primer año de implementación
                 </p>
               </motion.div>
             </div>
@@ -198,7 +205,7 @@ export default function LandingPage() {
 
         <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-8 text-green-800">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-green-800">
               Preguntas Frecuentes
             </h2>
             <Accordion
@@ -207,32 +214,40 @@ export default function LandingPage() {
               className="w-full max-w-3xl mx-auto"
             >
               <AccordionItem value="item-1">
-                <AccordionTrigger className="text-green-800">
+                <AccordionTrigger className="text-green-800 text-lg">
                   ¿Cómo funciona la tecnología de escaneo?
                 </AccordionTrigger>
                 <AccordionContent className="text-green-700">
-                  Nuestra tecnología utiliza cámaras y algoritmos de
-                  inteligencia artificial para detectar imperfecciones en los
-                  espárragos con una precisión del 99%.
+                  Nuestra tecnología utiliza cámaras de alta resolución y
+                  algoritmos de inteligencia artificial avanzados para detectar
+                  imperfecciones en los espárragos con una precisión del 99%. El
+                  sistema analiza cada espárrago individualmente, considerando
+                  factores como tamaño, forma, color y textura.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-2">
-                <AccordionTrigger className="text-green-800">
+                <AccordionTrigger className="text-green-800 text-lg">
                   ¿Cuánto tiempo toma implementar el sistema?
                 </AccordionTrigger>
                 <AccordionContent className="text-green-700">
                   La implementación típica toma entre 2 y 4 semanas, dependiendo
                   del tamaño de su operación y los requisitos específicos.
+                  Nuestro equipo de expertos trabaja estrechamente con su
+                  personal para asegurar una transición suave y una integración
+                  perfecta con sus procesos existentes.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-3">
-                <AccordionTrigger className="text-green-800">
+                <AccordionTrigger className="text-green-800 text-lg">
                   ¿Ofrecen soporte técnico continuo?
                 </AccordionTrigger>
                 <AccordionContent className="text-green-700">
                   Sí, ofrecemos soporte técnico 24/7 y actualizaciones regulares
                   del software para asegurar que su sistema siempre esté
-                  funcionando de manera óptima.
+                  funcionando de manera óptima. Nuestro equipo de soporte está
+                  altamente capacitado y puede resolver la mayoría de los
+                  problemas de forma remota, minimizando el tiempo de
+                  inactividad.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -241,7 +256,7 @@ export default function LandingPage() {
 
         <section
           id="contact"
-          className="w-full py-12 md:py-24 lg:py-32 bg-green-100"
+          className="w-full py-12 md:py-24 lg:py-32 bg-green-50"
         >
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
             <div className="flex flex-col items-center space-y-4 text-center">
@@ -251,7 +266,7 @@ export default function LandingPage() {
                 </h2>
                 <p className="mx-auto max-w-[600px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Contáctenos hoy mismo para una demostración gratuita y
-                  descubra cómo podemos ayudar a su negocio.
+                  descubra cómo podemos optimizar sus procesos de exportación.
                 </p>
               </div>
               <div className="w-full max-w-sm space-y-2">
@@ -262,11 +277,11 @@ export default function LandingPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="rounded-full bg-white"
+                    className="rounded-md bg-white"
                   />
                   <Button
                     type="submit"
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full transition-all duration-200 transform hover:scale-105"
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-200 transform hover:scale-105"
                   >
                     Solicitar Información
                   </Button>
@@ -276,7 +291,7 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-white">
+      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-green-700">
           © 2024 STASS. Todos los derechos reservados.
         </p>
