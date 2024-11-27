@@ -105,7 +105,7 @@ export default function LandingPage() {
           </nav>
         </div>
       )}
-      <main className="flex-1">
+      <main className="flex-1 md:mt-0 mt-12">
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -116,13 +116,13 @@ export default function LandingPage() {
                 className="flex flex-col space-y-4"
               >
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-green-800">
-                  Asegure{" "}
-                  <span className="inline underline md:underline-offset-4 underline-offset-0 decoration-[#fdfa33] font-kalam">
+                  Asegura{" "}
+                  <span className="inline underline md:underline-offset-4 underline-offset-2 decoration-[#fdfa33] font-kalam">
                     calidad
                   </span>{" "}
-                  en sus exportaciones de espárragos
+                  en tus exportaciones de espárragos
                 </h1>
-                <p className="max-w-[600px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <p className="max-w-[600px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-justify">
                   Detectamos hasta un <strong>70% más</strong> de productos
                   <strong> fuera de estándar</strong> con tecnología de punta y
                   sin grandes inversiones iniciales.
