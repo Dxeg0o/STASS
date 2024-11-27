@@ -122,11 +122,11 @@ export default function LandingPage() {
                   </span>{" "}
                   en tus exportaciones de espárragos
                 </h1>
-                <p className="max-w-[600px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-justify">
+                <h2 className="max-w-[600px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-justify">
                   Detectamos hasta un <strong>70% más</strong> de productos
                   <strong> fuera de estándar</strong> mediante tecnología de
                   punta, sin grandes inversiones iniciales.
-                </p>
+                </h2>
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
                   <Button className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105">
                     Solicitar Demo
@@ -165,15 +165,15 @@ export default function LandingPage() {
           className="w-full py-12 md:py-24 lg:py-32 bg-green-50"
         >
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-green-800">
+            <h3 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-green-800">
               Resultados Comprobados
-            </h2>
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="bg-white p-6 rounded-lg shadow-lg text-center"
               >
-                <h3 className="text-4xl font-bold text-green-600 mb-2">30%</h3>
+                <h4 className="text-4xl font-bold text-green-600 mb-2">30%</h4>
                 <p className="text-green-800 font-semibold">
                   Reducción de Costos Operativos
                 </p>
@@ -209,9 +209,9 @@ export default function LandingPage() {
 
         <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-green-800">
+            <h4 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-green-800">
               Preguntas Frecuentes
-            </h2>
+            </h4>
             <Accordion
               type="single"
               collapsible
@@ -265,9 +265,9 @@ export default function LandingPage() {
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-green-800">
+                <h4 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-green-800">
                   ¿Listo para mejorar la calidad de sus exportaciones?
-                </h2>
+                </h4>
                 <p className="mx-auto max-w-[600px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Contáctenos hoy mismo para una demostración gratuita y
                   descubra cómo podemos optimizar sus procesos de exportación.
