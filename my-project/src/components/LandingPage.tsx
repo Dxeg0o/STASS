@@ -117,7 +117,7 @@ export default function LandingPage() {
               >
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-green-800">
                   Asegure{" "}
-                  <span className="inline underline  lg:text-[65px] md:underline-offset-4 underline-offset-0 decoration-[#fdfa33] font-kalam">
+                  <span className="inline underline md:underline-offset-4 underline-offset-0 decoration-[#fdfa33] font-kalam">
                     calidad
                   </span>{" "}
                   en sus exportaciones de espárragos
