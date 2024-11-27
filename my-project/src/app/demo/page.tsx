@@ -4,12 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-interface YouTubePlayerProps {
-  videoId: string;
-  title?: string;
-}
-
-export default function YouTubePlayer({}: YouTubePlayerProps) {
+export default function YouTubePlayer() {
   return (
     <div className="min-h-screen w-full py-6 sm:py-12 bg-green-50">
       <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
