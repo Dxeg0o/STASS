@@ -128,9 +128,12 @@ export default function LandingPage() {
                   punta, sin grandes inversiones iniciales.
                 </h2>
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                  <Button className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105">
-                    Solicitar Demo
-                  </Button>
+                  <Link
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105"
+                    href={"/demo"}
+                  >
+                    Ver Demo
+                  </Link>
                   <Button
                     variant="outline"
                     className="border-green-600 text-green-600 hover:bg-green-50 font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105"
