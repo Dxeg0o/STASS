@@ -115,31 +115,27 @@ export default function LandingPage() {
                 transition={{ duration: 0.5 }}
                 className="flex flex-col space-y-4"
               >
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-green-800">
+                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-green-800 text-center md:text-left px-6 md:px-0">
                   Asegura{" "}
-                  <span className="inline underline md:underline-offset-4 underline-offset-2 decoration-[#fdfa33] font-kalam">
+                  <span className="inline underline md:underline-offset-4 underline-offset-2 decoration-[#fdfa33]">
                     calidad
                   </span>{" "}
                   en tus exportaciones de espárragos
                 </h1>
-                <h2 className="max-w-[600px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-justify">
+                <h2 className="max-w-[600px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-center md:text-justify px-6 md:px-0">
                   Detectamos hasta un <strong>70% más</strong> de productos
                   <strong> fuera de estándar</strong> mediante tecnología de
                   punta, sin grandes inversiones iniciales.
                 </h2>
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                  <Link
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105"
-                    href={"/demo"}
-                  >
-                    Ver Demo
-                  </Link>
-                  <Button
-                    variant="outline"
-                    className="border-green-600 text-green-600 hover:bg-green-50 font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105"
-                  >
-                    Más Información
-                  </Button>
+                  <div className=" flex justify-center">
+                    <Link
+                      className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105 max-w-40"
+                      href={"/demo"}
+                    >
+                      Ver Demo
+                    </Link>
+                  </div>
                 </div>
               </motion.div>
               <motion.div
