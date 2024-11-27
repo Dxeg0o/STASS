@@ -105,7 +105,7 @@ export default function LandingPage() {
           </nav>
         </div>
       )}
-      <main className="flex-1 pt-16">
+      <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -116,12 +116,16 @@ export default function LandingPage() {
                 className="flex flex-col space-y-4"
               >
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-green-800">
-                  Calidad de exportación para sus espárragos
+                  Asegure{" "}
+                  <span className="inline underline  lg:text-[65px] md:underline-offset-4 underline-offset-0 decoration-[#fdfa33] font-kalam">
+                    calidad
+                  </span>{" "}
+                  en sus exportaciones de espárragos
                 </h1>
                 <p className="max-w-[600px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Optimizamos la calidad de exportación de espárragos para
-                  pymes, utilizando tecnología avanzada de escaneo que reduce
-                  errores y costos, sin grandes inversiones iniciales.
+                  Detectamos hasta un <strong>70% más</strong> de productos
+                  <strong> fuera de estándar</strong> con tecnología de punta y
+                  sin grandes inversiones iniciales.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
                   <Button className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105">
@@ -142,11 +146,11 @@ export default function LandingPage() {
                 className="flex items-end justify-center"
               >
                 <Image
-                  src="/images/esparraguin.png"
+                  src="/images/esparraguin2.1.png"
                   alt="Asparagus quality control"
-                  width={350}
+                  width={550}
                   height={300}
-                  className="rounded-lg w-3/4 md:w-full max-w-[350px] h-auto object-cover mt-6 md:mt-0"
+                  className="rounded-lg w-3/4 md:w-full max-w-[550px] h-auto object-cover mt-6 md:mt-0"
                 />
               </motion.div>
             </div>
