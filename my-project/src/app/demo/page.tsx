@@ -9,10 +9,7 @@ interface YouTubePlayerProps {
   title?: string;
 }
 
-export default function YouTubePlayer({
-  videoId,
-  title = "Demo STASS",
-}: YouTubePlayerProps) {
+export default function YouTubePlayer({}: YouTubePlayerProps) {
   return (
     <div className="min-h-screen w-full py-6 sm:py-12 bg-green-50">
       <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
