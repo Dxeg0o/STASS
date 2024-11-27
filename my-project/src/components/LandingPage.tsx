@@ -124,8 +124,8 @@ export default function LandingPage() {
                 </h1>
                 <p className="max-w-[600px] text-green-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-justify">
                   Detectamos hasta un <strong>70% más</strong> de productos
-                  <strong> fuera de estándar</strong> con tecnología de punta y
-                  sin grandes inversiones iniciales.
+                  <strong> fuera de estándar</strong> mediante tecnología de
+                  punta, sin grandes inversiones iniciales.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
                   <Button className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105">

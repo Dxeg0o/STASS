@@ -14,8 +14,27 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "STASS",
-  description: "Impulsa la calidad de tus exportaciones",
+  metadataBase: new URL("https://www.stass.vercel.app"),
+  title: "STASS - Asegura calidad en tus exportaciones de espárragos",
+  description:
+    "Detectamos hasta un 70% más de productos fuera de estándar mediante tecnología de punta, sin grandes inversiones iniciales.",
+  openGraph: {
+    title: "STASS - Asegura calidad en tus exportaciones de espárragos",
+    description:
+      "Detectamos hasta un 70% más de productos fuera de estándar mediante tecnología de punta, sin grandes inversiones iniciales.",
+    url: "https://www.stass.vercel.app",
+    siteName: "STASS",
+    images: [
+      {
+        url: "/logo2.png",
+        width: 800,
+        height: 800,
+        alt: "Logo de STASS",
+      },
+    ],
+    locale: "es_LA",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
