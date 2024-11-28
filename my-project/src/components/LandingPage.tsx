@@ -116,7 +116,7 @@ export default function LandingPage() {
                 className="flex flex-col space-y-4"
               >
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-green-800 text-center md:text-left px-6 md:px-0">
-                  Asegura{" "}
+                  Controla la{" "}
                   <span className="inline underline md:underline-offset-4 underline-offset-2 decoration-[#fdfa33]">
                     calidad
                   </span>{" "}
