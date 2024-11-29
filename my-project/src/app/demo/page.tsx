@@ -38,7 +38,7 @@ export default function YouTubePlayer() {
               </CardContent>
             </Card>
             <div className="text-center py-6">
-              <p className="text-2xl font-medium text-green-700">
+              <p className="text-2xl font-semibold text-green-700">
                 Asegura calidad en tus exportaciones de espárragos
               </p>
             </div>

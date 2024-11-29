@@ -115,7 +115,7 @@ export default function LandingPage() {
                 transition={{ duration: 0.5 }}
                 className="flex flex-col space-y-4"
               >
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-green-800 text-center md:text-left px-6 md:px-0">
+                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-5xl lg:text-6xl text-green-800 text-center md:text-left px-6 md:px-0">
                   Controla la{" "}
                   <span className="inline underline md:underline-offset-4 underline-offset-2 decoration-[#fdfa33]">
                     calidad

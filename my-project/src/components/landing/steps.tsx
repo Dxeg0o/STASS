@@ -17,7 +17,7 @@ export default function Steps() {
     {
       titulo: "Obtener datos",
       descripcion:
-        "Nuestro software recopila y analiza datos de calidad en tiempo real.",
+        "Nuestro software recopila y analiza datos de calidad periodicamente.",
       icono: Database,
     },
     {
