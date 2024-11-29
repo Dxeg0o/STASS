@@ -56,12 +56,12 @@ export default function LandingPage() {
             Contacto
           </Link>
         </nav>
-        <Button
-          variant="outline"
-          className="ml-4 hidden md:inline-flex border-green-600 text-green-600 hover:bg-green-50"
+        <Link
+          className="ml-4 hidden md:inline-flex border-green-600 text-green-600 hover:bg-green-50 border rounded-md py-1 px-2"
+          href={"/login"}
         >
           Iniciar Sesión
-        </Button>
+        </Link>
         <Button
           variant="ghost"
           size="icon"
@@ -99,9 +99,12 @@ export default function LandingPage() {
             >
               Contacto
             </Link>
-            <Button className="mt-4 w-full bg-green-600 hover:bg-green-700 text-white">
+            <Link
+              className="mt-4 w-full bg-green-600 hover:bg-green-700 text-white"
+              href={"/login"}
+            >
               Iniciar Sesión
-            </Button>
+            </Link>
           </nav>
         </div>
       )}
