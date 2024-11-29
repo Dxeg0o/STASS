@@ -27,7 +27,7 @@ export default function YouTubePlayer() {
                 <div className="relative w-full h-0 pb-[56.25%]">
                   <iframe
                     className="absolute top-0 left-0 w-full h-full"
-                    src="https://www.youtube.com/embed/hGwvJkDRiz0?si=MGJaLJ5uRsyIziio"
+                    src="https://www.youtube.com/embed/JTkBxFrazQc?si=MuST81nE7y1Lyr8n"
                     title="STASS Demo"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
