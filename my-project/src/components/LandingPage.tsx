@@ -148,7 +148,7 @@ export default function LandingPage() {
                 className="flex items-end justify-center"
               >
                 <Image
-                  src="/images/esparraguin2.1.png"
+                  src="/images/esparraguinnuevo.png"
                   alt="Asparagus quality control"
                   width={550}
                   height={300}
