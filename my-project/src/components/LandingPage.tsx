@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Menu, X } from "lucide-react";
+import { CheckCircle, Menu, X } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Accordion,
@@ -12,7 +12,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import Steps from "./landing/steps";
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -159,12 +158,57 @@ export default function LandingPage() {
           </div>
         </section>
         <section id="steps">
-          <Steps />
+          <div className="w-full py-12 md:py-24 lg:py-32 bg-green-50">
+            <div className="container mx-auto px-4 md:px-6 max-w-7xl">
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-green-800">
+                Cómo Funciona
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <div className="flex flex-col items-center text-center">
+                  <div className="bg-green-100 p-3 rounded-full mb-4">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-green-800">
+                    Escaneo de Espárragos
+                  </h3>
+                  <p className="text-green-700">
+                    Nuestro sistema escanea cada espárrago individualmente
+                    utilizando tecnología de visión por computadora avanzada.
+                  </p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="bg-green-100 p-3 rounded-full mb-4">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-green-800">
+                    Análisis de Calidad
+                  </h3>
+                  <p className="text-green-700">
+                    Los algoritmos de IA analizan cada espárrago, detectando
+                    imperfecciones y clasificando según los estándares de
+                    calidad.
+                  </p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="bg-green-100 p-3 rounded-full mb-4">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-green-800">
+                    Optimización Continua
+                  </h3>
+                  <p className="text-green-700">
+                    El sistema aprende y mejora constantemente, adaptándose a
+                    nuevas variedades de espárragos y estándares de calidad.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section
           id="results"
-          className="w-full py-12 md:py-24 lg:py-32 bg-green-50"
+          className="w-full py-12 md:py-24 lg:py-32 bg-white"
         >
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
             <h3 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-green-800">
@@ -209,7 +253,10 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-white">
+        <section
+          id="faq"
+          className="w-full py-12 md:py-24 lg:py-32 bg-green-50"
+        >
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
             <h4 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-green-800">
               Preguntas Frecuentes
@@ -262,7 +309,7 @@ export default function LandingPage() {
 
         <section
           id="contact"
-          className="w-full py-12 md:py-24 lg:py-32 bg-green-50"
+          className="w-full py-12 md:py-24 lg:py-32 bg-white"
         >
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
             <div className="flex flex-col items-center space-y-4 text-center">
