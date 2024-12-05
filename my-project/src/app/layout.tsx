@@ -26,14 +26,18 @@ export const metadata: Metadata = {
     siteName: "STASS",
     images: [
       {
-        url: "/images/logo2.png",
+        url: "/logo2.png",
         width: 800,
         height: 800,
         alt: "Logo de STASS",
       },
     ],
+
     locale: "es_LA",
     type: "website",
+  },
+  icons: {
+    icon: "/images/Stass.png",
   },
 };
 
