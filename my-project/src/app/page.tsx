@@ -150,6 +150,31 @@ export default function LandingPage() {
               Soluciones Innovadoras para su Agricultura
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="bg-purple-50 p-8 rounded-2xl shadow-lg"
+            >
+              <Image
+                src="/images/uvas.png"
+                alt="Tecnología para uvas"
+                width={400}
+                height={300}
+                className="rounded-lg mb-6 w-2/5 h-48 object-cover"
+              />
+              <h3 className="text-2xl font-bold text-purple-700 mb-4">
+                Control de Calidad de uvas
+              </h3>
+              <p className="text-gray-700 mb-6 text-justify">
+                Garantizamos la calidad, detectando un 78% de fallas de calidad en sus exportaciones con tecnología avanzada que maximizando la frescura y la durabilidad de sus uvas.
+              </p>
+              <Link
+                href="/uvas"
+                className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-full transition-all duration-200"
+              >
+                Más Información
+              </Link>
+            </motion.div>
+
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="bg-green-50 p-8 rounded-2xl shadow-lg"
@@ -166,7 +191,7 @@ export default function LandingPage() {
                 <h3 className="text-2xl font-bold text-green-700 mb-4">
                   Control de Calidad de Espárragos
                 </h3>
-                <p className="text-gray-700 mb-6">
+                <p className="text-gray-700 mb-6 text-justify">
                   Nuestra tecnología de punta detecta hasta un 70% más de
                   productos fuera de estándar, asegurando la máxima calidad en
                   sus exportaciones de espárragos.
@@ -192,7 +217,7 @@ export default function LandingPage() {
                 <h3 className="text-2xl font-bold text-red-700 mb-4">
                   Control de Calidad de Cerezas
                 </h3>
-                <p className="text-gray-700 mb-6">
+                <p className="text-gray-700 mb-6 text-justify">
                   Optimizamos sus exportaciones de cerezas con una precisión del
                   99.5% en el control de calidad, garantizando productos de
                   primera clase para sus clientes.
