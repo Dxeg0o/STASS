@@ -183,7 +183,7 @@ export default function LandingPage() {
                 className="bg-red-50 p-8 rounded-2xl shadow-lg"
               >
                 <Image
-                  src="/images/—Pngtree—cherry clipart vector logo_7269809.png"
+                  src="/images/cereza.png"
                   alt="Tecnología para Cerezas"
                   width={400}
                   height={300}
