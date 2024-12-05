@@ -146,13 +146,15 @@ export default function LandingPage() {
                 whileHover={{ scale: 1.05 }}
                 className="bg-green-50 p-8 rounded-2xl shadow-lg"
               >
-                <Image
-                  src="/images/—Pngtree—asparagus clipart asparagus illustration and_11059918.png"
-                  alt="Tecnología para Espárragos"
-                  width={400}
-                  height={300}
-                  className="rounded-lg mb-6 w-full h-48 object-cover"
-                />
+                <div className="flex ju">
+                  <Image
+                    src="/images/—Pngtree—asparagus clipart asparagus illustration and_11059918.png"
+                    alt="Tecnología para Espárragos"
+                    width={400}
+                    height={300}
+                    className="rounded-lg mb-6 w-2/5 h-48 object-cover"
+                  />
+                </div>
                 <h3 className="text-2xl font-bold text-green-700 mb-4">
                   Control de Calidad de Espárragos
                 </h3>
@@ -177,7 +179,7 @@ export default function LandingPage() {
                   alt="Tecnología para Cerezas"
                   width={400}
                   height={300}
-                  className="rounded-lg mb-6 w-full h-48 object-cover"
+                  className="rounded-lg mb-6 w-3/5 h-48 object-cover"
                 />
                 <h3 className="text-2xl font-bold text-red-700 mb-4">
                   Control de Calidad de Cerezas
@@ -273,19 +275,19 @@ export default function LandingPage() {
                   reducir costos y mejorar la calidad de sus productos.
                 </p>
                 <p className="text-lg text-gray-600 mb-6">
-                  Con años de experiencia y un equipo de expertos en tecnología
-                  y agricultura, estamos comprometidos a impulsar la innovación
-                  en el sector agrícola y a ayudar a nuestros clientes a
-                  alcanzar nuevos niveles de excelencia.
+                  Con un enfoque en innovación y un equipo apasionado por la
+                  tecnología y la agricultura, trabajamos incansablemente para
+                  transformar las exportaciones agrícolas y ayudar a nuestros
+                  clientes a alcanzar nuevos niveles de excelencia.
                 </p>
               </div>
-              <div className="relative h-[400px]">
+              <div className="flex justify-end max-h-min">
                 <Image
-                  src="/images/logo2.png"
+                  src="/images/Stass.png"
                   alt="Equipo STASS"
-                  fill
-                  style={{ objectFit: "cover" }}
-                  className="rounded-2xl shadow-lg"
+                  width={450}
+                  height={450}
+                  className=""
                 />
               </div>
             </div>
