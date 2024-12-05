@@ -14,6 +14,14 @@ export default function LandingPage() {
       <header className="px-4 lg:px-6 h-16 flex items-center fixed w-full bg-white/80 backdrop-blur-md z-50 shadow-sm">
         <Link className="flex items-center justify-center" href="#">
           <Image
+            src="/images/Stass.png"
+            alt="Logo STASS"
+            width={40}
+            height={84}
+            unoptimized={true}
+            className="mr-1"
+          />
+          <Image
             src="/images/logo2.png"
             alt="Logo STASS"
             width={140}
@@ -281,7 +289,7 @@ export default function LandingPage() {
                   clientes a alcanzar nuevos niveles de excelencia.
                 </p>
               </div>
-              <div className="flex justify-end max-h-min">
+              <div className="flex md:justify-end justify-center md:mx-0 mx-24">
                 <Image
                   src="/images/Stass.png"
                   alt="Equipo STASS"
