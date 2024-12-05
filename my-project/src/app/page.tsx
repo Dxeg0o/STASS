@@ -154,9 +154,9 @@ export default function LandingPage() {
                 whileHover={{ scale: 1.05 }}
                 className="bg-green-50 p-8 rounded-2xl shadow-lg"
               >
-                <div className="flex ju">
+                <div className="flex">
                   <Image
-                    src="/images/—Pngtree—asparagus clipart asparagus illustration and_11059918.png"
+                    src="/images/esparrago.png"
                     alt="Tecnología para Espárragos"
                     width={400}
                     height={300}
