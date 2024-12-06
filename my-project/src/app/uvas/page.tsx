@@ -45,26 +45,26 @@ export default function LandingPage() {
         </Link>
         <nav className="ml-auto hidden md:flex gap-4 sm:gap-6">
           <Link
-            className="text-sm font-medium text-red-800 hover:text-red-600 transition-colors"
+            className="text-sm font-medium text-purple-800 hover:text-purple-600 transition-colors"
             href="#steps"
           >
             Pasos
           </Link>
           <Link
-            className="text-sm font-medium text-red-800 hover:text-red-600 transition-colors"
+            className="text-sm font-medium text-purple-800 hover:text-purple-600 transition-colors"
             href="#results"
           >
             Resultados
           </Link>
           <Link
-            className="text-sm font-medium text-red-800 hover:text-red-600 transition-colors"
+            className="text-sm font-medium text-purple-800 hover:text-purple-600 transition-colors"
             href="#contact"
           >
             Contacto
           </Link>
         </nav>
         <Link
-          className="ml-4 hidden md:inline-flex border-red-600 text-red-600 hover:bg-red-50 border rounded-md py-1 px-2"
+          className="ml-4 hidden md:inline-flex border-purple-600 text-purple-600 hover:bg-purple-50 border rounded-md py-1 px-2"
           href={"/login"}
         >
           Iniciar Sesión
@@ -72,7 +72,7 @@ export default function LandingPage() {
         <Button
           variant="ghost"
           size="icon"
-          className="ml-auto md:hidden text-red-600"
+          className="ml-auto md:hidden text-purple-600"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
           {isMenuOpen ? (
@@ -86,28 +86,28 @@ export default function LandingPage() {
         <div className="fixed inset-0 z-40 bg-white md:hidden pt-16">
           <nav className="flex flex-col items-center gap-4 p-4">
             <Link
-              className="text-lg font-medium text-red-800 hover:text-red-600 transition-colors"
+              className="text-lg font-medium text-purple-800 hover:text-purple-600 transition-colors"
               href="#steps"
               onClick={() => setIsMenuOpen(false)}
             >
               Pasos
             </Link>
             <Link
-              className="text-lg font-medium text-red-800 hover:text-red-600 transition-colors"
+              className="text-lg font-medium text-purple-800 hover:text-purple-600 transition-colors"
               href="#results"
               onClick={() => setIsMenuOpen(false)}
             >
               Resultados
             </Link>
             <Link
-              className="text-lg font-medium text-red-800 hover:text-red-600 transition-colors"
+              className="text-lg font-medium text-purple-800 hover:text-purple-600 transition-colors"
               href="#contact"
               onClick={() => setIsMenuOpen(false)}
             >
               Contacto
             </Link>
             <Link
-              className="mt-4 w-full bg-red-600 hover:bg-red-700 text-white"
+              className="mt-4 w-full bg-purple-100 hover:bg-purple-700 text-white"
               href={"/login"}
             >
               Iniciar Sesión
@@ -125,22 +125,22 @@ export default function LandingPage() {
                 transition={{ duration: 0.5 }}
                 className="flex flex-col space-y-4"
               >
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-5xl lg:text-6xl text-red-800 text-center md:text-left px-6 md:px-0">
+                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-5xl lg:text-6xl text-purple-800 text-center md:text-left px-6 md:px-0">
                   Optimiza la{" "}
-                  <span className="inline underline md:underline-offset-4 underline-offset-2 decoration-[#fdfa33]">
+                  <span className="inline underline md:underline-offset-4 underline-offset-2 decoration-[#FF0024]">
                     calidad
                   </span>{" "}
-                  en tus exportaciones de cerezas
+                  en tus exportaciones de uvas
                 </h1>
-                <h2 className="max-w-[600px] text-red-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-center md:text-justify px-6 md:px-0">
-                  Detectamos hasta un <strong>70% más</strong> de productos
+                <h2 className="max-w-[600px] text-purple-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-center md:text-justify px-6 md:px-0">
+                  Detectamos hasta un <strong>80% más</strong> de productos
                   <strong> fuera de estándar</strong> mediante tecnología de
                   punta, sin grandes inversiones iniciales.
                 </h2>
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
                   <div className=" flex justify-center">
                     <Link
-                      className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105 max-w-40"
+                      className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105 max-w-40"
                       href={"/demo"}
                     >
                       Ver Demo
@@ -155,8 +155,8 @@ export default function LandingPage() {
                 className="flex items-end justify-center"
               >
                 <Image
-                  src="/images/cereza.png"
-                  alt="Cherry quality control"
+                  src="/images/uvas.png"
+                  alt="Grapes quality control"
                   width={550}
                   height={300}
                   className="rounded-lg w-3/4 md:w-full max-w-[550px] h-auto object-cover mt-6 md:mt-0"
@@ -165,48 +165,48 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-        <section id="steps" className="bg-red-50">
+        <section id="steps" className="bg-purple-50">
           <div className="w-full py-12 md:py-24 lg:py-32">
             <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-red-800">
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-purple-800">
                 Cómo Funciona
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
                 <div className="flex flex-col items-center text-center">
-                  <div className="bg-red-100 p-3 rounded-full mb-4">
-                    <CheckCircle className="h-6 w-6 text-red-600" />
+                  <div className="bg-purple-100 p-3 rounded-full mb-4">
+                    <CheckCircle className="h-6 w-6 text-purple-600" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 text-red-800">
-                    Escaneo de Cerezas
+                  <h3 className="text-xl font-semibold mb-2 text-purple-800">
+                    Escaneo de Uvas
                   </h3>
-                  <p className="text-red-700">
-                    Nuestro sistema escanea cada cereza individualmente
+                  <p className="text-purple-700">
+                    Nuestro sistema escanea cada uva individualmente
                     utilizando tecnología de visión por computadora avanzada.
                   </p>
                 </div>
                 <div className="flex flex-col items-center text-center">
-                  <div className="bg-red-100 p-3 rounded-full mb-4">
-                    <CheckCircle className="h-6 w-6 text-red-600" />
+                  <div className="bg-purple-100 p-3 rounded-full mb-4">
+                    <CheckCircle className="h-6 w-6 text-purple-600" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 text-red-800">
+                  <h3 className="text-xl font-semibold mb-2 text-purple-800">
                     Análisis de Calidad
                   </h3>
-                  <p className="text-red-700">
-                    Los algoritmos de IA analizan cada cereza en tiempo real,
+                  <p className="text-purple-700">
+                    Los algoritmos de IA analizan cada uva en tiempo real,
                     detectando imperfecciones y clasificando según los
                     estándares de calidad.
                   </p>
                 </div>
                 <div className="flex flex-col items-center text-center">
-                  <div className="bg-red-100 p-3 rounded-full mb-4">
-                    <CheckCircle className="h-6 w-6 text-red-600" />
+                  <div className="bg-purple-100 p-3 rounded-full mb-4">
+                    <CheckCircle className="h-6 w-6 text-purple-600" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 text-red-800">
+                  <h3 className="text-xl font-semibold mb-2 text-purple-800">
                     Optimización Continua
                   </h3>
-                  <p className="text-red-700">
+                  <p className="text-purple-700">
                     El sistema aprende y mejora constantemente, adaptándose a
-                    nuevas variedades de cerezas y estándares de calidad.
+                    nuevas variedades de uva y estándares de calidad.
                   </p>
                 </div>
               </div>
@@ -216,7 +216,7 @@ export default function LandingPage() {
 
         <section id="results" className="w-full py-12 md:py-24 lg:py-32 ">
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h3 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-red-800">
+            <h3 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-purple-800">
               Resultados Comprobados
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -224,11 +224,11 @@ export default function LandingPage() {
                 whileHover={{ scale: 1.05 }}
                 className="bg-white p-6 rounded-lg shadow-lg text-center"
               >
-                <h4 className="text-4xl font-bold text-red-600 mb-2">35%</h4>
-                <p className="text-red-800 font-semibold">
+                <h4 className="text-4xl font-bold text-purple-600 mb-2">35%</h4>
+                <p className="text-purple-800 font-semibold">
                   Reducción de Costos Operativos
                 </p>
-                <p className="text-sm text-red-700 mt-2">
+                <p className="text-sm text-purple-700 mt-2">
                   Promedio entre nuestros clientes
                 </p>
               </motion.div>
@@ -236,11 +236,11 @@ export default function LandingPage() {
                 whileHover={{ scale: 1.05 }}
                 className="bg-white p-6 rounded-lg shadow-lg text-center"
               >
-                <h3 className="text-4xl font-bold text-red-600 mb-2">99.5%</h3>
-                <p className="text-red-800 font-semibold">
+                <h3 className="text-4xl font-bold text-purple-600 mb-2">99.5%</h3>
+                <p className="text-purple-800 font-semibold">
                   Precisión en Control de Calidad
                 </p>
-                <p className="text-sm text-red-700 mt-2">
+                <p className="text-sm text-purple-700 mt-2">
                   Utilizando nuestra tecnología de escaneo
                 </p>
               </motion.div>
@@ -248,9 +248,9 @@ export default function LandingPage() {
                 whileHover={{ scale: 1.05 }}
                 className="bg-white p-6 rounded-lg shadow-lg text-center"
               >
-                <h3 className="text-4xl font-bold text-red-600 mb-2">30%</h3>
-                <p className="text-red-800 font-semibold">Aumento en ROI</p>
-                <p className="text-sm text-red-700 mt-2">
+                <h3 className="text-4xl font-bold text-purple-600 mb-2">30%</h3>
+                <p className="text-purple-800 font-semibold">Aumento en ROI</p>
+                <p className="text-sm text-purple-700 mt-2">
                   En el primer año de implementación
                 </p>
               </motion.div>
@@ -258,9 +258,9 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-red-50">
+        <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-purple-50">
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h4 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-red-800">
+            <h4 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-purple-800">
               Preguntas Frecuentes
             </h4>
             <Accordion
@@ -269,40 +269,40 @@ export default function LandingPage() {
               className="w-full max-w-3xl mx-auto"
             >
               <AccordionItem value="item-1">
-                <AccordionTrigger className="text-red-800 text-lg">
-                  ¿Cómo funciona la tecnología de escaneo para cerezas?
+                <AccordionTrigger className="text-purple-800 text-lg">
+                  ¿Cómo funciona la tecnología de escaneo para uvas?
                 </AccordionTrigger>
-                <AccordionContent className="text-red-700">
+                <AccordionContent className="text-purple-700">
                   Nuestra tecnología utiliza cámaras de alta resolución y
                   algoritmos de inteligencia artificial avanzados para detectar
-                  imperfecciones en las cerezas con una precisión del 99.5%. El
-                  sistema analiza cada cereza individualmente, considerando
+                  imperfecciones en las uvas con una precisión del 90%. El
+                  sistema analiza cada uva individualmente, considerando
                   factores como tamaño, forma, color y textura.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-2">
-                <AccordionTrigger className="text-red-800 text-lg">
+                <AccordionTrigger className="text-purple-800 text-lg">
                   ¿Cuánto tiempo toma implementar el sistema?
                 </AccordionTrigger>
-                <AccordionContent className="text-red-700">
+                <AccordionContent className="text-purple-700">
                   La implementación típica toma entre 2 y 3 semanas, dependiendo
                   del tamaño de su operación y los requisitos específicos.
                   Nuestro equipo de expertos trabaja estrechamente con su
                   personal para asegurar una transición suave y una integración
-                  perfecta con sus procesos existentes de selección de cerezas.
+                  perfecta con sus procesos existentes de selección de uvas.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-3">
-                <AccordionTrigger className="text-red-800 text-lg">
+                <AccordionTrigger className="text-purple-800 text-lg">
                   ¿Ofrecen soporte técnico continuo?
                 </AccordionTrigger>
-                <AccordionContent className="text-red-700">
+                <AccordionContent className="text-purple-700">
                   Sí, ofrecemos soporte técnico 24/7 y actualizaciones regulares
                   del software para asegurar que su sistema siempre esté
                   funcionando de manera óptima. Nuestro equipo de soporte está
                   altamente capacitado y puede resolver la mayoría de los
                   problemas de forma remota, minimizando el tiempo de
-                  inactividad en su línea de producción de cerezas.
+                  inactividad en su línea de producción de uvas.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -313,14 +313,14 @@ export default function LandingPage() {
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2">
-                <h4 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-red-800">
+                <h4 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-purple-800">
                   ¿Listo para mejorar la calidad de sus exportaciones de
-                  cerezas?
+                  uvas?
                 </h4>
-                <p className="mx-auto max-w-[600px] text-red-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <p className="mx-auto max-w-[600px] text-purple-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Contáctenos hoy mismo para una demostración gratuita y
                   descubra cómo podemos optimizar sus procesos de exportación de
-                  cerezas.
+                  uvas.
                 </p>
               </div>
               <div className="w-full max-w-sm space-y-2">
@@ -335,7 +335,7 @@ export default function LandingPage() {
                   />
                   <Button
                     type="submit"
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-200 transform hover:scale-105"
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-200 transform hover:scale-105"
                   >
                     Solicitar Información
                   </Button>
@@ -346,18 +346,18 @@ export default function LandingPage() {
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-red-700">
+        <p className="text-xs text-purple-700">
           © 2024 STASS. Todos los derechos reservados.
         </p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link
-            className="text-xs hover:underline underline-offset-4 text-red-700"
+            className="text-xs hover:underline underline-offset-4 text-purple-700"
             href="#"
           >
             Términos de Servicio
           </Link>
           <Link
-            className="text-xs hover:underline underline-offset-4 text-red-700"
+            className="text-xs hover:underline underline-offset-4 text-purple-700"
             href="#"
           >
             Política de Privacidad
