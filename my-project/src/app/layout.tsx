@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     siteName: "STASS",
     images: [
       {
-        url: "/images/Stass.png",
+        url: "/images/Stass (5).png",
         width: 800,
         height: 800,
         alt: "Logo de STASS",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   icons: {
-    icon: "/images/Stass.png",
+    icon: "/images/Stass (5).png",
   },
 };
 
