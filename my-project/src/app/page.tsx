@@ -3,14 +3,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Menu,
-  X,
-  CheckCircle,
-  BarChart,
-  ShieldCheck,
-  Globe2,
-} from "lucide-react";
+import { Menu, X, BarChart, ShieldCheck, Globe2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ProductCard } from "@/components/landing/product-card";
 
@@ -114,7 +107,7 @@ export default function LandingPage() {
               >
                 Control inteligente de{" "}
                 <span className="underline decoration-[#f3c301]">calidad</span>{" "}
-                para asegurar tus exportaciones
+                que impulsa tus exportaciones{" "}
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -153,6 +146,7 @@ export default function LandingPage() {
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-[#024521]">
               Soluciones adaptadas a tus productos
             </h2>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
               <ProductCard name="Uvas" linkHref="/uvas" />
               <ProductCard name="Espárragos" linkHref="/esparragos" />
