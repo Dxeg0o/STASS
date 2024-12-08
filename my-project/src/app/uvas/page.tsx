@@ -28,17 +28,9 @@ export default function LandingPage() {
       <header className="px-4 lg:px-6 h-16 flex items-center fixed w-full bg-white/80 backdrop-blur-md z-50 shadow-sm">
         <Link className="flex items-center justify-center" href="/">
           <Image
-            src="/images/Stass.png"
+            src="/images/Stass completo.png"
             alt="Logo STASS"
-            width={40}
-            height={84}
-            unoptimized={true}
-            className="mr-1"
-          />
-          <Image
-            src="/images/logo2.png"
-            alt="Logo"
-            width={140}
+            width={170}
             height={84}
             unoptimized={true}
           />
@@ -180,8 +172,8 @@ export default function LandingPage() {
                     Escaneo de Uvas
                   </h3>
                   <p className="text-purple-700">
-                    Nuestro sistema escanea cada uva individualmente
-                    utilizando tecnología de visión por computadora avanzada.
+                    Nuestro sistema escanea cada uva individualmente utilizando
+                    tecnología de visión por computadora avanzada.
                   </p>
                 </div>
                 <div className="flex flex-col items-center text-center">
@@ -236,7 +228,9 @@ export default function LandingPage() {
                 whileHover={{ scale: 1.05 }}
                 className="bg-white p-6 rounded-lg shadow-lg text-center"
               >
-                <h3 className="text-4xl font-bold text-purple-600 mb-2">99.5%</h3>
+                <h3 className="text-4xl font-bold text-purple-600 mb-2">
+                  99.5%
+                </h3>
                 <p className="text-purple-800 font-semibold">
                   Precisión en Control de Calidad
                 </p>
@@ -258,7 +252,10 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="faq" className="w-full py-12 md:py-24 lg:py-32 bg-purple-50">
+        <section
+          id="faq"
+          className="w-full py-12 md:py-24 lg:py-32 bg-purple-50"
+        >
           <div className="container mx-auto px-4 md:px-6 max-w-7xl">
             <h4 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-purple-800">
               Preguntas Frecuentes
@@ -314,8 +311,7 @@ export default function LandingPage() {
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2">
                 <h4 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-purple-800">
-                  ¿Listo para mejorar la calidad de sus exportaciones de
-                  uvas?
+                  ¿Listo para mejorar la calidad de sus exportaciones de uvas?
                 </h4>
                 <p className="mx-auto max-w-[600px] text-purple-700 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Contáctenos hoy mismo para una demostración gratuita y

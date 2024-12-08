@@ -22,9 +22,9 @@ export default function LoginPage() {
       <header className="px-4 lg:px-6 h-16 flex items-center fixed w-full bg-white/80 backdrop-blur-md z-50 shadow-sm">
         <Link className="flex items-center justify-center" href="/">
           <Image
-            src="/images/logo2.png"
-            alt="Logo"
-            width={140}
+            src="/images/Stass completo.png"
+            alt="Logo STASS"
+            width={170}
             height={84}
             unoptimized={true}
           />

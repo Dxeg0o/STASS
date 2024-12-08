@@ -3,7 +3,14 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Menu, X, CheckCircle } from "lucide-react";
+import {
+  Menu,
+  X,
+  CheckCircle,
+  BarChart,
+  ShieldCheck,
+  Globe2,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { ProductCard } from "@/components/landing/product-card";
 
@@ -105,9 +112,9 @@ export default function LandingPage() {
                 transition={{ duration: 0.5 }}
                 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-[#024521]"
               >
-                Control de{" "}
+                Control inteligente de{" "}
                 <span className="underline decoration-[#f3c301]">calidad</span>{" "}
-                inteligente para exportaciones agrícolas
+                para asegurar tus exportaciones
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -144,7 +151,7 @@ export default function LandingPage() {
         >
           <div className="container mx-auto px-4 md:px-6">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-[#024521]">
-              Descubre nuestras soluciones
+              Soluciones adaptadas a tus productos
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
               <ProductCard name="Uvas" linkHref="/uvas" />
@@ -168,44 +175,51 @@ export default function LandingPage() {
                 className="bg-white p-6 rounded-xl shadow-md text-center"
               >
                 <div className="text-green-600 mb-4">
-                  <CheckCircle size={48} className="mx-auto" />
+                  <ShieldCheck size={48} className="mx-auto" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  Mayor Precisión
+                  Cumplimiento y Confianza
                 </h3>
                 <p className="text-gray-600">
-                  Detección de hasta 70-80% más productos fuera de estándar,
-                  asegurando la más alta calidad.
+                  Monitorea el cumplimiento de tus proveedores en tiempo real,
+                  detectando rápidamente insumos fuera de estándar. Asegura un
+                  producto final confiable y apto para los mercados más
+                  exigentes.
                 </p>
               </motion.div>
+
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="bg-white p-6 rounded-xl shadow-md text-center"
               >
                 <div className="text-green-600 mb-4">
-                  <CheckCircle size={48} className="mx-auto" />
+                  <BarChart size={48} className="mx-auto" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  Reducción de Costos
+                  Reducción de Costos Reales
                 </h3>
                 <p className="text-gray-600">
-                  Optimización de procesos que resulta en una reducción
-                  significativa de costos operativos.
+                  Reduce mermas y costos ocasionados por producto defectuoso,
+                  disminuye la dependencia de inspecciones manuales
+                  ineficientes, y aumenta la rentabilidad al evitar gastos
+                  recurrentes.
                 </p>
               </motion.div>
+
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="bg-white p-6 rounded-xl shadow-md text-center"
               >
                 <div className="text-green-600 mb-4">
-                  <CheckCircle size={48} className="mx-auto" />
+                  <Globe2 size={48} className="mx-auto" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  Aumento del ROI
+                  Acceso a Mercados Exigentes
                 </h3>
                 <p className="text-gray-600">
-                  Incremento notable en el retorno de inversión desde el primer
-                  año de implementación.
+                  Cumple y supera regulaciones internacionales, posicionando tu
+                  marca como un referente de calidad. Diversifica tus canales de
+                  venta, accede a mejores precios y eleva tu reputación.
                 </p>
               </motion.div>
             </div>
@@ -223,16 +237,19 @@ export default function LandingPage() {
                   Sobre STASS
                 </h2>
                 <p className="text-lg text-[#03312e] mb-6">
-                  En STASS, nos dedicamos a revolucionar la industria agrícola
-                  con tecnología de punta. Nuestras soluciones de control de
-                  calidad ayudan a los exportadores a optimizar sus procesos,
-                  reducir costos y mejorar la calidad de sus productos.
+                  En STASS, revolucionamos la industria agrícola con tecnología
+                  de punta. Nuestra misión es empoderar a las pymes exportadoras
+                  con herramientas de control de calidad basadas en datos, para
+                  que puedan identificar rápidamente desviaciones, mejorar sus
+                  procesos y mantener la competitividad.
                 </p>
                 <p className="text-lg text-[#03312e] mb-6">
-                  Con un enfoque en innovación y un equipo apasionado por la
-                  tecnología y la agricultura, trabajamos incansablemente para
-                  transformar las exportaciones agrícolas y ayudar a nuestros
-                  clientes a alcanzar nuevos niveles de excelencia.
+                  Nuestro enfoque integral garantiza que puedas{" "}
+                  <strong>reaccionar con agilidad</strong> ante problemas,{" "}
+                  <strong>mantener la consistencia</strong> del producto y{" "}
+                  <strong>alcanzar estándares internacionales</strong>. Con
+                  STASS, tu reputación de calidad se consolida y tu negocio
+                  crece de manera sostenible.
                 </p>
               </div>
               <div className="flex md:justify-end justify-center md:mx-0 mx-24">
@@ -258,8 +275,10 @@ export default function LandingPage() {
             </h2>
             <div className="text-center max-w-3xl mx-auto">
               <p className="text-xl text-[#03312e] mb-8">
-                ¿Listo para llevar sus exportaciones agrícolas al siguiente
-                nivel? Nuestro equipo está aquí para ayudarle.
+                ¿Listo para optimizar la calidad de tus exportaciones y reducir
+                costos desde el origen? Contáctanos y descubre cómo STASS puede
+                ayudarte a convertir la{" "}
+                <strong>gestión de calidad en una ventaja competitiva</strong>.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Link
