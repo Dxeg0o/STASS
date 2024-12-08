@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Menu, X, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { ProductCard } from "@/components/landing/product-card";
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -145,90 +146,26 @@ export default function LandingPage() {
           id="soluciones"
           className="w-full py-16 md:py-24 lg:py-32 bg-white"
         >
-          <div className="container mx-auto px-4 md:px-6 max-w-7xl">
+          <div className="container mx-auto px-4 md:px-6">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-gray-900">
-              Soluciones Innovadoras para su Agricultura
+              Nuestros Productos
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="bg-purple-50 p-8 rounded-2xl shadow-lg"
-            >
-              <Image
-                src="/images/uvas.png"
-                alt="Tecnología para uvas"
-                width={400}
-                height={300}
-                className="rounded-lg mb-6 w-2/5 h-48 object-cover"
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
+              <ProductCard
+                name="Uvas"
+                imageSrc="/images/uvas.png"
+                linkHref="/uvas"
               />
-              <h3 className="text-2xl font-bold text-purple-700 mb-4">
-                Control de Calidad de uvas
-              </h3>
-              <p className="text-gray-700 mb-6 text-justify">
-                Garantizamos la calidad, detectando un 78% de fallas de calidad en sus exportaciones con tecnología avanzada que maximizando la frescura y la durabilidad de sus uvas.
-              </p>
-              <Link
-                href="/uvas"
-                className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-full transition-all duration-200"
-              >
-                Más Información
-              </Link>
-            </motion.div>
-
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="bg-green-50 p-8 rounded-2xl shadow-lg"
-              >
-                <div className="flex">
-                  <Image
-                    src="/images/esparrago.png"
-                    alt="Tecnología para Espárragos"
-                    width={400}
-                    height={300}
-                    className="rounded-lg mb-6 w-2/5 h-48 object-cover"
-                  />
-                </div>
-                <h3 className="text-2xl font-bold text-green-700 mb-4">
-                  Control de Calidad de Espárragos
-                </h3>
-                <p className="text-gray-700 mb-6 text-justify">
-                  Nuestra tecnología de punta detecta hasta un 70% más de
-                  productos fuera de estándar, asegurando la máxima calidad en
-                  sus exportaciones de espárragos.
-                </p>
-                <Link
-                  href="/esparragos"
-                  className="inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full transition-all duration-200"
-                >
-                  Explorar Solución
-                </Link>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="bg-red-50 p-8 rounded-2xl shadow-lg"
-              >
-                <Image
-                  src="/images/cereza.png"
-                  alt="Tecnología para Cerezas"
-                  width={400}
-                  height={300}
-                  className="rounded-lg mb-6 w-3/5 h-48 object-cover"
-                />
-                <h3 className="text-2xl font-bold text-red-700 mb-4">
-                  Control de Calidad de Cerezas
-                </h3>
-                <p className="text-gray-700 mb-6 text-justify">
-                  Optimizamos sus exportaciones de cerezas con una precisión del
-                  99.5% en el control de calidad, garantizando productos de
-                  primera clase para sus clientes.
-                </p>
-                <Link
-                  href="/cerezas"
-                  className="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full transition-all duration-200"
-                >
-                  Descubrir Más
-                </Link>
-              </motion.div>
+              <ProductCard
+                name="Espárragos"
+                imageSrc="/images/esparrago.png"
+                linkHref="/esparragos"
+              />
+              <ProductCard
+                name="Cerezas"
+                imageSrc="/images/cereza.png"
+                linkHref="/cerezas"
+              />
             </div>
           </div>
         </section>
