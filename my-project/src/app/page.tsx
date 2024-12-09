@@ -116,7 +116,7 @@ export default function LandingPage() {
                 className="mt-4 text-xl text-[#03312e] max-w-3xl mx-auto"
               >
                 Ayudamos a las pymes exportadoras a{" "}
-                <strong>garantizar la calidad</strong> de sus productos,
+                <strong>controlar la calidad</strong> de sus productos,
                 reduciendo hasta un{" "}
                 <strong>30% los costos de inspección manual</strong>. Todo esto
                 con tecnología de punta, sin necesidad de grandes inversiones.
