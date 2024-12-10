@@ -17,9 +17,6 @@ export default function SelectedLabels({
       name: "Proveedores",
       subLabels: ["Proveedor A", "Proveedor B", "Proveedor C"],
     },
-    { name: "Tamaño", subLabels: ["Pequeño", "Mediano", "Grande"] },
-    { name: "Color", subLabels: ["Verde", "Rojo", "Amarillo"] },
-    { name: "Forma", subLabels: ["Redonda", "Alargada", "Irregular"] },
   ];
 
   const toggleLabel = (label: Label) => {
