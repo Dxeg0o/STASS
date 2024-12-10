@@ -12,12 +12,19 @@ export default function QualityControlPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Control de Calidad STASS</h1>
+    <div className="container px-4 py-8">
+      <h1 className="text-3xl font-bold mb-2">Comienza a analizar</h1>
+      <p className="text-xl font-semibold mb-8">
+        Elige cual de tus productos analizarás, y comienza a analizarlo.
+      </p>
+
       {!productSelected ? (
         <div className="text-center">
           <ProductSelector />
-          <Button onClick={handleStart} className="mt-4">
+          <Button
+            onClick={handleStart}
+            className="mt-12 hover:bg-black/60 text-xl font-semibold p-6"
+          >
             Comenzar
           </Button>
         </div>

@@ -97,8 +97,9 @@ export default function EtiquetasDashboard() {
       <CardHeader>
         <CardTitle>Creación de etiquetas y subetiquetas</CardTitle>
         <CardDescription>
-          Crea etiquetas principales y subetiquetas para tus exportaciones de
-          espárragos para un mejor control de calidad.
+          Crea etiquetas principales y subetiquetas para tus exportaciones para
+          un mejor control de calidad, permitiendo tener trazabilidad de lo que
+          necesites.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -204,11 +205,7 @@ export default function EtiquetasDashboard() {
           </div>
         </ScrollArea>
       </CardContent>
-      <CardFooter>
-        <p className="text-sm text-muted-foreground">
-          Etiquetas seleccionadas: {etiquetasSeleccionadas.length}
-        </p>
-      </CardFooter>
+      <CardFooter></CardFooter>
     </Card>
   );
 }

@@ -7,7 +7,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <div className="min-w-full min-h-screen flex flex-col">
-        <nav className="w-full h-14 border-b bg-white flex items-center px-4">
+        <nav className="w-full h-14 border-b bg-gray-50 flex items-center px-4">
           <h1 className="font-semibold">STASS</h1>
         </nav>
         <div className="flex flex-1">

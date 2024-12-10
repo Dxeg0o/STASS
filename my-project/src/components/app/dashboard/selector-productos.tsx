@@ -1,6 +1,12 @@
-"use client"
+"use client";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function ProductSelector() {
   return (
@@ -14,5 +20,5 @@ export function ProductSelector() {
         <SelectItem value="grapes">Uvas</SelectItem>
       </SelectContent>
     </Select>
-  )
+  );
 }
