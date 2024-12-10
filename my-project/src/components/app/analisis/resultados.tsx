@@ -34,11 +34,11 @@ export default function QualityResults({}: QualityResultsProps) {
     { reason: "Textura", percentage: 10 },
   ];
 
-  const [visibleData, setVisibleData] = useState([fullData[0]]);
-  const [generalResult, setGeneralResult] = useState(visibleData[0].calidad);
-  const [last5MinutesResult, setLast5MinutesResult] = useState(
-    visibleData[0].calidad
-  );
+  const [visibleData, setVisibleData] = useState<
+    { name: string; calidad: number }[]
+  >([]);
+  const [generalResult, setGeneralResult] = useState(0);
+  const [last5MinutesResult, setLast5MinutesResult] = useState(0);
   const [rejectionReasons, setRejectionReasons] = useState(
     initialRejectionReasons
   );
@@ -89,6 +89,16 @@ export default function QualityResults({}: QualityResultsProps) {
     }, 5000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setVisibleData([fullData[0]]);
+      setGeneralResult(fullData[0].calidad);
+      setLast5MinutesResult(fullData[0].calidad);
+    }, 5000);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const CustomizedDot = (props: DotProps & { value: number }) => {
