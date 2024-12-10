@@ -15,22 +15,22 @@ import { BarChart2, Tag } from "lucide-react";
 const items = [
   {
     title: "Inicio",
-    url: "/",
+    url: "/app",
     icon: Home,
   },
   {
     title: "Análisis",
-    url: "/analisis",
+    url: "/app/analisis",
     icon: BarChart2,
   },
   {
     title: "Etiquetas",
-    url: "/etiquetas",
+    url: "/app/etiquetas",
     icon: Tag,
   },
   {
     title: "Configuraciones",
-    url: "/configuraciones",
+    url: "/app/configuraciones",
     icon: Settings,
   },
 ];
