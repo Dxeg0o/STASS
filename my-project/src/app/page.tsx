@@ -22,7 +22,7 @@ export default function LandingPage() {
             unoptimized={true}
           />
         </Link>
-        <nav className="ml-auto hidden md:flex gap-6">
+        <nav className="ml-auto hidden md:flex gap-6 items-center">
           <Link
             className="text-sm font-medium text-gray-800 hover:text-green-600 transition-colors"
             href="#soluciones"
@@ -46,6 +46,12 @@ export default function LandingPage() {
             href="#contacto"
           >
             Contacto
+          </Link>
+          <Link
+            className="ml-4 hidden md:inline-flex bg-[#024521] hover:bg-[#024521]/90 text-white border rounded-md py-1 px-2"
+            href={"/login"}
+          >
+            Iniciar Sesión
           </Link>
         </nav>
         <Button
@@ -91,6 +97,12 @@ export default function LandingPage() {
               onClick={() => setIsMenuOpen(false)}
             >
               Contacto
+            </Link>
+            <Link
+              className="mt-4 w-full bg-[#024521] hover:bg-[#024521]/90 text-white"
+              href={"/login"}
+            >
+              Iniciar Sesión
             </Link>
           </nav>
         </div>

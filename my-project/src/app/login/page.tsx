@@ -14,7 +14,7 @@ export default function LoginPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Login attempt with:", { email, password });
-    // Here you would typically handle the login logic
+    // Aquí típicamente manejarías la lógica de inicio de sesión
   };
 
   return (
@@ -75,12 +75,14 @@ export default function LoginPage() {
                 className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
               />
             </div>
-            <Button
-              type="submit"
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-200 transform hover:scale-105"
-            >
-              Iniciar Sesión
-            </Button>
+            <div className="flex justify-center mt-6">
+              <Link
+                href="/app"
+                className="w-full  bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-200 transform hover:scale-105 text-center"
+              >
+                Iniciar Sesión
+              </Link>
+            </div>
           </form>
           <p className="mt-4 text-center text-sm text-green-700">
             ¿No tiene una cuenta?{" "}
