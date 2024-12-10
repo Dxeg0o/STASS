@@ -10,10 +10,7 @@ interface AnalysisResultsProps {
   rejectionReasons: { reason: string; percentage: number }[];
 }
 
-export default function AnalysisResults({
-  overallQuality,
-  rejectionReasons,
-}: AnalysisResultsProps) {
+export default function AnalysisResults({}: AnalysisResultsProps) {
   const { toPDF, targetRef } = usePDF({ filename: "analisis-calidad.pdf" });
 
   return (
