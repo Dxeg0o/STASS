@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -17,23 +18,79 @@ interface QualityResultsProps {
 }
 
 export default function QualityResults({}: QualityResultsProps) {
-  const data = [
+  const fullData = [
     { name: "Min 5", calidad: 82 },
     { name: "Min 10", calidad: 78 },
     { name: "Min 15", calidad: 85 },
     { name: "Min 20", calidad: 89 },
     { name: "Min 25", calidad: 91 },
-    { name: "Min 30", calidad: 95 }, // Ejemplo de valor bajo para pruebas
+    { name: "Min 30", calidad: 95 },
   ];
 
-  const rejectionReasons = [
+  const initialRejectionReasons = [
     { reason: "Tamaño", percentage: 40 },
     { reason: "Color", percentage: 30 },
     { reason: "Forma", percentage: 20 },
     { reason: "Textura", percentage: 10 },
   ];
 
-  // Componente para renderizar puntos personalizados
+  const [visibleData, setVisibleData] = useState([fullData[0]]);
+  const [generalResult, setGeneralResult] = useState(visibleData[0].calidad);
+  const [last5MinutesResult, setLast5MinutesResult] = useState(
+    visibleData[0].calidad
+  );
+  const [rejectionReasons, setRejectionReasons] = useState(
+    initialRejectionReasons
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisibleData((prevData) => {
+        const nextIndex = prevData.length;
+        if (nextIndex < fullData.length) {
+          const newVisibleData = [...prevData, fullData[nextIndex]];
+
+          // Update general result
+          const totalQuality = newVisibleData.reduce(
+            (acc, item) => acc + item.calidad,
+            0
+          );
+          setGeneralResult(Math.round(totalQuality / newVisibleData.length));
+
+          // Update last 5 minutes result
+          const last5Data = newVisibleData.slice(-1);
+          setLast5MinutesResult(last5Data[0]?.calidad || 0);
+
+          return newVisibleData;
+        } else {
+          clearInterval(interval);
+          return prevData;
+        }
+      });
+
+      // Update rejection reasons
+      setRejectionReasons((prevReasons) => {
+        const updatedReasons = prevReasons.map((reason) => ({
+          ...reason,
+          percentage: Math.max(
+            5,
+            Math.min(50, reason.percentage + (Math.random() > 0.5 ? 1 : -1))
+          ),
+        }));
+        const total = updatedReasons.reduce(
+          (acc, curr) => acc + curr.percentage,
+          0
+        );
+        return updatedReasons.map((reason) => ({
+          ...reason,
+          percentage: Math.round((reason.percentage / total) * 100),
+        }));
+      });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const CustomizedDot = (props: DotProps & { value: number }) => {
     const { cx, cy, value } = props;
     if (value < 80 && cx !== undefined && cy !== undefined) {
@@ -42,17 +99,17 @@ export default function QualityResults({}: QualityResultsProps) {
           <circle
             cx={cx}
             cy={cy}
-            r={10} // Aumentar aún más el tamaño del círculo
+            r={10}
             stroke="red"
-            strokeWidth={4} // Aumentar el grosor del borde
-            fill="yellow" // Cambiar el color de relleno para mayor contraste
+            strokeWidth={4}
+            fill="yellow"
           />
           <text
             x={cx}
-            y={cy - 20} // Posicionar el texto más arriba del círculo
+            y={cy - 20}
             textAnchor="middle"
             fill="red"
-            fontSize="20px" // Aumentar el tamaño del símbolo
+            fontSize="20px"
             fontWeight="bold"
           >
             ⚠️
@@ -65,13 +122,24 @@ export default function QualityResults({}: QualityResultsProps) {
 
   return (
     <div className="bg-white p-4 rounded-lg shadow space-y-6">
+      <div className="flex items-center space-x-2">
+        <div className="relative">
+          <div className="w-3 h-3 bg-red-500 rounded-full animate-ping absolute"></div>
+          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+        </div>
+        <span className="text-red-500 font-semibold">En Vivo</span>
+      </div>
+
       <h2 className="text-xl font-semibold">Resultados de Calidad</h2>
 
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
+          <LineChart
+            data={visibleData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+          >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
+            <XAxis dataKey="name" padding={{ left: 30, right: 30 }} />
             <YAxis />
             <Tooltip />
             <Legend />
@@ -88,12 +156,14 @@ export default function QualityResults({}: QualityResultsProps) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <h3 className="text-lg font-semibold mb-2">Resultado General</h3>
-          <p className="text-3xl font-bold text-green-600">90%</p>
+          <p className="text-3xl font-bold text-green-600">{generalResult}%</p>
           <p className="text-sm text-gray-500">de productos aprobados</p>
         </div>
         <div>
-          <h3 className="text-lg font-semibold mb-2">Últimos 10 minutos</h3>
-          <p className="text-3xl font-bold text-blue-600">92%</p>
+          <h3 className="text-lg font-semibold mb-2">Últimos 5 minutos</h3>
+          <p className="text-3xl font-bold text-blue-600">
+            {last5MinutesResult}%
+          </p>
           <p className="text-sm text-gray-500">de productos aprobados</p>
         </div>
       </div>
