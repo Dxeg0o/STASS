@@ -17,6 +17,10 @@ export default function SelectedLabels({
       name: "Proveedores",
       subLabels: ["Proveedor A", "Proveedor B", "Proveedor C"],
     },
+    {
+      name: "Parte del flujo",
+      subLabels: ["Inicio", "Medio", "Fin"],
+    },
   ];
 
   const toggleLabel = (label: Label) => {
@@ -24,7 +28,8 @@ export default function SelectedLabels({
     if (index > -1) {
       onLabelChange(labels.filter((l) => l.name !== label.name));
     } else {
-      onLabelChange([...labels, label]);
+      // Al seleccionar "Proveedores", no se selecciona ninguna subetiqueta automáticamente
+      onLabelChange([...labels, { ...label, subLabels: [] }]);
     }
   };
 
@@ -33,11 +38,8 @@ export default function SelectedLabels({
     if (parentIndex > -1) {
       const updatedLabels = [...labels];
       const parent = { ...updatedLabels[parentIndex] };
-      if (parent.subLabels?.includes(subLabel)) {
-        parent.subLabels = parent.subLabels.filter((sl) => sl !== subLabel);
-      } else {
-        parent.subLabels = [...(parent.subLabels || []), subLabel];
-      }
+      // Asegurarse de que solo una subetiqueta esté seleccionada
+      parent.subLabels = [subLabel];
       updatedLabels[parentIndex] = parent;
       onLabelChange(updatedLabels);
     } else {

@@ -1,4 +1,5 @@
 import { Home, Settings } from "lucide-react";
+import Image from "next/image";
 
 import {
   Sidebar,
@@ -40,8 +41,15 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menú</SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupLabel className="flex">
+            <Image
+              src="/images/Stass completo.png"
+              alt="STASS"
+              width={120} // Reducir aún más el ancho para asegurar que el logo no exceda el espacio
+              height={120} // Reducir la altura para mantener la proporción
+            />
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="mt-8">
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
