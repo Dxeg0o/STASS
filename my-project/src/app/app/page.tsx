@@ -39,28 +39,34 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
-        <div className="grid gap-12 md:grid-cols-3">
-          {" "}
-          {/* Aumentar significativamente el espacio entre columnas */}
-          <Card className="md:col-span-1">
+        <div className="flex justify-between gap-16">
+          <Card className="flex-1">
             <CardHeader>
-              <CardTitle>Calidad del Color de Frutas</CardTitle>
+              <CardTitle className="text-2xl">
+                Calidad del Color de Frutas
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <FruitQualityChart />
             </CardContent>
           </Card>
-          <Card className="md:col-span-2">
+          <Card className="flex-1">
             <CardHeader>
-              <CardTitle>Porcentaje de Productos Aprobados</CardTitle>
+              <CardTitle className="text-2xl">
+                Porcentaje de Productos Aprobados
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <GraficoProductos />
             </CardContent>
           </Card>
-          <Card className="md:col-span-3">
+        </div>
+        <div className="flex justify-center mt-24">
+          <Card className="w-full max-w-[98%]">
             <CardHeader>
-              <CardTitle>Comparación de Productos</CardTitle>
+              <CardTitle className="text-3xl">
+                Comparación de Productos
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <ComparacionProductos />
