@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,21 @@ export default function EtiquetasDashboard() {
   >([]);
   const [etiquetaPrincipalSeleccionada, setEtiquetaPrincipalSeleccionada] =
     useState<number | null>(null);
+
+  useEffect(() => {
+    // Agregar la etiqueta "Proveedores" con subetiquetas por defecto
+    setEtiquetas([
+      {
+        id: Date.now(),
+        texto: "Proveedores",
+        subetiquetas: [
+          { id: Date.now() + 1, texto: "Proveedor A" },
+          { id: Date.now() + 2, texto: "Proveedor B" },
+          { id: Date.now() + 3, texto: "Proveedor C" },
+        ],
+      },
+    ]);
+  }, []);
 
   const agregarEtiqueta = () => {
     if (nuevaEtiqueta.trim() !== "") {
