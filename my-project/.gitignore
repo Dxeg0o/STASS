@@ -37,3 +37,6 @@ next-env.d.ts
 
 # keys
 backend/keys/stass.json
+
+__pycache__/
+venv/
