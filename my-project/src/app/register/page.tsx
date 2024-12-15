@@ -12,16 +12,51 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Registration attempt with:", {
-      email,
-      password,
-      confirmPassword,
-      companyName,
-    });
-    // Here you would typically handle the registration logic
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Las contraseñas no coinciden.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nombre: "Usuario", // You can replace this with an additional name input field if needed
+          correo: email,
+          contraseña: password,
+          empresa_id: companyName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error en el registro");
+      }
+
+      setSuccessMessage("Usuario registrado exitosamente.");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setCompanyName("");
+    } catch (error: any) {
+      setErrorMessage(error.message || "Algo salió mal.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,6 +83,14 @@ export default function RegisterPage() {
             Registrarse
           </h1>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {errorMessage && (
+              <p className="text-sm text-red-500 text-center">{errorMessage}</p>
+            )}
+            {successMessage && (
+              <p className="text-sm text-green-500 text-center">
+                {successMessage}
+              </p>
+            )}
             <div>
               <label
                 htmlFor="email"
@@ -118,9 +161,10 @@ export default function RegisterPage() {
             </div>
             <Button
               type="submit"
+              disabled={loading}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-200 transform hover:scale-105"
             >
-              Registrarse
+              {loading ? "Registrando..." : "Registrarse"}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-green-700">
