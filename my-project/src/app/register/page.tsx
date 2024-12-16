@@ -185,10 +185,10 @@ export default function RegisterPage() {
                 <option value="">Seleccione su país</option>
                 <option value="Argentina">Argentina</option>
                 <option value="Bolivia">Bolivia</option>
+                <option value="Brasil">Brasil</option>
                 <option value="Chile">Chile</option>
                 <option value="Colombia">Colombia</option>
                 <option value="Costa Rica">Costa Rica</option>
-                <option value="Cuba">Cuba</option>
                 <option value="Ecuador">Ecuador</option>
                 <option value="El Salvador">El Salvador</option>
                 <option value="España">España</option>
@@ -200,9 +200,6 @@ export default function RegisterPage() {
                 <option value="Paraguay">Paraguay</option>
                 <option value="Perú">Perú</option>
                 <option value="Puerto Rico">Puerto Rico</option>
-                <option value="República Dominicana">
-                  República Dominicana
-                </option>
                 <option value="Uruguay">Uruguay</option>
                 <option value="Venezuela">Venezuela</option>
               </select>
