@@ -4,7 +4,6 @@ const empresaSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   nombre: { type: String, required: true },
   pais: { type: String, required: true },
-  industria: { type: String, required: true },
   fecha_registro: { type: Date, required: true },
 });
 
