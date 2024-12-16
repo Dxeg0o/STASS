@@ -180,7 +180,7 @@ export default function RegisterPage() {
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
                 required
-                className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
+                className="w-full text-gray-500 rounded-md bg-white border border-green-300 focus:border-green-500 focus:ring-green-500 h-10 px-3 py-2 text-sm appearance-none"
               >
                 <option value="">Seleccione su país</option>
                 <option value="Argentina">Argentina</option>
