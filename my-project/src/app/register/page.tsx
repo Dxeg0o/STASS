@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
 
 export default function RegisterPage() {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [country, setCountry] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,16 +30,36 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
+      // Registrar la empresa primero
+      const empresaResponse = await fetch("/api/companies", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nombre: companyName,
+          pais: country,
+          fecha_registro: new Date(),
+        }),
+      });
+
+      const empresaData = await empresaResponse.json();
+
+      if (!empresaResponse.ok) {
+        throw new Error(empresaData.error || "Error al registrar la empresa");
+      }
+
+      // Usar el ID de la empresa para registrar el usuario
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          nombre: "Usuario", // You can replace this with an additional name input field if needed
+          nombre: username,
           correo: email,
           contraseña: password,
-          empresa_id: companyName,
+          empresa_id: empresaData._id, // Usar el ID de la empresa registrada
         }),
       });
 
@@ -47,13 +69,17 @@ export default function RegisterPage() {
         throw new Error(data.error || "Error en el registro");
       }
 
-      setSuccessMessage("Usuario registrado exitosamente.");
+      setSuccessMessage("Usuario y empresa registrados exitosamente.");
+      setUsername("");
       setEmail("");
       setPassword("");
       setConfirmPassword("");
       setCompanyName("");
-    } catch (error: any) {
-      setErrorMessage(error.message || "Algo salió mal.");
+      setCountry("");
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Algo salió mal.";
+      setErrorMessage(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -93,6 +119,23 @@ export default function RegisterPage() {
             )}
             <div>
               <label
+                htmlFor="username"
+                className="block text-sm font-medium text-green-700 mb-1"
+              >
+                Nombre de Usuario
+              </label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Su nombre de usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label
                 htmlFor="email"
                 className="block text-sm font-medium text-green-700 mb-1"
               >
@@ -124,6 +167,45 @@ export default function RegisterPage() {
                 required
                 className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
               />
+            </div>
+            <div>
+              <label
+                htmlFor="country"
+                className="block text-sm font-medium text-green-700 mb-1"
+              >
+                País
+              </label>
+              <select
+                id="country"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                required
+                className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
+              >
+                <option value="">Seleccione su país</option>
+                <option value="Argentina">Argentina</option>
+                <option value="Bolivia">Bolivia</option>
+                <option value="Chile">Chile</option>
+                <option value="Colombia">Colombia</option>
+                <option value="Costa Rica">Costa Rica</option>
+                <option value="Cuba">Cuba</option>
+                <option value="Ecuador">Ecuador</option>
+                <option value="El Salvador">El Salvador</option>
+                <option value="España">España</option>
+                <option value="Guatemala">Guatemala</option>
+                <option value="Honduras">Honduras</option>
+                <option value="México">México</option>
+                <option value="Nicaragua">Nicaragua</option>
+                <option value="Panamá">Panamá</option>
+                <option value="Paraguay">Paraguay</option>
+                <option value="Perú">Perú</option>
+                <option value="Puerto Rico">Puerto Rico</option>
+                <option value="República Dominicana">
+                  República Dominicana
+                </option>
+                <option value="Uruguay">Uruguay</option>
+                <option value="Venezuela">Venezuela</option>
+              </select>
             </div>
             <div>
               <label
@@ -162,7 +244,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-200 transform hover:scale-105"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-all duración-200 transform hover:scale-105"
             >
               {loading ? "Registrando..." : "Registrarse"}
             </Button>
