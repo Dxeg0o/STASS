@@ -266,13 +266,13 @@ export default function RegisterPage() {
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link
             className="text-xs hover:underline underline-offset-4 text-green-700"
-            href="/"
+            href="#"
           >
             Términos de Servicio
           </Link>
           <Link
             className="text-xs hover:underline underline-offset-4 text-green-700"
-            href="/"
+            href="#"
           >
             Política de Privacidad
           </Link>
