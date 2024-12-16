@@ -119,40 +119,6 @@ export default function RegisterPage() {
             )}
             <div>
               <label
-                htmlFor="username"
-                className="block text-sm font-medium text-green-700 mb-1"
-              >
-                Nombre de Usuario
-              </label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Su nombre de usuario"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-green-700 mb-1"
-              >
-                Correo Electrónico
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Su correo electrónico"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label
                 htmlFor="companyName"
                 className="block text-sm font-medium text-green-700 mb-1"
               >
@@ -168,6 +134,7 @@ export default function RegisterPage() {
                 className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
               />
             </div>
+
             <div>
               <label
                 htmlFor="country"
@@ -204,6 +171,41 @@ export default function RegisterPage() {
                 <option value="Venezuela">Venezuela</option>
               </select>
             </div>
+            <div>
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-green-700 mb-1"
+              >
+                Nombre de la persona
+              </label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Nombre del que sera el administrador"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-green-700 mb-1"
+              >
+                Correo Electrónico
+              </label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Su correo electrónico"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
+              />
+            </div>
+
             <div>
               <label
                 htmlFor="password"
