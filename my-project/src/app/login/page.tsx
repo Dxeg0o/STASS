@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // Para redirigir tras el inicio de sesión
 import Image from "next/image";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -9,11 +10,45 @@ import { motion } from "framer-motion";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login attempt with:", { email, password });
-    // Aquí típicamente manejarías la lógica de inicio de sesión
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Enviar las credenciales al backend
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error en las credenciales.");
+      }
+
+      const { token } = await response.json();
+
+      // Guardar el token en cookies (o localStorage si prefieres)
+      document.cookie = `authToken=${token}; path=/; secure; HttpOnly`;
+
+      // Redirigir al usuario a la página protegida
+      router.push("/app");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Ocurrió un error inesperado.");
+      }
+    } finally {
+      // Siempre ejecutado, éxito o fallo
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -40,6 +75,9 @@ export default function LoginPage() {
             Iniciar Sesión
           </h1>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <p className="text-sm text-red-500 text-center">{error}</p>
+            )}
             <div>
               <label
                 htmlFor="email"
@@ -75,12 +113,15 @@ export default function LoginPage() {
               />
             </div>
             <div className="flex justify-center mt-6">
-              <Link
-                href="/app"
-                className="w-full  bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-200 transform hover:scale-105 text-center"
+              <button
+                type="submit"
+                className={`w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-200 transform hover:scale-105 ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                disabled={isLoading}
               >
-                Iniciar Sesión
-              </Link>
+                {isLoading ? "Cargando..." : "Iniciar Sesión"}
+              </button>
             </div>
           </form>
           <p className="mt-4 text-center text-sm text-green-700">

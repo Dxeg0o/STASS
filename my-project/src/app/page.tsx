@@ -48,7 +48,13 @@ export default function LandingPage() {
             Contacto
           </Link>
           <Link
-            className="ml-4 hidden md:inline-flex bg-[#024521] hover:bg-[#024521]/90 text-white border rounded-md py-1 px-2"
+            className="mr-0 ml-0 hidden md:inline-flex bg-[#16a34a] hover:bg-[#16a34ae8]/90 text-white border rounded-md py-1 px-2"
+            href={"/register"}
+          >
+            Regístrate
+          </Link>
+          <Link
+            className="mr-0 ml-0 hidden md:inline-flex bg-[#024521] hover:bg-[#024521]/90 text-white border rounded-md py-1 px-2"
             href={"/login"}
           >
             Iniciar Sesión
