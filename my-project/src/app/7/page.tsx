@@ -31,7 +31,7 @@ export default function CustomWebcam() {
     try {
       // Extraer solo el contenido base64
       const base64Data = image.split(",")[1]; // Remover el prefijo 'data:image/jpeg;base64,'
-      const response = await fetch("http://127.0.0.1:8000/analyze", {
+      const response = await fetch("https://stass-api.vercel.app/analyze", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
