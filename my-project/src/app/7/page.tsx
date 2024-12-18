@@ -13,13 +13,19 @@ export default function CustomWebcam() {
   // Obtener la lista de dispositivos de video
   useEffect(() => {
     const getDevices = async () => {
-      const mediaDevices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = mediaDevices.filter(
-        (device) => device.kind === "videoinput"
-      );
-      setDevices(videoDevices);
-      if (videoDevices.length > 0) {
-        setSelectedDeviceId(videoDevices[0].deviceId); // Seleccionar la primera cámara por defecto
+      try {
+        // Solicitar permisos de cámara
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        const mediaDevices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = mediaDevices.filter(
+          (device) => device.kind === "videoinput"
+        );
+        setDevices(videoDevices);
+        if (videoDevices.length > 0) {
+          setSelectedDeviceId(videoDevices[0].deviceId);
+        }
+      } catch (error) {
+        console.error("Error accessing media devices:", error);
       }
     };
 
