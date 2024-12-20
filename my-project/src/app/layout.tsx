@@ -15,21 +15,21 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.qualiblick.com"),
-  title: "QualiBlick - Asegura calidad en tus exportaciones de espárragos",
+  title: "QualiBlick - Asegura calidad en tus exportaciones agrícolas",
   description:
-    "Detectamos hasta un 70% más de productos fuera de estándar mediante tecnología de punta, sin grandes inversiones iniciales.",
+    "Reducimos hasta un 30% los costos de inspección manual mediante tecnología de punta, sin grandes inversiones iniciales.",
   openGraph: {
-    title: "QualiBlick - Asegura calidad en tus exportaciones de espárragos",
+    title: "QualiBlick - Asegura calidad en tus exportaciones agrícolas",
     description:
-      "Detectamos hasta un 70% más de productos fuera de estándar mediante tecnología de punta, sin grandes inversiones iniciales.",
-    url: "https://www.stass.vercel.app",
+      "Reducimos hasta un 30% los costos de inspección manual mediante tecnología de punta, sin grandes inversiones iniciales.",
+    url: "https://www.qualiblick.com",
     siteName: "QualiBlick",
     images: [
       {
         url: "/images/Qualiblick2.png",
         width: 800,
         height: 800,
-        alt: "Logo de STASS",
+        alt: "Logo de QualiBlick",
       },
     ],
 
