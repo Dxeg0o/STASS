@@ -57,7 +57,7 @@ export default function LoginPage() {
         <Link className="flex items-center justify-center" href="/">
           <Image
             src="/images/Qualiblick.png"
-            alt="Logo STASS"
+            alt="Logo Qualiblick"
             width={170}
             height={84}
             unoptimized={true}
