@@ -72,7 +72,9 @@ export default function CustomWebcam() {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-5xl font-bold text-center mb-12">Cris Weko</h1>
+      <h1 className="text-5xl font-bold text-center mb-12">
+        Análisis del entorno
+      </h1>
 
       {/* Selector de cámaras */}
       <select
