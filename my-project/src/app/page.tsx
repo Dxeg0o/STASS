@@ -15,7 +15,7 @@ export default function LandingPage() {
       <header className="px-4 lg:px-6 h-16 flex items-center fixed w-full bg-white/80 backdrop-blur-md z-50 shadow-sm">
         <Link className="flex items-center justify-center" href="/">
           <Image
-            src="/images/Stass completo.png"
+            src="/images/Qualiblick.png"
             alt="Logo STASS"
             width={170}
             height={84}
@@ -249,11 +249,11 @@ export default function LandingPage() {
                   Sobre QualiBlick
                 </h2>
                 <p className="text-lg text-[#03312e] mb-6">
-                  En QualiBlick, revolucionamos la industria agrícola con tecnología
-                  de punta. Nuestra misión es empoderar a las pymes exportadoras
-                  con herramientas de control de calidad basadas en datos, para
-                  que puedan identificar rápidamente desviaciones, mejorar sus
-                  procesos y mantener la competitividad.
+                  En QualiBlick, revolucionamos la industria agrícola con
+                  tecnología de punta. Nuestra misión es empoderar a las pymes
+                  exportadoras con herramientas de control de calidad basadas en
+                  datos, para que puedan identificar rápidamente desviaciones,
+                  mejorar sus procesos y mantener la competitividad.
                 </p>
                 <p className="text-lg text-[#03312e] mb-6">
                   Nuestro enfoque integral garantiza que puedas{" "}
@@ -266,7 +266,7 @@ export default function LandingPage() {
               </div>
               <div className="flex md:justify-end justify-center md:mx-0 mx-24">
                 <Image
-                  src="/images/Stass completo.png"
+                  src="/images/Qualiblick.png"
                   alt="Equipo STASS"
                   width={500}
                   height={500}
@@ -288,8 +288,8 @@ export default function LandingPage() {
             <div className="text-center max-w-3xl mx-auto">
               <p className="text-xl text-[#03312e] mb-8">
                 ¿Listo para optimizar la calidad de tus exportaciones y reducir
-                costos desde el origen? Contáctanos y descubre cómo QualiBlick puede
-                ayudarte a convertir la{" "}
+                costos desde el origen? Contáctanos y descubre cómo QualiBlick
+                puede ayudarte a convertir la{" "}
                 <strong>gestión de calidad en una ventaja competitiva</strong>.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">

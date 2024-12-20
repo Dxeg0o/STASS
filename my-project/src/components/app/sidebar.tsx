@@ -43,7 +43,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel className="flex">
             <Image
-              src="/images/Stass completo.png"
+              src="/images/Qualiblick.png"
               alt="STASS"
               width={120} // Reducir aún más el ancho para asegurar que el logo no exceda el espacio
               height={120} // Reducir la altura para mantener la proporción

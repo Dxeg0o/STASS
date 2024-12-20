@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     siteName: "QualiBlick",
     images: [
       {
-        url: "/images/Stass (5).png",
+        url: "/images/Qualiblick2.png",
         width: 800,
         height: 800,
         alt: "Logo de STASS",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   icons: {
-    icon: "/images/Stass (5).png",
+    icon: "/images/Qualiblick2.png",
   },
 };
 

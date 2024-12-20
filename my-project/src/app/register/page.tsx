@@ -90,7 +90,7 @@ export default function RegisterPage() {
       <header className="px-4 lg:px-6 h-16 flex items-center fixed w-full bg-white/80 backdrop-blur-md z-50 shadow-sm">
         <Link className="flex items-center justify-center" href="/">
           <Image
-            src="/images/Stass completo.png"
+            src="/images/Qualiblick.png"
             alt="Logo STASS"
             width={170}
             height={84}
