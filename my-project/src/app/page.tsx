@@ -246,10 +246,10 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl mb-6 text-[#024521]">
-                  Sobre STASS
+                  Sobre QualiBlick
                 </h2>
                 <p className="text-lg text-[#03312e] mb-6">
-                  En STASS, revolucionamos la industria agrícola con tecnología
+                  En QualiBlick, revolucionamos la industria agrícola con tecnología
                   de punta. Nuestra misión es empoderar a las pymes exportadoras
                   con herramientas de control de calidad basadas en datos, para
                   que puedan identificar rápidamente desviaciones, mejorar sus
@@ -260,7 +260,7 @@ export default function LandingPage() {
                   <strong>reaccionar con agilidad</strong> ante problemas,{" "}
                   <strong>mantener la consistencia</strong> del producto y{" "}
                   <strong>alcanzar estándares internacionales</strong>. Con
-                  STASS, tu reputación de calidad se consolida y tu negocio
+                  QualiBlick, tu reputación de calidad se consolida y tu negocio
                   crece de manera sostenible.
                 </p>
               </div>
@@ -288,13 +288,13 @@ export default function LandingPage() {
             <div className="text-center max-w-3xl mx-auto">
               <p className="text-xl text-[#03312e] mb-8">
                 ¿Listo para optimizar la calidad de tus exportaciones y reducir
-                costos desde el origen? Contáctanos y descubre cómo STASS puede
+                costos desde el origen? Contáctanos y descubre cómo QualiBlick puede
                 ayudarte a convertir la{" "}
                 <strong>gestión de calidad en una ventaja competitiva</strong>.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Link
-                  href="mailto:info@stass.com"
+                  href="mailto:info@qualiblick.com"
                   className="inline-block bg-[#058240] hover:bg-[#058240]/90 text-white font-bold py-3 px-8 rounded-full text-lg transition-all duration-200 transform hover:scale-105"
                 >
                   Enviar Correo
@@ -314,7 +314,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 md:px-6 max-w-7xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <h3 className="text-xl font-bold mb-4">STASS</h3>
+              <h3 className="text-xl font-bold mb-4">QualiBlick</h3>
               <p className="text-white">
                 Innovando en las exportaciones con tecnología de vanguardia.
               </p>
@@ -350,13 +350,13 @@ export default function LandingPage() {
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-4">Contacto</h4>
-              <p className="text-white">Email: info@stass.com</p>
+              <p className="text-white">Email: info@qualiblick.com</p>
               <p className="text-white">Teléfono: +123 456 789</p>
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-white text-center">
             <p className="text-white">
-              © 2024 STASS. Todos los derechos reservados.
+              © 2024 QualiBlick. Todos los derechos reservados.
             </p>
           </div>
         </div>

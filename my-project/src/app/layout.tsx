@@ -14,16 +14,16 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.stass.vercel.app"),
-  title: "STASS - Asegura calidad en tus exportaciones de espárragos",
+  metadataBase: new URL("https://www.qualiblick.com"),
+  title: "QualiBlick - Asegura calidad en tus exportaciones de espárragos",
   description:
     "Detectamos hasta un 70% más de productos fuera de estándar mediante tecnología de punta, sin grandes inversiones iniciales.",
   openGraph: {
-    title: "STASS - Asegura calidad en tus exportaciones de espárragos",
+    title: "QualiBlick - Asegura calidad en tus exportaciones de espárragos",
     description:
       "Detectamos hasta un 70% más de productos fuera de estándar mediante tecnología de punta, sin grandes inversiones iniciales.",
     url: "https://www.stass.vercel.app",
-    siteName: "STASS",
+    siteName: "QualiBlick",
     images: [
       {
         url: "/images/Stass (5).png",
