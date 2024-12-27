@@ -44,10 +44,9 @@ export default async function handler(
     }
 
     return res.json({
-      id: user.id_usuario,
+      id: user._id,
       name: user.nombre,
       mail: user.correo,
-      isAdmin: user.es_admin,
     });
   } catch (error) {
     console.error("Error:", error);
