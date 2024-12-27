@@ -44,7 +44,7 @@ export function AppSidebar() {
           <SidebarGroupLabel className="flex">
             <Image
               src="/images/Qualiblick.png"
-              alt="STASS"
+              alt="QualiBlick"
               width={120} // Reducir aún más el ancho para asegurar que el logo no exceda el espacio
               height={120} // Reducir la altura para mantener la proporción
             />

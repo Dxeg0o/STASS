@@ -28,7 +28,7 @@ export default function YouTubePlayer() {
                   <iframe
                     className="absolute top-0 left-0 w-full h-full"
                     src="https://www.youtube.com/embed/JTkBxFrazQc?si=MuST81nE7y1Lyr8n"
-                    title="STASS Demo"
+                    title="QualiBlick Demo"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerPolicy="strict-origin-when-cross-origin"

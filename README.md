@@ -1,8 +1,8 @@
-# **STASS**
+# **QualiBlick**
 
 ## Control inteligente de calidad que impulsa tus exportaciones
 
-**STASS** ayuda a las pymes exportadoras a optimizar el control de calidad de sus productos, logrando una reducción de hasta **30% en los costos** asociados a inspecciones manuales. Nuestra solución tecnológica de vanguardia no requiere grandes inversiones y es altamente adaptable a las necesidades específicas de cada cliente.
+**QualiBlick** ayuda a las pymes exportadoras a optimizar el control de calidad de sus productos, logrando una reducción de hasta **30% en los costos** asociados a inspecciones manuales. Nuestra solución tecnológica de vanguardia no requiere grandes inversiones y es altamente adaptable a las necesidades específicas de cada cliente.
 
 ---
 
@@ -38,16 +38,16 @@ Nuestras herramientas están diseñadas para ajustarse a los requisitos específ
 
 ---
 
-## **Sobre STASS**
+## **Sobre QualiBlick**
 
-En **STASS**, revolucionamos la industria agrícola mediante el uso de tecnología avanzada para el control de calidad. Nuestra misión es empoderar a las pymes exportadoras con herramientas basadas en datos que permiten:
+En **QualiBlick**, revolucionamos la industria agrícola mediante el uso de tecnología avanzada para el control de calidad. Nuestra misión es empoderar a las pymes exportadoras con herramientas basadas en datos que permiten:
 
 - **Identificar rápidamente desviaciones** en procesos.
 - **Mejorar la consistencia** y la calidad del producto.
 - **Mantener la competitividad** en mercados internacionales.
 
 Con un enfoque integral, garantizamos que nuestros clientes puedan reaccionar con agilidad ante problemas, mantener estándares internacionales y consolidar su reputación de calidad.  
-Con **STASS**, tu negocio crece de manera sostenible y tu éxito está asegurado.
+Con **QualiBlick**, tu negocio crece de manera sostenible y tu éxito está asegurado.
 
 ---
 

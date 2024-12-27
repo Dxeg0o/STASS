@@ -242,8 +242,8 @@ export default function VideoObjectDetection() {
       )}
       <div className="mt-12 text-center text-gray-600">
         <p>
-          &copy; {new Date().getFullYear()} STASS Espárragos. Todos los derechos
-          reservados.
+          &copy; {new Date().getFullYear()} QualiBlick Espárragos. Todos los
+          derechos reservados.
         </p>
       </div>
     </div>

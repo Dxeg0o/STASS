@@ -267,7 +267,7 @@ export default function LandingPage() {
               <div className="flex md:justify-end justify-center md:mx-0 mx-24">
                 <Image
                   src="/images/Qualiblick.png"
-                  alt="Equipo STASS"
+                  alt="Equipo QualiBlick"
                   width={500}
                   height={500}
                   className=""
