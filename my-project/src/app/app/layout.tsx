@@ -1,22 +1,12 @@
 "use client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app/sidebar";
-import { useEffect } from "react";
+import AuthContext from "../context/AuthContext";
+import ProtectedRoute from "./ProtectedRoute";
 
 // Importamos los componentes necesarios para el sidebar y las funciones de React y Next.js.
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    // Intentamos obtener el token almacenado en el localStorage del navegador.
-
-    if (!token) {
-      window.location.href = "/login";
-      // Si no hay un token, redirigimos al usuario a la página de login de manera normal.
-    }
-  }, []);
-  // El useEffect se ejecuta cuando el componente se monta, verificando la existencia del token.
-
   return (
     <SidebarProvider>
       <div className="min-w-full min-h-screen flex flex-col">
@@ -28,7 +18,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <main className="flex-1">
             <SidebarTrigger />
             <div className="flex flex-col justify-center items-center">
-              {children}
+              <AuthContext>
+                <ProtectedRoute>{children}</ProtectedRoute>
+              </AuthContext>
             </div>
           </main>
         </div>
