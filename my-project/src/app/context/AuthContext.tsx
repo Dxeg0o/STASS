@@ -54,7 +54,7 @@ export default function AuthContext({
           loading: false,
         });
       }
-      const response = await axios.get(`/api/auth/me`, {
+      const response = await axios.get<User>(`/api/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -66,12 +66,21 @@ export default function AuthContext({
         error: null,
         loading: false,
       });
-    } catch (error: any) {
-      setAuthState({
-        data: null,
-        error: error.response.data.errorMessage,
-        loading: false,
-      });
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        setAuthState({
+          data: null,
+          error:
+            error.response?.data?.errorMessage || "An unknown error occurred.",
+          loading: false,
+        });
+      } else {
+        setAuthState({
+          data: null,
+          error: "An unexpected error occurred.",
+          loading: false,
+        });
+      }
     }
   };
 
