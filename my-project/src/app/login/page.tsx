@@ -32,11 +32,6 @@ export default function LoginPage() {
         throw new Error(errorData.message || "Error en las credenciales.");
       }
 
-      const { token } = await response.json();
-
-      // Guardar el token en cookies (o localStorage si prefieres)
-      document.cookie = `authToken=${token}; path=/; secure; HttpOnly`;
-
       // Redirigir al usuario a la página protegida
       router.push("/app");
     } catch (err: unknown) {
@@ -92,6 +87,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
               />
             </div>
@@ -109,6 +105,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
                 className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
               />
             </div>

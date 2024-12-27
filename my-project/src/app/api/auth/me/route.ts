@@ -1,9 +1,9 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { connectDb } from "@/lib/mongodb";
 
-// Define the user schema if not already defined elsewhere
+// Define el esquema de usuario si no está definido en otra parte
 const userSchema = new mongoose.Schema({
   id_usuario: { type: String, required: true },
   nombre: { type: String, required: true },
@@ -11,45 +11,52 @@ const userSchema = new mongoose.Schema({
   es_admin: { type: Boolean, required: true },
 });
 
-// Create a model or use an existing one
+// Crear el modelo o usar uno existente
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export async function GET(req: Request) {
   try {
-    await connectDb(); // Ensure the database connection
+    await connectDb(); // Conexión a la base de datos
 
-    const bearerToken = req.headers["authorization"] as string;
+    const bearerToken = req.headers.get("authorization");
+
     if (!bearerToken) {
-      return res
-        .status(401)
-        .json({ errorMessage: "Authorization header missing" });
+      return NextResponse.json(
+        { errorMessage: "Authorization header missing" },
+        { status: 401 }
+      );
     }
 
     const token = bearerToken.split(" ")[1];
-    const payload = jwt.decode(token) as { email: string };
+    const payload = jwt.verify(token, "hola");
+    const { email } = payload as { email: string };
 
-    if (!payload || !payload.email) {
-      return res
-        .status(401)
-        .json({ errorMessage: "Unauthorized request (invalid email)" });
+    if (!email) {
+      return NextResponse.json(
+        { errorMessage: "Unauthorized request (invalid email)" },
+        { status: 401 }
+      );
     }
 
-    const user = await User.findOne({ correo: payload.email });
+    const user = await User.findOne({ correo: email });
 
     if (!user) {
-      return res.status(401).json({ errorMessage: "User not found" });
+      return NextResponse.json(
+        { errorMessage: "User not found" },
+        { status: 401 }
+      );
     }
 
-    return res.json({
+    return NextResponse.json({
       id: user._id,
       name: user.nombre,
       mail: user.correo,
     });
   } catch (error) {
-    console.error("Error:", error);
-    return res.status(500).json({ errorMessage: "Internal server error" });
+    console.error("Invalid token:", error);
+    return NextResponse.json(
+      { errorMessage: "Unauthorized request (invalid token)" },
+      { status: 401 }
+    );
   }
 }

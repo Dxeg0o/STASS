@@ -45,6 +45,7 @@ export default function AuthContext({
     });
     try {
       const token = getCookie("token");
+      console.log(token);
 
       if (!token) {
         return setAuthState({
@@ -53,7 +54,6 @@ export default function AuthContext({
           loading: false,
         });
       }
-      //falta agregar que admin no haga login
       const response = await axios.get(`/api/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
