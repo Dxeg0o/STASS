@@ -44,9 +44,9 @@ export default function AuthContext({
       loading: true,
     });
     try {
-      const jwt = getCookie("jwt");
+      const token = getCookie("token");
 
-      if (!jwt) {
+      if (!token) {
         return setAuthState({
           data: null,
           error: null,
@@ -56,10 +56,10 @@ export default function AuthContext({
       //falta agregar que admin no haga login
       const response = await axios.get(`/api/auth/me`, {
         headers: {
-          Authorization: `Bearer ${jwt}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-      axios.defaults.headers.common["Authorization"] = `Bearer ${jwt}`;
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
       setAuthState({
         data: response.data,
