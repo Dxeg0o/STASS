@@ -1,22 +1,11 @@
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
+import User from "@/models/user"; // Import the User model
 import { connectDb } from "@/lib/mongodb";
-
-// Define el esquema de usuario si no está definido en otra parte
-const userSchema = new mongoose.Schema({
-  id_usuario: { type: String, required: true },
-  nombre: { type: String, required: true },
-  correo: { type: String, required: true, unique: true },
-  es_admin: { type: Boolean, required: true },
-});
-
-// Crear el modelo o usar uno existente
-const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 export async function GET(req: Request) {
   try {
-    await connectDb(); // Conexión a la base de datos
+    await connectDb(); // Ensure database connection
 
     const bearerToken = req.headers.get("authorization");
 
@@ -39,7 +28,6 @@ export async function GET(req: Request) {
     }
 
     const user = await User.findOne({ correo: email });
-
     if (!user) {
       return NextResponse.json(
         { errorMessage: "User not found" },
@@ -47,10 +35,13 @@ export async function GET(req: Request) {
       );
     }
 
+    // Include `rol` as `rol_usuario` and other necessary fields
     return NextResponse.json({
       id: user._id,
       name: user.nombre,
       mail: user.correo,
+      id_empresa: user.empresa_id,
+      rol_usuario: user.rol,
     });
   } catch (error) {
     console.error("Invalid token:", error);

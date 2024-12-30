@@ -9,7 +9,7 @@ const analisisSchema = new mongoose.Schema({
     enum: ["completado", "en_progreso", "pendiente"],
     required: true,
   },
-  productos_analizados: { type: [String], required: true }, // Array de IDs de productos analizados, podría ser solo un producto
+  producto: { type: String, required: true }, // Array de IDs de productos analizados, podría ser solo un producto
 });
 
 export default mongoose.models.Analisis ||

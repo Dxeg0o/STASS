@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
         nombre: user.nombre,
         email: user.correo,
         userId: user.id_usuario,
+        id_empresa: user.id_empresa,
       },
       { status: 200 }
     );

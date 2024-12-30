@@ -8,6 +8,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  id_empresa: string;
 }
 
 interface State {
@@ -66,6 +67,7 @@ export default function AuthContext({
         error: null,
         loading: false,
       });
+      console.log(response.data);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         setAuthState({
