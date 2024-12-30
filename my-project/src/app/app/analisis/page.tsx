@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import { useContext, useState } from "react";
 import QualityControlDashboard from "@/components/app/analisis/dashboard";
 import { ProductSelector } from "@/components/app/dashboard/selector-productos";
@@ -8,7 +8,7 @@ import { AuthenticationContext } from "@/app/context/AuthContext";
 export default function QualityControlPage() {
   const [productSelected, setProductSelected] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
-  const { data, loading } = useContext(AuthenticationContext)
+  const { data } = useContext(AuthenticationContext);
   const handleStart = async () => {
     if (!selectedProduct) {
       alert("Por favor, selecciona un producto antes de comenzar.");
@@ -52,7 +52,9 @@ export default function QualityControlPage() {
       {!productSelected ? (
         <div className="text-center">
           <ProductSelector
-            onProductSelect={(productId: string) => setSelectedProduct(productId)}
+            onProductSelect={(productId: string) =>
+              setSelectedProduct(productId)
+            }
           />
           <Button
             onClick={handleStart}
