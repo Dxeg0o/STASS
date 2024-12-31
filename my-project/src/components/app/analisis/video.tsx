@@ -7,7 +7,28 @@ export default function VideoFeed() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
 
-  // Obtener la lista de dispositivos de video
+  const sendImageToBackend = async (image: string) => {
+    try {
+      // Extraer solo el contenido base64
+      const base64Data = image.split(",")[1]; // Remover el prefijo 'data:image/jpeg;base64,'
+      const response = await fetch("https://stass-api.vercel.app/asparagus", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ image: base64Data }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(data); // Assuming the backend returns { labels: [{ description, score }] }
+      } else {
+        console.error("Failed to send image to backend");
+      }
+    } catch (error) {
+      console.error("Error sending image to backend:", error);
+    }
+  };
   useEffect(() => {
     const getDevices = async () => {
       try {
@@ -34,7 +55,7 @@ export default function VideoFeed() {
       if (webcamRef.current) {
         const imageSrc = webcamRef.current.getScreenshot();
         if (imageSrc) {
-          console.log(imageSrc);
+          sendImageToBackend(imageSrc);
         }
       }
     }, 5000); // Captura cada 5 segundos
