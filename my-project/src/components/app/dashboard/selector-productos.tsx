@@ -8,9 +8,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function ProductSelector() {
+type ProductSelectorProps = {
+  onProductSelect: (productId: string) => void;
+};
+
+export function ProductSelector({ onProductSelect }: ProductSelectorProps) {
+  const handleValueChange = (value: string) => {
+    onProductSelect(value); // Comunica el valor seleccionado al componente padre
+  };
+
   return (
-    <Select>
+    <Select onValueChange={handleValueChange}>
       <SelectTrigger className="w-[180px]">
         <SelectValue placeholder="Seleccionar producto" />
       </SelectTrigger>

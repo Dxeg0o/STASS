@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import FruitQualityChart from "@/components/app/dashboard/calidad-color";
 import GraficoProductos from "@/components/app/dashboard/grafico-productos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,15 +9,16 @@ import { RefreshCw } from "lucide-react";
 
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import ComparacionProductos from "@/components/app/dashboard/comparación-productos";
+import { AuthenticationContext } from "../context/AuthContext";
 export default function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
-
+  const { data } = useContext(AuthenticationContext);
   const handleRefresh = () => {
     setIsRefreshing(true);
     // Simulate data refresh
     setTimeout(() => setIsRefreshing(false), 1500);
   };
-
+  console.log(data?.name);
   return (
     <div className="flex-col md:flex">
       <div className="flex-1 space-y-4 p-8 pt-6">
