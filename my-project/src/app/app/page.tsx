@@ -12,19 +12,19 @@ import ComparacionProductos from "@/components/app/dashboard/comparación-produc
 import { AuthenticationContext } from "../context/AuthContext";
 export default function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { data, loading } = useContext(AuthenticationContext);
+  const { data } = useContext(AuthenticationContext);
   const handleRefresh = () => {
     setIsRefreshing(true);
     // Simulate data refresh
     setTimeout(() => setIsRefreshing(false), 1500);
   };
-  console.log(data?.name)
+  console.log(data?.name);
   return (
     <div className="flex-col md:flex">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">
-            Historial de Productos {data?.name}
+            Historial de Productos
           </h2>
           <div className="flex items-center space-x-8">
             {" "}
