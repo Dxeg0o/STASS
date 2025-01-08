@@ -11,13 +11,16 @@ export default function VideoFeed() {
     try {
       // Extraer solo el contenido base64
       const base64Data = image.split(",")[1]; // Remover el prefijo 'data:image/jpeg;base64,'
-      const response = await fetch("https://stass-api.vercel.app/asparagus", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ image: base64Data }),
-      });
+      const response = await fetch(
+        "https://stass-apis.onrender.com/asparagus",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ image: base64Data }),
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
