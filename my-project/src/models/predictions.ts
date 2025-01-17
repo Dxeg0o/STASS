@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const prediccionSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   analisis_id: { type: String, required: true, ref: "Analisis" },

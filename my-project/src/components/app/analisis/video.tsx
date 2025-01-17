@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { useState } from "react";
+import mongoose from "mongoose";
+import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 
 export default function VideoFeed() {
@@ -9,8 +9,7 @@ export default function VideoFeed() {
 
   const sendImageToBackend = async (image: string) => {
     try {
-      // Extraer solo el contenido base64
-      const base64Data = image.split(",")[1]; // Remover el prefijo 'data:image/jpeg;base64,'
+      const base64Data = image.split(",")[1]; // Remove the prefix 'data:image/jpeg;base64,'
       const response = await fetch(
         "https://stass-apis.onrender.com/asparagus",
         {
@@ -24,7 +23,58 @@ export default function VideoFeed() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log(data); // Assuming the backend returns { labels: [{ description, score }] }
+        console.log(data);
+
+        // Define the type for the results array
+        interface DetectionResult {
+          detection_id: string;
+          altura: number;
+          radio: number;
+        }
+
+        // Ensure `results` exists and is an array
+        const results: DetectionResult[] = Array.isArray(data.results)
+          ? data.results
+          : [];
+
+        // Iterate over each detection in results
+        const predictions = results.map((result: DetectionResult) => ({
+          _id: new mongoose.Types.ObjectId().toString(),
+          analisis_id: "analisis_123", // Change this as per your context
+          producto: "Espárrago", // Change based on the analyzed product
+          atributos: {
+            tamaño: `${result.altura || "desconocido"} x ${
+              result.radio || "desconocido"
+            }`, // Example of combining height and radius
+            color: "desconocido", // Placeholder as color isn't in the response
+            peso: 0, // Placeholder as weight isn't in the response
+            defecto_detectado: false, // Placeholder, update based on your logic
+          },
+          fecha: new Date(),
+          resultado: "apto", // Placeholder, update based on your logic
+          etiquetas: [], // Placeholder as labels aren't in the response
+        }));
+
+        // Save each prediction in MongoDB
+        for (const prediccion of predictions) {
+          const guardarPrediccion = await fetch("/api/predictions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(prediccion), // Send the prediction data here
+          });
+
+          if (guardarPrediccion.ok) {
+            const result = await guardarPrediccion.json();
+            console.log("Prediction saved:", result);
+          } else {
+            console.error(
+              "Failed to save prediction in MongoDB:",
+              guardarPrediccion.statusText
+            );
+          }
+        }
       } else {
         console.error("Failed to send image to backend");
       }
@@ -32,10 +82,10 @@ export default function VideoFeed() {
       console.error("Error sending image to backend:", error);
     }
   };
+
   useEffect(() => {
     const getDevices = async () => {
       try {
-        // Solicitar permisos de cámara
         await navigator.mediaDevices.getUserMedia({ video: true });
         const mediaDevices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = mediaDevices.filter(
@@ -65,14 +115,14 @@ export default function VideoFeed() {
 
     return () => clearInterval(interval);
   }, []);
+
   return (
     <div className="bg-gray-200 aspect-video rounded-lg flex items-center justify-center flex-col">
-      {/* Webcam */}
       {selectedDeviceId && (
         <Webcam
           ref={webcamRef}
           videoConstraints={{ deviceId: selectedDeviceId }}
-          width={640} // Cambiar resolución
+          width={640}
           height={480}
           screenshotFormat="image/jpeg"
         />
