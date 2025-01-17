@@ -20,8 +20,5 @@ const prediccionSchema = new mongoose.Schema({
   ],
 });
 
-// Verifica si el modelo ya está registrado o crea uno nuevo
-const Prediccion =
-  mongoose.models.Prediccion || mongoose.model("Prediccion", prediccionSchema);
-
-export default Prediccion;
+export default mongoose.models.Prediccion ||
+  mongoose.model("Prediccion", prediccionSchema);

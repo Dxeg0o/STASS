@@ -1,30 +1,6 @@
 import mongoose from "mongoose";
-import Prediccion from "../../../models/predictions";
 import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
-
-interface Label {
-  description: string;
-}
-interface Prediccion {
-  _id: string;
-  analisis_id: string;
-  producto: string;
-  atributos: {
-    tamaño: string;
-    color: string;
-    peso: number;
-    defecto_detectado: boolean;
-  };
-  fecha: Date;
-  resultado: "apto" | "defectuoso";
-  etiquetas: Array<{
-    etiqueta_id: string;
-    valor: string;
-  }>;
-}
-
-
 
 export default function VideoFeed() {
   const webcamRef = useRef<Webcam>(null);
@@ -33,7 +9,7 @@ export default function VideoFeed() {
 
   const sendImageToBackend = async (image: string) => {
     try {
-      const base64Data = image.split(",")[1]; // Remover el prefijo 'data:image/jpeg;base64,'
+      const base64Data = image.split(",")[1]; // Remove the prefix 'data:image/jpeg;base64,'
       const response = await fetch(
         "https://stass-apis.onrender.com/asparagus",
         {
@@ -47,30 +23,58 @@ export default function VideoFeed() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log(data);
 
-        // Crear una predicción basada en la respuesta de la API
-        const prediccion = {
+        // Define the type for the results array
+        interface DetectionResult {
+          detection_id: string;
+          altura: number;
+          radio: number;
+        }
+
+        // Ensure `results` exists and is an array
+        const results: DetectionResult[] = Array.isArray(data.results)
+          ? data.results
+          : [];
+
+        // Iterate over each detection in results
+        const predictions = results.map((result: DetectionResult) => ({
           _id: new mongoose.Types.ObjectId().toString(),
-          analisis_id: "analisis_123", // Cambia esto según el contexto
-          producto: "Espárrago", // Cambia según el producto analizado
+          analisis_id: "analisis_123", // Change this as per your context
+          producto: "Espárrago", // Change based on the analyzed product
           atributos: {
-            tamaño: data.size || "desconocido",
-            color: data.color || "desconocido",
-            peso: data.weight || 0,
-            defecto_detectado: data.defecto || false,
+            tamaño: `${result.altura || "desconocido"} x ${
+              result.radio || "desconocido"
+            }`, // Example of combining height and radius
+            color: "desconocido", // Placeholder as color isn't in the response
+            peso: 0, // Placeholder as weight isn't in the response
+            defecto_detectado: false, // Placeholder, update based on your logic
           },
           fecha: new Date(),
-          resultado: data.defecto ? "defectuoso" : "apto",
-          etiquetas: data.labels.map((label: Label) => ({
-            etiqueta_id: new mongoose.Types.ObjectId().toString(),
-            valor: label.description || "desconocido",
-          })),          
-        };
+          resultado: "apto", // Placeholder, update based on your logic
+          etiquetas: [], // Placeholder as labels aren't in the response
+        }));
 
-        // Guardar en MongoDB
-        await Prediccion.create(prediccion);
+        // Save each prediction in MongoDB
+        for (const prediccion of predictions) {
+          const guardarPrediccion = await fetch("/api/predictions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(prediccion), // Send the prediction data here
+          });
 
-        console.log("Predicción guardada:", prediccion);
+          if (guardarPrediccion.ok) {
+            const result = await guardarPrediccion.json();
+            console.log("Prediction saved:", result);
+          } else {
+            console.error(
+              "Failed to save prediction in MongoDB:",
+              guardarPrediccion.statusText
+            );
+          }
+        }
       } else {
         console.error("Failed to send image to backend");
       }
