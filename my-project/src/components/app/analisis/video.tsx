@@ -1,6 +1,30 @@
-import { useEffect, useRef } from "react";
-import { useState } from "react";
+import mongoose from "mongoose";
+import Prediccion from "../../../models/predictions";
+import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
+
+interface Label {
+  description: string;
+}
+interface Prediccion {
+  _id: string;
+  analisis_id: string;
+  producto: string;
+  atributos: {
+    tamaño: string;
+    color: string;
+    peso: number;
+    defecto_detectado: boolean;
+  };
+  fecha: Date;
+  resultado: "apto" | "defectuoso";
+  etiquetas: Array<{
+    etiqueta_id: string;
+    valor: string;
+  }>;
+}
+
+
 
 export default function VideoFeed() {
   const webcamRef = useRef<Webcam>(null);
@@ -9,7 +33,6 @@ export default function VideoFeed() {
 
   const sendImageToBackend = async (image: string) => {
     try {
-      // Extraer solo el contenido base64
       const base64Data = image.split(",")[1]; // Remover el prefijo 'data:image/jpeg;base64,'
       const response = await fetch(
         "https://stass-apis.onrender.com/asparagus",
@@ -24,7 +47,30 @@ export default function VideoFeed() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log(data); // Assuming the backend returns { labels: [{ description, score }] }
+
+        // Crear una predicción basada en la respuesta de la API
+        const prediccion = {
+          _id: new mongoose.Types.ObjectId().toString(),
+          analisis_id: "analisis_123", // Cambia esto según el contexto
+          producto: "Espárrago", // Cambia según el producto analizado
+          atributos: {
+            tamaño: data.size || "desconocido",
+            color: data.color || "desconocido",
+            peso: data.weight || 0,
+            defecto_detectado: data.defecto || false,
+          },
+          fecha: new Date(),
+          resultado: data.defecto ? "defectuoso" : "apto",
+          etiquetas: data.labels.map((label: Label) => ({
+            etiqueta_id: new mongoose.Types.ObjectId().toString(),
+            valor: label.description || "desconocido",
+          })),          
+        };
+
+        // Guardar en MongoDB
+        await Prediccion.create(prediccion);
+
+        console.log("Predicción guardada:", prediccion);
       } else {
         console.error("Failed to send image to backend");
       }
@@ -32,10 +78,10 @@ export default function VideoFeed() {
       console.error("Error sending image to backend:", error);
     }
   };
+
   useEffect(() => {
     const getDevices = async () => {
       try {
-        // Solicitar permisos de cámara
         await navigator.mediaDevices.getUserMedia({ video: true });
         const mediaDevices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = mediaDevices.filter(
@@ -65,14 +111,14 @@ export default function VideoFeed() {
 
     return () => clearInterval(interval);
   }, []);
+
   return (
     <div className="bg-gray-200 aspect-video rounded-lg flex items-center justify-center flex-col">
-      {/* Webcam */}
       {selectedDeviceId && (
         <Webcam
           ref={webcamRef}
           videoConstraints={{ deviceId: selectedDeviceId }}
-          width={640} // Cambiar resolución
+          width={640}
           height={480}
           screenshotFormat="image/jpeg"
         />

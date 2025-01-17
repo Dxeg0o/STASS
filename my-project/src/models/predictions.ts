@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const prediccionSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   analisis_id: { type: String, required: true, ref: "Analisis" },
@@ -19,5 +20,8 @@ const prediccionSchema = new mongoose.Schema({
   ],
 });
 
-export default mongoose.models.Prediccion ||
-  mongoose.model("Prediccion", prediccionSchema);
+// Verifica si el modelo ya está registrado o crea uno nuevo
+const Prediccion =
+  mongoose.models.Prediccion || mongoose.model("Prediccion", prediccionSchema);
+
+export default Prediccion;
