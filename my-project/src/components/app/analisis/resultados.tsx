@@ -59,7 +59,7 @@ export default function QualityResults({
               percentage: item.percentage,
             })
           );
-          setDataPoints((prev) => [...prev, ...newPoints].slice(-50));
+          setDataPoints((prev) => [...prev, ...newPoints].slice(-60));
         } else {
           console.error("Respuesta de la API no es un array:", data);
         }
