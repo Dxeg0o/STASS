@@ -85,11 +85,11 @@ export default function QualityControlDashboard({
           />
         </div>
       </div>
-      <div>
-        {/* Pasamos nombres de etiquetas seleccionadas */}
-        <QualityResults
-          selectedLabels={selectedLabels.map((label) => label.name)}
-        />
+      <div className="text-3xl font-semibold mt-6">
+        Graficos de calidad
+        <div className="">
+          <QualityResults id_analisis={analisis_id} />
+        </div>
       </div>
       <div className="flex justify-center">
         {/* Botón para finalizar análisis */}
