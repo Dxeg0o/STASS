@@ -1,18 +1,34 @@
 "use client";
+
 import { useContext, useState } from "react";
 import QualityControlDashboard from "@/components/app/analisis/dashboard";
-import { ProductSelector } from "@/components/app/dashboard/selector-productos";
 import { Button } from "@/components/ui/button";
 import { AuthenticationContext } from "@/app/context/AuthContext";
+import { ProductSelector } from "@/components/app/analisis/selector-productos";
 
 export default function QualityControlPage() {
   const [productSelected, setProductSelected] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [productParams, setProductParams] = useState<{
+    minLength: number | undefined;
+    maxLength: number | undefined;
+    minWidth: number | undefined;
+    maxWidth: number | undefined;
+  } | null>(null);
   const { data } = useContext(AuthenticationContext);
+  const [analisisId, setAnalisisId] = useState<string | null>(null);
 
   const handleStart = async () => {
-    if (!selectedProduct) {
-      alert("Por favor, selecciona un producto antes de comenzar.");
+    if (
+      !selectedProduct ||
+      !productParams?.minLength ||
+      !productParams?.maxLength ||
+      !productParams?.minWidth ||
+      !productParams?.maxWidth
+    ) {
+      alert(
+        "Por favor, selecciona un producto e ingresa todos los parámetros antes de comenzar."
+      );
       return;
     }
 
@@ -23,15 +39,17 @@ export default function QualityControlPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          empresa_id: data?.id_empresa, // Reemplazar con el ID de la empresa correcto
+          empresa_id: data?.id_empresa,
           producto_id: selectedProduct,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Análisis creado:", data);
-        setProductSelected(true); // Cambiar la vista a QualityControlDashboard
+        console.log("Análisis creado:", data._id);
+        setAnalisisId(data._id);
+
+        setProductSelected(true);
       } else {
         const errorData = await response.json();
         console.error("Error en la API:", errorData.message);
@@ -46,17 +64,18 @@ export default function QualityControlPage() {
   return (
     <div className="container px-4 py-8">
       {!productSelected ? (
-        <div className="">
+        <div>
           <h1 className="text-3xl font-bold mb-2">Comienza a analizar</h1>
           <p className="text-xl font-semibold mb-8">
-            Elige cual de tus productos analizarás, y comienza a analizarlo.
+            Elige cuál de tus productos analizarás y especifica los parámetros.
           </p>
 
           <div className="text-center">
             <ProductSelector
-              onProductSelect={(productId: string) =>
-                setSelectedProduct(productId)
-              }
+              onParamsChange={(productId, params) => {
+                setSelectedProduct(productId);
+                setProductParams(params);
+              }}
             />
             <Button
               onClick={handleStart}
@@ -67,7 +86,7 @@ export default function QualityControlPage() {
           </div>
         </div>
       ) : (
-        <QualityControlDashboard />
+        <QualityControlDashboard analisis_id={analisisId || ""} />
       )}
     </div>
   );

@@ -11,8 +11,13 @@ interface Label {
   name: string;
   subLabels?: string[];
 }
+interface QualityControlDashboardProps {
+  analisis_id: string;
+}
 
-export default function QualityControlDashboard() {
+export default function QualityControlDashboard({
+  analisis_id,
+}: QualityControlDashboardProps) {
   const [selectedLabels, setSelectedLabels] = useState<Label[]>([]);
   const [analysisComplete, setAnalysisComplete] = useState(false);
 
@@ -41,7 +46,7 @@ export default function QualityControlDashboard() {
     <div className="flex flex-col space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <VideoFeed />
+          <VideoFeed analisis_id={analisis_id} />
         </div>
         <div>
           <SelectedLabels

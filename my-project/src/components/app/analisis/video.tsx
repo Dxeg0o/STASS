@@ -1,8 +1,10 @@
 import mongoose from "mongoose";
 import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
-
-export default function VideoFeed() {
+interface VideoFeedProps {
+  analisis_id: string;
+}
+export default function VideoFeed({ analisis_id }: VideoFeedProps) {
   const webcamRef = useRef<Webcam>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
@@ -40,15 +42,12 @@ export default function VideoFeed() {
         // Iterate over each detection in results
         const predictions = results.map((result: DetectionResult) => ({
           _id: new mongoose.Types.ObjectId().toString(),
-          analisis_id: "analisis_123", // Change this as per your context
-          producto: "Espárrago", // Change based on the analyzed product
+          analisis_id: analisis_id, // Change this as per your context
           atributos: {
             tamaño: `${result.altura || "desconocido"} x ${
               result.radio || "desconocido"
             }`, // Example of combining height and radius
             color: "desconocido", // Placeholder as color isn't in the response
-            peso: 0, // Placeholder as weight isn't in the response
-            defecto_detectado: false, // Placeholder, update based on your logic
           },
           fecha: new Date(),
           resultado: "apto", // Placeholder, update based on your logic
