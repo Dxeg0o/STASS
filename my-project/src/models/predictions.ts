@@ -8,7 +8,7 @@ const prediccionSchema = new mongoose.Schema({
     color: { type: String, required: true },
   },
   fecha: { type: Date, required: true },
-  resultado: { type: String, enum: ["apto", "defectuoso"], required: true },
+  resultado: { type: String, enum: ["apto", "no apto"], required: true },
   etiquetas: [
     {
       etiqueta_id: { type: String, required: true, ref: "Etiqueta" },

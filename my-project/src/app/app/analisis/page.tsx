@@ -86,7 +86,15 @@ export default function QualityControlPage() {
           </div>
         </div>
       ) : (
-        <QualityControlDashboard analisis_id={analisisId || ""} />
+        <QualityControlDashboard
+          analisis_id={analisisId || ""}
+          params={{
+            minLength: productParams?.minLength,
+            maxLength: productParams?.maxLength,
+            minWidth: productParams?.minWidth,
+            maxWidth: productParams?.maxWidth,
+          }}
+        />
       )}
     </div>
   );

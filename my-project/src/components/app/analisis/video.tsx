@@ -1,86 +1,133 @@
 import mongoose from "mongoose";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
+
 interface VideoFeedProps {
   analisis_id: string;
+  params: {
+    minLength: number;
+    maxLength: number;
+    minWidth: number;
+    maxWidth: number;
+  };
 }
-export default function VideoFeed({ analisis_id }: VideoFeedProps) {
+
+export default function VideoFeed({ analisis_id, params }: VideoFeedProps) {
   const webcamRef = useRef<Webcam>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
 
-  const sendImageToBackend = async (image: string) => {
-    try {
-      const base64Data = image.split(",")[1]; // Remove the prefix 'data:image/jpeg;base64,'
-      const response = await fetch(
-        "https://stass-apis.onrender.com/asparagus",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ image: base64Data }),
+  // Extract params for useEffect dependencies
+  const { minLength, maxLength, minWidth, maxWidth } = params;
+
+  const sendImageToBackend = useCallback(
+    async (image: string) => {
+      try {
+        if (
+          minWidth === undefined ||
+          maxWidth === undefined ||
+          minLength === undefined ||
+          maxLength === undefined
+        ) {
+          console.error(
+            "Los parámetros de rango no están completamente definidos."
+          );
+          return;
         }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log(data);
-
-        // Define the type for the results array
-        interface DetectionResult {
-          detection_id: string;
-          altura: number;
-          radio: number;
-        }
-
-        // Ensure `results` exists and is an array
-        const results: DetectionResult[] = Array.isArray(data.results)
-          ? data.results
-          : [];
-
-        // Iterate over each detection in results
-        const predictions = results.map((result: DetectionResult) => ({
-          _id: new mongoose.Types.ObjectId().toString(),
-          analisis_id: analisis_id, // Change this as per your context
-          atributos: {
-            tamaño: `${result.altura || "desconocido"} x ${
-              result.radio || "desconocido"
-            }`, // Example of combining height and radius
-            color: "desconocido", // Placeholder as color isn't in the response
-          },
-          fecha: new Date(),
-          resultado: "apto", // Placeholder, update based on your logic
-          etiquetas: [], // Placeholder as labels aren't in the response
-        }));
-
-        // Save each prediction in MongoDB
-        for (const prediccion of predictions) {
-          const guardarPrediccion = await fetch("/api/predictions", {
+        const base64Data = image.split(",")[1]; // Remove the prefix 'data:image/jpeg;base64,'
+        const response = await fetch(
+          "https://stass-apis.onrender.com/asparagus",
+          {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(prediccion), // Send the prediction data here
+            body: JSON.stringify({ image: base64Data }),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log(data);
+
+          interface DetectionResult {
+            detection_id: string;
+            altura: number;
+            radio: number;
+          }
+
+          const results: DetectionResult[] = Array.isArray(data.results)
+            ? data.results
+            : [];
+
+          const predictions = results.map((result: DetectionResult) => {
+            const [minSize, maxSize] = [result.altura, result.radio].sort(
+              (a, b) => a - b
+            );
+
+            const width = minSize;
+            const length = maxSize;
+
+            const isWidthValid = width >= minWidth && width <= maxWidth;
+            const isLengthValid = length >= minLength && length <= maxLength;
+
+            if (!isWidthValid) {
+              console.log(
+                `Ancho fuera de rango: Ancho=${width}, Diferencia=${
+                  width < minWidth ? minWidth - width : width - maxWidth
+                }`
+              );
+            }
+
+            if (!isLengthValid) {
+              console.log(
+                `Largo fuera de rango: Largo=${length}, Diferencia=${
+                  length < minLength ? minLength - length : length - maxLength
+                }`
+              );
+            }
+
+            return {
+              _id: new mongoose.Types.ObjectId().toString(),
+              analisis_id: analisis_id,
+              atributos: {
+                tamaño: `${length} x ${width}`,
+                color: "desconocido",
+              },
+              fecha: new Date(),
+              resultado: isWidthValid && isLengthValid ? "apto" : "no apto",
+              etiquetas: [],
+            };
           });
 
-          if (guardarPrediccion.ok) {
-            const result = await guardarPrediccion.json();
-            console.log("Prediction saved:", result);
-          } else {
-            console.error(
-              "Failed to save prediction in MongoDB:",
-              guardarPrediccion.statusText
-            );
+          for (const prediccion of predictions) {
+            const guardarPrediccion = await fetch("/api/predictions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(prediccion),
+            });
+
+            if (guardarPrediccion.ok) {
+              const result = await guardarPrediccion.json();
+              console.log("Prediction saved:", result);
+            } else {
+              console.error(
+                "Failed to save prediction in MongoDB:",
+                guardarPrediccion.statusText
+              );
+            }
           }
+        } else {
+          console.error("Failed to send image to backend");
         }
-      } else {
-        console.error("Failed to send image to backend");
+      } catch (error) {
+        console.error("Error sending image to backend:", error);
       }
-    } catch (error) {
-      console.error("Error sending image to backend:", error);
-    }
-  };
+    },
+    [analisis_id, minLength, maxLength, minWidth, maxWidth]
+  );
 
   useEffect(() => {
     const getDevices = async () => {
@@ -100,7 +147,7 @@ export default function VideoFeed({ analisis_id }: VideoFeedProps) {
     };
 
     getDevices();
-  }, []);
+  }, []); // Dependencias vacías ya que no dependen de variables externas
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -113,7 +160,7 @@ export default function VideoFeed({ analisis_id }: VideoFeedProps) {
     }, 5000); // Captura cada 5 segundos
 
     return () => clearInterval(interval);
-  }, []);
+  }, [sendImageToBackend]);
 
   return (
     <div className="bg-gray-200 aspect-video rounded-lg flex items-center justify-center flex-col">
