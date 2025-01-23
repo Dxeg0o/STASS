@@ -13,6 +13,12 @@ interface Label {
 }
 interface QualityControlDashboardProps {
   analisis_id: string;
+  params: {
+    minLength: number | undefined;
+    maxLength: number | undefined;
+    minWidth: number | undefined;
+    maxWidth: number | undefined;
+  };
 }
 
 export default function QualityControlDashboard({
