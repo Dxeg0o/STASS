@@ -10,7 +10,7 @@ connectDb();
 export const POST = async (req: Request) => {
   try {
     const body = await req.json();
-    const { nombre, correo, contraseña, empresa_id } = body;
+    const { nombre, correo, contraseña, empresaId } = body;
 
     // Verifica si el usuario ya existe
     const existingUser = await User.findOne({ correo });
@@ -30,9 +30,9 @@ export const POST = async (req: Request) => {
       nombre,
       correo,
       contraseña: hashedPassword,
-      empresa_id,
+      empresaId,
       rol: "usuario",
-      fecha_registro: new Date(),
+      fechaRegistro: new Date(),
     });
 
     await user.save();

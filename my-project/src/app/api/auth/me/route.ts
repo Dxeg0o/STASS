@@ -40,7 +40,7 @@ export async function GET(req: Request) {
       id: user._id,
       name: user.nombre,
       mail: user.correo,
-      id_empresa: user.empresa_id,
+      empresaId: user.empresaId,
       rol_usuario: user.rol,
     });
   } catch (error) {

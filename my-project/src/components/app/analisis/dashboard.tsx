@@ -3,16 +3,18 @@
 import { useState } from "react";
 import VideoFeed from "./video";
 import SelectedLabels from "./etiquetas-seleccionadas";
-import QualityResults from "./resultados";
 import AnalysisResults from "./resultadofinal";
 import { Button } from "@/components/ui/button";
+import Timeline from "./graficos/timeline";
+import AptosPercentageBox from "./graficos/AptosPercentageBox";
+import LastAptosPercentageBox from "./graficos/LastAptosPercentageBox";
 
 interface Label {
   name: string;
   subLabels?: string[];
 }
 interface QualityControlDashboardProps {
-  analisis_id: string;
+  analisisId: string;
   params: {
     minLength: number | undefined;
     maxLength: number | undefined;
@@ -22,7 +24,7 @@ interface QualityControlDashboardProps {
 }
 
 export default function QualityControlDashboard({
-  analisis_id,
+  analisisId,
   params,
 }: QualityControlDashboardProps) {
   const [selectedLabels, setSelectedLabels] = useState<Label[]>([]);
@@ -75,7 +77,7 @@ export default function QualityControlDashboard({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
           {/* Pasamos los parámetros validados a VideoFeed */}
-          <VideoFeed analisis_id={analisis_id} params={validatedParams} />
+          <VideoFeed analisisId={analisisId} params={validatedParams} />
         </div>
         <div>
           {/* Gestión de etiquetas seleccionadas */}
@@ -85,10 +87,15 @@ export default function QualityControlDashboard({
           />
         </div>
       </div>
-      <div className="text-3xl font-semibold mt-6">
+      <div className="text-3xl font-semibold mt-6 px-12">
         Graficos de calidad
-        <div className="">
-          <QualityResults id_analisis={analisis_id} />
+        <div className="mt-4">
+          <Timeline idAnalisis={analisisId} />
+          <div className="flex justify-center gap-4 mt-8">
+            <AptosPercentageBox idAnalisis={analisisId} />
+
+            <LastAptosPercentageBox idAnalisis={analisisId} />
+          </div>
         </div>
       </div>
       <div className="flex justify-center">
