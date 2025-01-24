@@ -8,7 +8,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  id_empresa: string;
+  empresaId: string;
 }
 
 interface State {

@@ -24,11 +24,7 @@ ChartJS.register(
 //ver si Modificar el backend: Devolver solo las predicciones nuevas desde la última consulta.
 //Esto puede lograrse utilizando un filtro basado en tiempo (createdAt) o un identificador incremental.
 
-export default function QualityResults({
-  id_analisis,
-}: {
-  id_analisis: string;
-}) {
+export default function Timeline({ idAnalisis }: { idAnalisis: string }) {
   const [dataPoints, setDataPoints] = useState<
     { timestamp: string; percentage: number }[]
   >([]);
@@ -48,7 +44,7 @@ export default function QualityResults({
     const fetchData = async () => {
       try {
         const response = await fetch(
-          `/api/analysis/graphics/timeline?id_analisis=${id_analisis}`
+          `/api/analysis/graphics/timeline?id_analisis=${idAnalisis}`
         );
         const data = await response.json();
 
@@ -71,7 +67,7 @@ export default function QualityResults({
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, [id_analisis]);
+  }, [idAnalisis]);
 
   useEffect(() => {
     setChartData({
@@ -89,7 +85,7 @@ export default function QualityResults({
 
   return (
     <div className="min-w-screen">
-      <div className="px-12">
+      <div className="">
         <Line
           data={chartData}
           options={{

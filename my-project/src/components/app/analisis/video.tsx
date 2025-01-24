@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 
 interface VideoFeedProps {
-  analisis_id: string;
+  analisisId: string;
   params: {
     minLength: number;
     maxLength: number;
@@ -12,7 +12,7 @@ interface VideoFeedProps {
   };
 }
 
-export default function VideoFeed({ analisis_id, params }: VideoFeedProps) {
+export default function VideoFeed({ analisisId, params }: VideoFeedProps) {
   const webcamRef = useRef<Webcam>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
@@ -23,6 +23,7 @@ export default function VideoFeed({ analisis_id, params }: VideoFeedProps) {
   const sendImageToBackend = useCallback(
     async (image: string) => {
       try {
+        console.log(analisisId);
         if (
           minWidth === undefined ||
           maxWidth === undefined ||
@@ -89,7 +90,7 @@ export default function VideoFeed({ analisis_id, params }: VideoFeedProps) {
 
             return {
               _id: new mongoose.Types.ObjectId().toString(),
-              analisis_id: analisis_id,
+              analisisId: analisisId,
               atributos: {
                 tamaño: `${length} x ${width}`,
                 color: "desconocido",
@@ -126,7 +127,7 @@ export default function VideoFeed({ analisis_id, params }: VideoFeedProps) {
         console.error("Error sending image to backend:", error);
       }
     },
-    [analisis_id, minLength, maxLength, minWidth, maxWidth]
+    [analisisId, minLength, maxLength, minWidth, maxWidth]
   );
 
   useEffect(() => {

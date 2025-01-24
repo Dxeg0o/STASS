@@ -22,10 +22,10 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Validar los datos requeridos
-    const { empresa_id, producto_id } = data;
-    if (!empresa_id || !producto_id) {
+    const { empresaId, productoId } = data;
+    if (!empresaId || !productoId) {
       return NextResponse.json(
-        { message: "Faltan campos requeridos: empresa_id o producto_id" },
+        { message: "Faltan campos requeridos: empresaId o productoId" },
         { status: 400 }
       );
     }
@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
     // Crear el análisis
     const analysis = await Analisis.create({
       _id: new mongoose.Types.ObjectId().toString(),
-      empresa_id,
-      fecha_creacion: new Date(),
+      empresaId,
+      fechaCreacion: new Date(),
       estado: "en_progreso",
-      producto: producto_id,
+      producto: productoId,
     });
 
     // Responder con el análisis creado

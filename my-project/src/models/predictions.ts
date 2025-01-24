@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const prediccionSchema = new mongoose.Schema({
   _id: { type: String, required: true },
-  analisis_id: { type: String, required: true, ref: "Analisis" },
+  analisisId: { type: String, required: true, ref: "Analisis" },
   atributos: {
     tamaño: { type: String, required: true },
     color: { type: String, required: true },
@@ -11,7 +11,7 @@ const prediccionSchema = new mongoose.Schema({
   resultado: { type: String, enum: ["apto", "no apto"], required: true },
   etiquetas: [
     {
-      etiqueta_id: { type: String, required: true, ref: "Etiqueta" },
+      etiquetaId: { type: String, required: true, ref: "Etiqueta" },
       valor: { type: String, required: true },
     },
   ],

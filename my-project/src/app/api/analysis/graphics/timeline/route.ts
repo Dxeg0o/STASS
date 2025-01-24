@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const predicciones = await Prediccion.find({ analisis_id: id_analisis });
+    const predicciones = await Prediccion.find({ analisisId: id_analisis });
 
     if (predicciones.length === 0) {
       return NextResponse.json(

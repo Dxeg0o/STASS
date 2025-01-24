@@ -39,7 +39,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           nombre: companyName,
           pais: country,
-          fecha_registro: new Date(),
+          fechaRegistro: new Date(),
         }),
       });
 
@@ -59,7 +59,7 @@ export default function RegisterPage() {
           nombre: username,
           correo: email,
           contraseña: password,
-          empresa_id: empresaData._id, // Usar el ID de la empresa registrada
+          empresaId: empresaData._id, // Usar el ID de la empresa registrada
         }),
       });
 

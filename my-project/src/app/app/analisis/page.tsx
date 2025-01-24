@@ -33,14 +33,15 @@ export default function QualityControlPage() {
     }
 
     try {
+      console.log(data?.empresaId, selectedProduct);
       const response = await fetch("/api/analysis", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          empresa_id: data?.id_empresa,
-          producto_id: selectedProduct,
+          empresaId: data?.empresaId,
+          productoId: selectedProduct,
         }),
       });
 
@@ -87,7 +88,7 @@ export default function QualityControlPage() {
         </div>
       ) : (
         <QualityControlDashboard
-          analisis_id={analisisId || ""}
+          analisisId={analisisId || ""}
           params={{
             minLength: productParams?.minLength,
             maxLength: productParams?.maxLength,
