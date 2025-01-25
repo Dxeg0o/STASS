@@ -5,6 +5,7 @@ import QualityControlDashboard from "@/components/app/analisis/dashboard";
 import { Button } from "@/components/ui/button";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { ProductSelector } from "@/components/app/analisis/selector-productos";
+import { useRouter } from "next/navigation"; // Para manejar navegación
 
 export default function QualityControlPage() {
   const [productSelected, setProductSelected] = useState(false);
@@ -17,6 +18,7 @@ export default function QualityControlPage() {
   } | null>(null);
   const { data } = useContext(AuthenticationContext);
   const [analisisId, setAnalisisId] = useState<string | null>(null);
+  const router = useRouter(); // Inicializa el enrutador para manejar navegación
 
   const handleStart = async () => {
     if (
@@ -83,6 +85,13 @@ export default function QualityControlPage() {
               className="mt-12 hover:bg-black/60 text-xl font-semibold p-6"
             >
               Comenzar
+            </Button>
+            {/* Botón para ir a la página de calibración */}
+            <Button
+              onClick={() => router.push("/app/calibracion")}
+              className="mt-4 bg-gray-200 hover:bg-gray-300 text-black text-xl font-semibold p-4"
+            >
+              Calibrar
             </Button>
           </div>
         </div>
