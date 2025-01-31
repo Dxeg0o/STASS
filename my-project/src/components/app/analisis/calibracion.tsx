@@ -23,7 +23,7 @@ interface CalibracionProps {
   onBack: () => void; // Add this line
 }
 
-export default function Calibracion({ onNext, onBack }: CalibracionProps) {
+export default function Calibracion({ onNext }: CalibracionProps) {
   const webcamRef = useRef<Webcam>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [points, setPoints] = useState<{ x: number; y: number }[]>([]);

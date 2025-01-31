@@ -5,14 +5,13 @@ import QualityControlDashboard from "@/components/app/analisis/dashboard";
 import { Button } from "@/components/ui/button";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { ProductSelector } from "@/components/app/analisis/selector-productos";
-import { useRouter } from "next/navigation";
 import Calibracion from "@/components/app/analisis/calibracion";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 export default function QualityControlPage() {
-  const [productSelected, setProductSelected] = useState(false);
+  const [, setProductSelected] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [productParams, setProductParams] = useState<{
     minLength: number | undefined;
@@ -24,7 +23,6 @@ export default function QualityControlPage() {
   const [analisisId, setAnalisisId] = useState<string | null>(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const steps = [
     "Selección de Producto",
@@ -69,8 +67,6 @@ export default function QualityControlPage() {
           description: "Configuración guardada correctamente",
         });
       } else {
-        const errorData = await response.json();
-
         toast.error("Error al iniciar", {
           description: "Inténtalo de nuevo más tarde",
         });
@@ -79,6 +75,7 @@ export default function QualityControlPage() {
       toast.error("Error de conexión", {
         description: "Verifica tu conexión a internet e inténtalo de nuevo",
       });
+      console.log(error);
     } finally {
       setLoading(false);
     }
@@ -134,10 +131,15 @@ export default function QualityControlPage() {
         <Calibracion onNext={() => setStep(3)} onBack={() => setStep(1)} />
       )}
 
-      {step === 3 && analisisId && (
+      {step === 3 && analisisId && productParams && (
         <QualityControlDashboard
           analisisId={analisisId}
-          params={productParams!}
+          params={{
+            minLength: productParams.minLength ?? 0, // Valor por defecto
+            maxLength: productParams.maxLength ?? 0,
+            minWidth: productParams.minWidth ?? 0,
+            maxWidth: productParams.maxWidth ?? 0,
+          }}
           onBack={() => setStep(2)}
         />
       )}

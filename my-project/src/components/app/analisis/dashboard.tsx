@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import VideoFeed from "./video";
 import SelectedLabels from "./etiquetas-seleccionadas";
 import AnalysisResults from "./resultadofinal";
@@ -9,7 +9,7 @@ import Timeline from "./graficos/timeline";
 import AptosPercentageBox from "./graficos/AptosPercentageBox";
 import LastAptosPercentageBox from "./graficos/LastAptosPercentageBox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -49,7 +49,6 @@ export default function QualityControlDashboard({
   const [selectedLabels, setSelectedLabels] = useState<Label[]>([]);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const handleFinishAnalysis = () => {

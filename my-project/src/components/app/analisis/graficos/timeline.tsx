@@ -12,7 +12,6 @@ import {
   Legend,
 } from "chart.js";
 import { Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 ChartJS.register(
   CategoryScale,
@@ -33,7 +32,6 @@ export default function Timeline({ idAnalisis, onError }: TimelineProps) {
     { timestamp: string; percentage: number }[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,14 +68,6 @@ export default function Timeline({ idAnalisis, onError }: TimelineProps) {
       <div className="h-64 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive" className="h-64 flex items-center">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
     );
   }
 
