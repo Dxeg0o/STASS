@@ -8,6 +8,7 @@ interface AnalysisResultsProps {
   overallQuality: number;
   last10MinutesQuality: number;
   rejectionReasons: { reason: string; percentage: number }[];
+  onBack?: (message: string) => void;
 }
 
 export default function AnalysisResults({}: AnalysisResultsProps) {

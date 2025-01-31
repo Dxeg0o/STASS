@@ -1,4 +1,4 @@
-import { Home, Settings, Ruler } from "lucide-react";
+import { Home, Settings } from "lucide-react";
 import Image from "next/image";
 
 import {
@@ -30,11 +30,7 @@ const items = [
     url: "/app/etiquetas",
     icon: Tag,
   },
-  {
-    title: "Calibración",
-    url: "/app/calibracion", // Asegúrate de que esta ruta sea correcta
-    icon: Ruler, // Icono de regla para la calibración
-  },
+
   {
     title: "Configuraciones",
     url: "/app/configuraciones",

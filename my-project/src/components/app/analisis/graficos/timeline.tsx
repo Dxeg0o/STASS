@@ -11,6 +11,8 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 ChartJS.register(
   CategoryScale,
@@ -21,24 +23,17 @@ ChartJS.register(
   Legend
 );
 
-//ver si Modificar el backend: Devolver solo las predicciones nuevas desde la última consulta.
-//Esto puede lograrse utilizando un filtro basado en tiempo (createdAt) o un identificador incremental.
+interface TimelineProps {
+  idAnalisis: string;
+  onError?: (message: string) => void;
+}
 
-export default function Timeline({ idAnalisis }: { idAnalisis: string }) {
+export default function Timeline({ idAnalisis, onError }: TimelineProps) {
   const [dataPoints, setDataPoints] = useState<
     { timestamp: string; percentage: number }[]
   >([]);
-  const [chartData, setChartData] = useState({
-    labels: [] as string[],
-    datasets: [
-      {
-        label: "Porcentaje de Aptos",
-        data: [] as number[],
-        borderColor: "rgba(75, 192, 192, 1)",
-        borderWidth: 2,
-      },
-    ],
-  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,75 +41,82 @@ export default function Timeline({ idAnalisis }: { idAnalisis: string }) {
         const response = await fetch(
           `/api/analysis/graphics/timeline?id_analisis=${idAnalisis}`
         );
+
+        if (!response.ok) throw new Error("Error fetching data");
+
         const data = await response.json();
 
         if (Array.isArray(data)) {
-          const newPoints = data.map(
-            (item: { timestamp: string; percentage: number }) => ({
-              timestamp: new Date(item.timestamp).toLocaleTimeString(),
-              percentage: item.percentage,
-            })
-          );
+          const newPoints = data.map((item) => ({
+            timestamp: new Date(item.timestamp).toLocaleTimeString(),
+            percentage: item.percentage,
+          }));
           setDataPoints((prev) => [...prev, ...newPoints].slice(-60));
-        } else {
-          console.error("Respuesta de la API no es un array:", data);
         }
-      } catch (error) {
-        console.error("Error fetching data:", error);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, [idAnalisis]);
+  }, [idAnalisis, onError]);
 
-  useEffect(() => {
-    setChartData({
-      labels: dataPoints.map((point) => point.timestamp),
-      datasets: [
-        {
-          label: "Porcentaje de Aptos",
-          data: dataPoints.map((point) => point.percentage),
-          borderColor: "rgba(75, 192, 192, 1)",
-          borderWidth: 2,
-        },
-      ],
-    });
-  }, [dataPoints]);
+  if (loading) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="h-64 flex items-center">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
-    <div className="min-w-screen">
-      <div className="">
-        <Line
-          data={chartData}
-          options={{
-            responsive: true,
-            plugins: {
-              legend: {
-                display: true,
-                position: "top",
-              },
-            },
-            scales: {
-              x: {
-                title: {
-                  display: true,
-                  text: "Tiempo",
-                },
-              },
-              y: {
-                title: {
-                  display: true,
-                  text: "Porcentaje",
-                },
-                min: 0,
-                max: 100,
-              },
-            },
-          }}
-        />
-      </div>
-    </div>
+    <Line
+      data={{
+        labels: dataPoints.map((p) => p.timestamp),
+        datasets: [
+          {
+            label: "Porcentaje de Aptos",
+            data: dataPoints.map((p) => p.percentage),
+            borderColor: "hsl(142.1 76.2% 36.3%)",
+            borderWidth: 2,
+            tension: 0.1,
+          },
+        ],
+      }}
+      options={{
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            mode: "index",
+            intersect: false,
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            title: { display: true, text: "Tiempo" },
+          },
+          y: {
+            min: 0,
+            max: 100,
+            title: { display: true, text: "Porcentaje Aptos (%)" },
+          },
+        },
+      }}
+    />
   );
 }
