@@ -7,6 +7,7 @@ interface DataPoint {
 
 interface AptosPercentageBoxProps {
   idAnalisis: string;
+  onError?: (message: string) => void;
 }
 
 const LastAptosPercentageBox: React.FC<AptosPercentageBoxProps> = ({

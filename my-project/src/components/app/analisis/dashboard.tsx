@@ -8,38 +8,56 @@ import { Button } from "@/components/ui/button";
 import Timeline from "./graficos/timeline";
 import AptosPercentageBox from "./graficos/AptosPercentageBox";
 import LastAptosPercentageBox from "./graficos/LastAptosPercentageBox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Info } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Label {
   name: string;
   subLabels?: string[];
 }
+
 interface QualityControlDashboardProps {
   analisisId: string;
   params: {
-    minLength: number | undefined;
-    maxLength: number | undefined;
-    minWidth: number | undefined;
-    maxWidth: number | undefined;
+    minLength: number;
+    maxLength: number;
+    minWidth: number;
+    maxWidth: number;
   };
+  onBack: () => void;
 }
 
 export default function QualityControlDashboard({
   analisisId,
   params,
+  onBack,
 }: QualityControlDashboardProps) {
   const [selectedLabels, setSelectedLabels] = useState<Label[]>([]);
   const [analysisComplete, setAnalysisComplete] = useState(false);
-
-  // Validación de parámetros predeterminados para evitar valores "undefined"
-  const validatedParams = {
-    minLength: params.minLength ?? 0,
-    maxLength: params.maxLength ?? Infinity,
-    minWidth: params.minWidth ?? 0,
-    maxWidth: params.maxWidth ?? Infinity,
-  };
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFinishAnalysis = () => {
+    setShowConfirmDialog(true);
+  };
+
+  const confirmFinishAnalysis = () => {
     setAnalysisComplete(true);
+    setShowConfirmDialog(false);
   };
 
   const rejectionReasons = [
@@ -55,58 +73,142 @@ export default function QualityControlDashboard({
         overallQuality={90}
         last10MinutesQuality={92}
         rejectionReasons={rejectionReasons}
+        onBack={onBack}
       />
     );
   }
 
   return (
-    <div className="flex flex-col space-y-8">
-      {/* Mensaje de validación si los parámetros son inválidos */}
-      {params.minWidth === undefined ||
-      params.maxWidth === undefined ||
-      params.minLength === undefined ||
-      params.maxLength === undefined ? (
-        <div className="text-red-600 text-center">
-          <p>
-            ⚠️ Algunos parámetros no están definidos. Por favor verifica antes
-            de continuar.
-          </p>
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div>
-          {/* Pasamos los parámetros validados a VideoFeed */}
-          <VideoFeed analisisId={analisisId} params={validatedParams} />
-        </div>
-        <div>
-          {/* Gestión de etiquetas seleccionadas */}
-          <SelectedLabels
-            labels={selectedLabels}
-            onLabelChange={setSelectedLabels}
-          />
-        </div>
-      </div>
-      <div className="text-3xl font-semibold mt-6 px-12">
-        Graficos de calidad
-        <div className="mt-4">
-          <Timeline idAnalisis={analisisId} />
-          <div className="flex justify-center gap-4 mt-8">
-            <AptosPercentageBox idAnalisis={analisisId} />
-
-            <LastAptosPercentageBox idAnalisis={analisisId} />
-          </div>
-        </div>
-      </div>
-      <div className="flex justify-center">
-        {/* Botón para finalizar análisis */}
-        <Button
-          onClick={handleFinishAnalysis}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-        >
-          Terminar análisis
+    <div className="flex flex-col space-y-8 p-4 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Panel de Control de Calidad</h1>
+        <Button variant="outline" onClick={onBack}>
+          Volver a configuración
         </Button>
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Error en el sistema</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Video en tiempo real
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="w-4 h-4" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    Vista previa del flujo de producción con análisis en tiempo
+                    real
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <VideoFeed
+              analisisId={analisisId}
+              params={params}
+              onError={(message) => setError(message)}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Etiquetas de Control
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="w-4 h-4" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Seleccione las características de calidad a monitorear</p>
+                </TooltipContent>
+              </Tooltip>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SelectedLabels
+              labels={selectedLabels}
+              onLabelChange={setSelectedLabels}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Métricas de Calidad</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                Evolución temporal
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="w-4 h-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Porcentaje de productos aptos durante las últimas 2 horas
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </h3>
+              <div className="h-64 my-4">
+                <Timeline idAnalisis={analisisId} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <AptosPercentageBox idAnalisis={analisisId} onError={setError} />
+              <LastAptosPercentageBox
+                idAnalisis={analisisId}
+                onError={setError}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-center gap-4">
+        <Button
+          onClick={handleFinishAnalysis}
+          className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 text-lg"
+        >
+          Finalizar Análisis
+        </Button>
+      </div>
+
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Finalización</DialogTitle>
+            <DialogDescription>
+              ¿Está seguro que desea finalizar el análisis? Esta acción no se
+              puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmDialog(false)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={confirmFinishAnalysis}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

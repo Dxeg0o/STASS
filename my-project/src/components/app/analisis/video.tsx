@@ -10,6 +10,7 @@ interface VideoFeedProps {
     minWidth: number;
     maxWidth: number;
   };
+  onError?: (message: string) => void;
 }
 
 export default function VideoFeed({ analisisId, params }: VideoFeedProps) {

@@ -5,9 +5,13 @@ import QualityControlDashboard from "@/components/app/analisis/dashboard";
 import { Button } from "@/components/ui/button";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { ProductSelector } from "@/components/app/analisis/selector-productos";
+import Calibracion from "@/components/app/analisis/calibracion";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export default function QualityControlPage() {
-  const [productSelected, setProductSelected] = useState(false);
+  const [, setProductSelected] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [productParams, setProductParams] = useState<{
     minLength: number | undefined;
@@ -17,6 +21,14 @@ export default function QualityControlPage() {
   } | null>(null);
   const { data } = useContext(AuthenticationContext);
   const [analisisId, setAnalisisId] = useState<string | null>(null);
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const steps = [
+    "Selección de Producto",
+    "Calibración",
+    "Análisis en Tiempo Real",
+  ];
 
   const handleStart = async () => {
     if (
@@ -26,14 +38,14 @@ export default function QualityControlPage() {
       !productParams?.minWidth ||
       !productParams?.maxWidth
     ) {
-      alert(
-        "Por favor, selecciona un producto e ingresa todos los parámetros antes de comenzar."
-      );
+      toast.error("Datos incompletos", {
+        description: "Por favor completa todos los parámetros requeridos",
+      });
       return;
     }
 
     try {
-      console.log(data?.empresaId, selectedProduct);
+      setLoading(true);
       const response = await fetch("/api/analysis", {
         method: "POST",
         headers: {
@@ -47,54 +59,88 @@ export default function QualityControlPage() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Análisis creado:", data._id);
         setAnalisisId(data._id);
-
         setProductSelected(true);
+        setStep(2);
+
+        toast.success("Análisis iniciado", {
+          description: "Configuración guardada correctamente",
+        });
       } else {
-        const errorData = await response.json();
-        console.error("Error en la API:", errorData.message);
-        alert("Error al iniciar el análisis: " + errorData.message);
+        toast.error("Error al iniciar", {
+          description: "Inténtalo de nuevo más tarde",
+        });
       }
     } catch (error) {
-      console.error("Error al llamar a la API:", error);
-      alert("Ocurrió un error inesperado. Inténtalo de nuevo.");
+      toast.error("Error de conexión", {
+        description: "Verifica tu conexión a internet e inténtalo de nuevo",
+      });
+      console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container px-4 py-8">
-      {!productSelected ? (
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Comienza a analizar</h1>
-          <p className="text-xl font-semibold mb-8">
-            Elige cuál de tus productos analizarás y especifica los parámetros.
-          </p>
-
-          <div className="text-center">
-            <ProductSelector
-              onParamsChange={(productId, params) => {
-                setSelectedProduct(productId);
-                setProductParams(params);
-              }}
-            />
-            <Button
-              onClick={handleStart}
-              className="mt-12 hover:bg-black/60 text-xl font-semibold p-6"
-            >
-              Comenzar
-            </Button>
-          </div>
+    <div className="container px-4 py-8 max-w-4xl">
+      <div className="mb-8 space-y-2">
+        <h1 className="text-3xl font-bold text-primary">Control de Calidad</h1>
+        <div className="flex items-center gap-4">
+          <Progress value={(step / steps.length) * 100} className="h-2" />
+          <span className="text-sm text-muted-foreground">
+            Paso {step} de {steps.length}: {steps[step - 1]}
+          </span>
         </div>
-      ) : (
+      </div>
+
+      {step === 1 && (
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold">Configuración Inicial</h2>
+            <p className="text-muted-foreground">
+              Selecciona el producto a analizar y define los parámetros de
+              calidad requeridos.
+            </p>
+          </div>
+
+          <ProductSelector
+            onParamsChange={(productId, params) => {
+              setSelectedProduct(productId);
+              setProductParams(params);
+            }}
+          />
+
+          <Button
+            onClick={handleStart}
+            className="w-full py-6 text-lg"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Iniciando análisis...
+              </>
+            ) : (
+              "Iniciar Análisis"
+            )}
+          </Button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <Calibracion onNext={() => setStep(3)} onBack={() => setStep(1)} />
+      )}
+
+      {step === 3 && analisisId && productParams && (
         <QualityControlDashboard
-          analisisId={analisisId || ""}
+          analisisId={analisisId}
           params={{
-            minLength: productParams?.minLength,
-            maxLength: productParams?.maxLength,
-            minWidth: productParams?.minWidth,
-            maxWidth: productParams?.maxWidth,
+            minLength: productParams.minLength ?? 0, // Valor por defecto
+            maxLength: productParams.maxLength ?? 0,
+            minWidth: productParams.minWidth ?? 0,
+            maxWidth: productParams.maxWidth ?? 0,
           }}
+          onBack={() => setStep(2)}
         />
       )}
     </div>
