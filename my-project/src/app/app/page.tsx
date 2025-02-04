@@ -25,7 +25,7 @@ export default function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  // Simplified sample data
+  // Datos de ejemplo simplificados
   const [analyses, setAnalyses] = useState<Analysis[]>([
     {
       id: "1",
@@ -97,7 +97,7 @@ export default function Dashboard() {
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">
-            Quality Analysis Dashboard
+            Panel de Análisis
           </h2>
           <div className="flex items-center gap-4">
             <DatePickerWithRange />
@@ -107,12 +107,12 @@ export default function Dashboard() {
               ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
               )}
-              Refresh
+              Actualizar
             </Button>
           </div>
         </div>
 
-        {/* Filter Section */}
+        {/* Sección de Filtros */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
             <select
@@ -120,7 +120,7 @@ export default function Dashboard() {
               onChange={(e) => setSelectedProduct(e.target.value)}
               className="px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All Products</option>
+              <option value="all">Todos los Productos</option>
               {[...new Set(analyses.map((a) => a.product))].map((product) => (
                 <option key={product} value={product}>
                   {product.charAt(0).toUpperCase() + product.slice(1)}
@@ -128,19 +128,19 @@ export default function Dashboard() {
               ))}
             </select>
             <span className="text-sm text-gray-500">
-              Showing {filteredAnalyses.length} analyses
+              Mostrando {filteredAnalyses.length} análisis
             </span>
           </div>
         </div>
 
-        {/* Active Analyses Section - Only show if there are active analyses */}
+        {/* Sección de Análisis Activos */}
         {activeAnalyses.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl flex items-center justify-between">
-                Active Quality Checks
+                Controles de Calidad Activos
                 <span className="text-sm font-normal text-gray-500">
-                  Real-time monitoring
+                  Monitoreo en tiempo real
                 </span>
               </CardTitle>
             </CardHeader>
@@ -154,13 +154,13 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Historical Analyses Section */}
+        {/* Sección de Análisis Históricos */}
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl flex items-center justify-between">
-              Historical Analysis
+              Análisis Histórico
               <span className="text-sm font-normal text-gray-500">
-                {historicalAnalyses.length} completed reports
+                {historicalAnalyses.length} informes completados
               </span>
             </CardTitle>
           </CardHeader>
@@ -168,7 +168,7 @@ export default function Dashboard() {
             <div className="grid gap-4">
               {historicalAnalyses.length === 0 ? (
                 <div className="text-gray-500 text-center py-4">
-                  No historical data available
+                  No hay datos históricos disponibles
                 </div>
               ) : (
                 <>
@@ -187,10 +187,10 @@ export default function Dashboard() {
                       }
                     >
                       <ChevronDown className="mr-2 h-4 w-4" />
-                      Load More (
+                      Cargar Más (
                       {historicalAnalyses.length -
                         displayedHistoricalCount}{" "}
-                      remaining)
+                      restantes)
                     </Button>
                   )}
                 </>
@@ -239,13 +239,13 @@ const AnalysisItem = ({ analysis }: { analysis: Analysis }) => (
       <p className="text-lg font-semibold text-gray-800">
         {analysis.totalCount.toLocaleString()}
       </p>
-      <p className="text-sm text-gray-500">Units</p>
+      <p className="text-sm text-gray-500">Unidades</p>
     </div>
 
     {/* Pass Rate Column */}
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-700">Pass Rate</span>
+        <span className="text-sm font-medium text-gray-700">Aprobación</span>
         <span className="text-sm text-gray-500">
           {analysis.passPercentage}%
         </span>
@@ -266,7 +266,7 @@ const AnalysisItem = ({ analysis }: { analysis: Analysis }) => (
           size="sm"
           className="w-full flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:border-blue-300 transition-all"
         >
-          <span>Details</span>
+          <span>Detalles</span>
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </Button>
       </Link>
