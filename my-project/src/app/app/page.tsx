@@ -1,7 +1,7 @@
 "use client";
 
-import { useContext, useState } from "react";
-import { AuthenticationContext } from "../context/AuthContext";
+import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRange } from "react-day-picker";
@@ -19,11 +19,10 @@ interface Analysis {
 }
 
 export default function Dashboard() {
-  const { data } = useContext(AuthenticationContext);
   const [selectedProduct, setSelectedProduct] = useState<string>("all");
   const [displayedHistoricalCount, setDisplayedHistoricalCount] = useState(5);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [dateRange] = useState<DateRange | undefined>();
 
   // Datos de ejemplo simplificados
   const [analyses, setAnalyses] = useState<Analysis[]>([
