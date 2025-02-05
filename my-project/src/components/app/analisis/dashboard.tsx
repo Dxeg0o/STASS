@@ -61,19 +61,18 @@ export default function QualityControlDashboard({
   };
 
   const rejectionReasons = [
-    { reason: "Tamaño", percentage: 40 },
-    { reason: "Color", percentage: 30 },
-    { reason: "Forma", percentage: 20 },
-    { reason: "Textura", percentage: 10 },
+    { razon: "Tamaño", porcentaje: 40 },
+    { razon: "Color", porcentaje: 30 },
+    { razon: "Forma", porcentaje: 20 },
+    { razon: "Textura", porcentaje: 10 },
   ];
 
   if (analysisComplete) {
     return (
       <AnalysisResults
-        overallQuality={90}
-        last10MinutesQuality={92}
-        rejectionReasons={rejectionReasons}
-        onBack={onBack}
+        calidadGeneral={90}
+        calidadUltimos10Minutos={92}
+        razonesRechazo={rejectionReasons}
       />
     );
   }

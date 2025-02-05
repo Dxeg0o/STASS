@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import { Plus, X, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,16 +18,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AuthenticationContext } from "@/app/context/AuthContext";
 
-type Subetiqueta = {
-  id: number;
-  texto: string;
-};
-
+// Definimos el tipo que usaremos en el cliente
 type Etiqueta = {
-  id: number;
+  id: string;
   texto: string;
-  subetiquetas: Subetiqueta[];
+  // Para cada subetiqueta usaremos el texto (ya que en el modelo se almacena como string)
+  subetiquetas: { texto: string }[];
 };
 
 export default function EtiquetasDashboard() {
@@ -36,26 +34,39 @@ export default function EtiquetasDashboard() {
   const [etiquetasSeleccionadas, setEtiquetasSeleccionadas] = useState<
     string[]
   >([]);
+  // Si se selecciona una etiqueta para agregarle una subetiqueta, guardamos su id (de tipo string)
   const [etiquetaPrincipalSeleccionada, setEtiquetaPrincipalSeleccionada] =
-    useState<number | null>(null);
+    useState<string | null>(null);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const { data } = useContext(AuthenticationContext);
+
+  // Función para obtener las etiquetas desde el backend
+  const fetchEtiquetas = async () => {
+    try {
+      const res = await fetch("/api/tags");
+      if (!res.ok) throw new Error("Error al obtener las etiquetas");
+      const data = await res.json();
+      // Suponemos que cada etiqueta viene con { _id, empresaId, titulo, valores, fechaCreacion }
+      const etiquetasFormateadas: Etiqueta[] = data.map((etiqueta: any) => ({
+        id: etiqueta._id,
+        texto: etiqueta.titulo,
+        subetiquetas: etiqueta.valores.map((valor: string) => ({
+          texto: valor,
+        })),
+      }));
+      setEtiquetas(etiquetasFormateadas);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
-    setEtiquetas([
-      {
-        id: Date.now(),
-        texto: "Proveedores",
-        subetiquetas: [
-          { id: Date.now() + 1, texto: "Proveedor A" },
-          { id: Date.now() + 2, texto: "Proveedor B" },
-          { id: Date.now() + 3, texto: "Proveedor C" },
-        ],
-      },
-    ]);
+    fetchEtiquetas();
   }, []);
 
-  const agregarEtiqueta = () => {
+  // Función para agregar una etiqueta o subetiqueta
+  const agregarEtiqueta = async () => {
     setError("");
     const trimmedText = nuevaEtiqueta.trim();
 
@@ -64,66 +75,96 @@ export default function EtiquetasDashboard() {
       return;
     }
 
+    // Verificamos que el nombre no exista ya en ninguna etiqueta o subetiqueta
     const exists = etiquetas.some(
       (e) =>
         e.texto === trimmedText ||
-        (etiquetaPrincipalSeleccionada &&
-          e.subetiquetas.some((s) => s.texto === trimmedText))
+        e.subetiquetas.some((s) => s.texto === trimmedText)
     );
-
     if (exists) {
       setError("Este nombre ya existe");
       return;
     }
 
-    if (etiquetaPrincipalSeleccionada !== null) {
-      setEtiquetas(
-        etiquetas.map((e) =>
-          e.id === etiquetaPrincipalSeleccionada
-            ? {
-                ...e,
-                subetiquetas: [
-                  ...e.subetiquetas,
-                  { id: Date.now(), texto: trimmedText },
-                ],
-              }
-            : e
-        )
-      );
+    if (etiquetaPrincipalSeleccionada === null) {
+      // Agregar una nueva etiqueta principal
+      const newEtiqueta = {
+        empresaId: data?.empresaId, // Reemplaza este valor según corresponda
+        titulo: trimmedText,
+        valores: [],
+        fechaCreacion: new Date(),
+      };
+
+      try {
+        const res = await fetch("/api/tags", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newEtiqueta),
+        });
+        if (!res.ok) throw new Error("Error al agregar la etiqueta");
+        await fetchEtiquetas();
+      } catch (err) {
+        console.error(err);
+      }
     } else {
-      setEtiquetas([
-        ...etiquetas,
-        { id: Date.now(), texto: trimmedText, subetiquetas: [] },
-      ]);
+      // Agregar una subetiqueta a la etiqueta seleccionada
+      try {
+        const res = await fetch(`/api/tags/${etiquetaPrincipalSeleccionada}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          // En este caso, enviamos la subetiqueta que se desea agregar
+          body: JSON.stringify({ subetiqueta: trimmedText }),
+        });
+        if (!res.ok) throw new Error("Error al agregar la subetiqueta");
+        await fetchEtiquetas();
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     setNuevaEtiqueta("");
     inputRef.current?.focus();
   };
 
-  const eliminarEtiqueta = (id: number, subId?: number) => {
-    const confirmMessage = subId
+  // Función para eliminar una etiqueta o una subetiqueta
+  const eliminarEtiqueta = async (id: string, subTexto?: string) => {
+    const confirmMessage = subTexto
       ? "¿Está seguro que desea eliminar esta subetiqueta?"
       : "Eliminar esta etiqueta también eliminará todas sus subetiquetas. ¿Está seguro?";
-
     if (!window.confirm(confirmMessage)) return;
 
-    setEtiquetas((prev) =>
-      subId
-        ? prev.map((e) =>
-            e.id === id
-              ? {
-                  ...e,
-                  subetiquetas: e.subetiquetas.filter((s) => s.id !== subId),
-                }
-              : e
-          )
-        : prev.filter((e) => e.id !== id)
-    );
+    if (subTexto) {
+      // Eliminar la subetiqueta de la etiqueta existente
+      try {
+        const res = await fetch(`/api/tags/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          // Indicamos que se debe remover la subetiqueta (el backend deberá interpretarlo)
+          body: JSON.stringify({ removeSubetiqueta: subTexto }),
+        });
+        if (!res.ok) throw new Error("Error al eliminar la subetiqueta");
+        await fetchEtiquetas();
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      // Eliminar la etiqueta completa
+      try {
+        const res = await fetch(`/api/tags/${id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Error al eliminar la etiqueta");
+        await fetchEtiquetas();
+      } catch (err) {
+        console.error(err);
+      }
+    }
   };
 
-  const toggleEtiqueta = (id: number, subId?: number) => {
-    const etiquetaId = subId ? `${id}-${subId}` : `${id}`;
+  // Función para seleccionar o deseleccionar etiquetas (o subetiquetas) en la UI
+  const toggleEtiqueta = (id: string, subTexto?: string) => {
+    // Para subetiquetas combinamos el id de la etiqueta con el texto de la subetiqueta
+    const etiquetaId = subTexto ? `${id}-${subTexto}` : id;
     setEtiquetasSeleccionadas((prev) =>
       prev.includes(etiquetaId)
         ? prev.filter((e) => e !== etiquetaId)
@@ -143,6 +184,7 @@ export default function EtiquetasDashboard() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          {/* Formulario para agregar etiquetas o subetiquetas */}
           <div className="flex gap-2">
             <Input
               ref={inputRef}
@@ -188,6 +230,7 @@ export default function EtiquetasDashboard() {
             </div>
           )}
 
+          {/* Área de scroll para mostrar las etiquetas y subetiquetas */}
           <ScrollArea className="h-[300px] rounded-md border">
             {etiquetas.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
@@ -201,7 +244,7 @@ export default function EtiquetasDashboard() {
                     <div className="flex items-center gap-2">
                       <Badge
                         variant={
-                          etiquetasSeleccionadas.includes(`${etiqueta.id}`)
+                          etiquetasSeleccionadas.includes(etiqueta.id)
                             ? "default"
                             : "outline"
                         }
@@ -239,21 +282,22 @@ export default function EtiquetasDashboard() {
                         </Tooltip>
                       </div>
                     </div>
-
                     {etiqueta.subetiquetas.length > 0 && (
                       <div className="ml-6 flex flex-wrap gap-2">
                         {etiqueta.subetiquetas.map((sub) => (
                           <Badge
-                            key={sub.id}
+                            key={sub.texto}
                             variant={
                               etiquetasSeleccionadas.includes(
-                                `${etiqueta.id}-${sub.id}`
+                                `${etiqueta.id}-${sub.texto}`
                               )
                                 ? "default"
                                 : "outline"
                             }
                             className="cursor-pointer px-3 py-1 text-xs font-normal relative group"
-                            onClick={() => toggleEtiqueta(etiqueta.id, sub.id)}
+                            onClick={() =>
+                              toggleEtiqueta(etiqueta.id, sub.texto)
+                            }
                           >
                             {sub.texto}
                             <Button
@@ -262,7 +306,7 @@ export default function EtiquetasDashboard() {
                               className="h-4 w-4 p-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                eliminarEtiqueta(etiqueta.id, sub.id);
+                                eliminarEtiqueta(etiqueta.id, sub.texto);
                               }}
                             >
                               <X className="h-3 w-3" />
