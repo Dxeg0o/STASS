@@ -24,7 +24,7 @@ import { AuthenticationContext } from "@/app/context/AuthContext";
 type Etiqueta = {
   id: string;
   texto: string;
-  // Para cada subetiqueta usaremos el texto (ya que en el modelo se almacena como string)
+  // Para cada subetiqueta usamos el texto (ya que en el modelo se almacena como string)
   subetiquetas: { texto: string }[];
 };
 
@@ -41,29 +41,37 @@ export default function EtiquetasDashboard() {
   const inputRef = useRef<HTMLInputElement>(null);
   const { data } = useContext(AuthenticationContext);
 
-  // Función para obtener las etiquetas desde el backend
+  // Función para obtener las etiquetas desde el backend, filtrando por empresaId si está disponible
   const fetchEtiquetas = async () => {
     try {
-      const res = await fetch("/api/tags");
+      const empresaId = data?.empresaId;
+      // Si empresaId está definido, lo agregamos como parámetro de consulta
+      const url = empresaId ? `/api/tags?empresaId=${empresaId}` : "/api/tags";
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Error al obtener las etiquetas");
-      const data = await res.json();
+      const tagsData = await res.json();
       // Suponemos que cada etiqueta viene con { _id, empresaId, titulo, valores, fechaCreacion }
-      const etiquetasFormateadas: Etiqueta[] = data.map((etiqueta: any) => ({
-        id: etiqueta._id,
-        texto: etiqueta.titulo,
-        subetiquetas: etiqueta.valores.map((valor: string) => ({
-          texto: valor,
-        })),
-      }));
+      const etiquetasFormateadas: Etiqueta[] = tagsData.map(
+        (etiqueta: any) => ({
+          id: etiqueta._id,
+          texto: etiqueta.titulo,
+          subetiquetas: etiqueta.valores.map((valor: string) => ({
+            texto: valor,
+          })),
+        })
+      );
       setEtiquetas(etiquetasFormateadas);
     } catch (error) {
       console.error(error);
     }
   };
 
+  // Ejecutamos fetchEtiquetas cuando el empresaId esté disponible o cambie
   useEffect(() => {
-    fetchEtiquetas();
-  }, []);
+    if (data?.empresaId) {
+      fetchEtiquetas();
+    }
+  }, [data?.empresaId]);
 
   // Función para agregar una etiqueta o subetiqueta
   const agregarEtiqueta = async () => {
@@ -89,7 +97,7 @@ export default function EtiquetasDashboard() {
     if (etiquetaPrincipalSeleccionada === null) {
       // Agregar una nueva etiqueta principal
       const newEtiqueta = {
-        empresaId: data?.empresaId, // Reemplaza este valor según corresponda
+        empresaId: data?.empresaId, // Se utiliza el empresaId del contexto
         titulo: trimmedText,
         valores: [],
         fechaCreacion: new Date(),
@@ -112,7 +120,6 @@ export default function EtiquetasDashboard() {
         const res = await fetch(`/api/tags/${etiquetaPrincipalSeleccionada}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          // En este caso, enviamos la subetiqueta que se desea agregar
           body: JSON.stringify({ subetiqueta: trimmedText }),
         });
         if (!res.ok) throw new Error("Error al agregar la subetiqueta");
@@ -134,12 +141,10 @@ export default function EtiquetasDashboard() {
     if (!window.confirm(confirmMessage)) return;
 
     if (subTexto) {
-      // Eliminar la subetiqueta de la etiqueta existente
       try {
         const res = await fetch(`/api/tags/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          // Indicamos que se debe remover la subetiqueta (el backend deberá interpretarlo)
           body: JSON.stringify({ removeSubetiqueta: subTexto }),
         });
         if (!res.ok) throw new Error("Error al eliminar la subetiqueta");
@@ -148,7 +153,6 @@ export default function EtiquetasDashboard() {
         console.error(err);
       }
     } else {
-      // Eliminar la etiqueta completa
       try {
         const res = await fetch(`/api/tags/${id}`, {
           method: "DELETE",
@@ -163,7 +167,6 @@ export default function EtiquetasDashboard() {
 
   // Función para seleccionar o deseleccionar etiquetas (o subetiquetas) en la UI
   const toggleEtiqueta = (id: string, subTexto?: string) => {
-    // Para subetiquetas combinamos el id de la etiqueta con el texto de la subetiqueta
     const etiquetaId = subTexto ? `${id}-${subTexto}` : id;
     setEtiquetasSeleccionadas((prev) =>
       prev.includes(etiquetaId)
