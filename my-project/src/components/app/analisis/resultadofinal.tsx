@@ -6,7 +6,7 @@ import { usePDF } from "react-to-pdf";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, Download, ArrowLeft } from "lucide-react";
+import { CheckCircle, Download } from "lucide-react";
 
 interface AnalysisResultsProps {
   calidadGeneral: number;

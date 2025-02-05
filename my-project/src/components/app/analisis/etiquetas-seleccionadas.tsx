@@ -15,6 +15,13 @@ interface SelectedLabelsProps {
   onLabelChange: (labels: Label[]) => void;
 }
 
+// Define an interface to represent the API response for a tag
+interface TagData {
+  _id: string;
+  titulo: string;
+  valores: string[];
+}
+
 export default function SelectedLabels({
   labels,
   onLabelChange,
@@ -29,11 +36,15 @@ export default function SelectedLabels({
   useEffect(() => {
     async function fetchLabels() {
       try {
+        // Use the empresaId from context as a query parameter if available
         const response = await fetch(`/api/tags?${data?.empresaId}`);
         if (!response.ok) throw new Error("Error fetching labels");
-        const data2 = await response.json();
 
-        const mappedLabels: Label[] = data2.map((tag: any) => ({
+        // Cast the fetched JSON as an array of TagData objects
+        const data2: TagData[] = await response.json();
+
+        // Map the API data to the Label interface
+        const mappedLabels: Label[] = data2.map((tag: TagData) => ({
           name: tag.titulo,
           subLabels: tag.valores,
         }));

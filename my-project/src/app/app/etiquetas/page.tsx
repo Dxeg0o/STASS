@@ -27,6 +27,12 @@ type Etiqueta = {
   // Para cada subetiqueta usamos el texto (ya que en el modelo se almacena como string)
   subetiquetas: { texto: string }[];
 };
+interface TagData {
+  _id: string;
+  titulo: string;
+  valores: string[];
+  fechaCreacion: Date;
+}
 
 export default function EtiquetasDashboard() {
   const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
@@ -49,17 +55,18 @@ export default function EtiquetasDashboard() {
       const url = empresaId ? `/api/tags?empresaId=${empresaId}` : "/api/tags";
       const res = await fetch(url);
       if (!res.ok) throw new Error("Error al obtener las etiquetas");
-      const tagsData = await res.json();
-      // Suponemos que cada etiqueta viene con { _id, empresaId, titulo, valores, fechaCreacion }
-      const etiquetasFormateadas: Etiqueta[] = tagsData.map(
-        (etiqueta: any) => ({
-          id: etiqueta._id,
-          texto: etiqueta.titulo,
-          subetiquetas: etiqueta.valores.map((valor: string) => ({
-            texto: valor,
-          })),
-        })
-      );
+
+      // Cast the fetched data to TagData[]
+      const tagsData: TagData[] = await res.json();
+
+      // Map the fetched data to your client-side type (Etiqueta)
+      const etiquetasFormateadas: Etiqueta[] = tagsData.map((tag: TagData) => ({
+        id: tag._id,
+        texto: tag.titulo,
+        subetiquetas: tag.valores.map((valor: string) => ({
+          texto: valor,
+        })),
+      }));
       setEtiquetas(etiquetasFormateadas);
     } catch (error) {
       console.error(error);
