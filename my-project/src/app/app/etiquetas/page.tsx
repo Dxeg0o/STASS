@@ -20,17 +20,23 @@ import {
 } from "@/components/ui/tooltip";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 
-// Definimos el tipo que usaremos en el cliente
+// Actualizamos los tipos para reflejar la nueva estructura
 type Etiqueta = {
   id: string;
   texto: string;
-  // Para cada subetiqueta usamos el texto (ya que en el modelo se almacena como string)
   subetiquetas: { texto: string }[];
 };
+
 interface TagData {
   _id: string;
   titulo: string;
-  valores: string[];
+  // Ahora se esperan los documentos de subetiqueta completos
+  subetiquetas: {
+    _id: string;
+    etiquetaId: string;
+    valor: string;
+    fechaCreacion: Date;
+  }[];
   fechaCreacion: Date;
 }
 
@@ -40,31 +46,30 @@ export default function EtiquetasDashboard() {
   const [etiquetasSeleccionadas, setEtiquetasSeleccionadas] = useState<
     string[]
   >([]);
-  // Si se selecciona una etiqueta para agregarle una subetiqueta, guardamos su id (de tipo string)
+  // Si se selecciona una etiqueta para agregarle una subetiqueta, guardamos su id
   const [etiquetaPrincipalSeleccionada, setEtiquetaPrincipalSeleccionada] =
     useState<string | null>(null);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const { data } = useContext(AuthenticationContext);
 
-  // Función para obtener las etiquetas desde el backend, filtrando por empresaId si está disponible
+  // Función para obtener las etiquetas desde el backend, ahora con sus subetiquetas
   const fetchEtiquetas = async () => {
     try {
       const empresaId = data?.empresaId;
-      // Si empresaId está definido, lo agregamos como parámetro de consulta
       const url = empresaId ? `/api/tags?empresaId=${empresaId}` : "/api/tags";
       const res = await fetch(url);
       if (!res.ok) throw new Error("Error al obtener las etiquetas");
 
-      // Cast the fetched data to TagData[]
+      // Se castea la data al nuevo tipo TagData
       const tagsData: TagData[] = await res.json();
 
-      // Map the fetched data to your client-side type (Etiqueta)
+      // Se formatea la data para usarla en la UI
       const etiquetasFormateadas: Etiqueta[] = tagsData.map((tag: TagData) => ({
         id: tag._id,
         texto: tag.titulo,
-        subetiquetas: tag.valores.map((valor: string) => ({
-          texto: valor,
+        subetiquetas: tag.subetiquetas.map((sub) => ({
+          texto: sub.valor,
         })),
       }));
       setEtiquetas(etiquetasFormateadas);
@@ -73,7 +78,7 @@ export default function EtiquetasDashboard() {
     }
   };
 
-  // Ejecutamos fetchEtiquetas cuando el empresaId esté disponible o cambie
+  // Ejecutamos fetchEtiquetas cuando data.empresaId esté disponible o cambie
   useEffect(() => {
     if (data?.empresaId) {
       fetchEtiquetas();
@@ -102,11 +107,10 @@ export default function EtiquetasDashboard() {
     }
 
     if (etiquetaPrincipalSeleccionada === null) {
-      // Agregar una nueva etiqueta principal
+      // Agregar una nueva etiqueta principal (ya no se envía "valores")
       const newEtiqueta = {
-        empresaId: data?.empresaId, // Se utiliza el empresaId del contexto
+        empresaId: data?.empresaId, // Se usa el empresaId del contexto
         titulo: trimmedText,
-        valores: [],
         fechaCreacion: new Date(),
       };
 
@@ -124,7 +128,6 @@ export default function EtiquetasDashboard() {
     } else {
       // Agregar una subetiqueta a la etiqueta seleccionada
       try {
-        // Ahora se envía el id de la etiqueta como query parameter
         const res = await fetch(
           `/api/tags?id=${etiquetaPrincipalSeleccionada}`,
           {
@@ -153,7 +156,7 @@ export default function EtiquetasDashboard() {
 
     if (subTexto) {
       try {
-        // Para remover una subetiqueta se utiliza PATCH y se envía el id como query parameter
+        // Eliminar subetiqueta (se usa PATCH con removeSubetiqueta)
         const res = await fetch(`/api/tags?id=${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -166,7 +169,7 @@ export default function EtiquetasDashboard() {
       }
     } else {
       try {
-        // Para eliminar una etiqueta se utiliza DELETE y se envía el id como query parameter
+        // Eliminar etiqueta principal (y todas sus subetiquetas)
         const res = await fetch(`/api/tags?id=${id}`, {
           method: "DELETE",
         });
@@ -178,7 +181,7 @@ export default function EtiquetasDashboard() {
     }
   };
 
-  // Función para seleccionar o deseleccionar etiquetas (o subetiquetas) en la UI
+  // Función para seleccionar/deseleccionar etiquetas y subetiquetas en la UI
   const toggleEtiqueta = (id: string, subTexto?: string) => {
     const etiquetaId = subTexto ? `${id}-${subTexto}` : id;
     setEtiquetasSeleccionadas((prev) =>
