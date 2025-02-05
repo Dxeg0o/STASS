@@ -9,10 +9,9 @@ const prediccionSchema = new mongoose.Schema({
   },
   fecha: { type: Date, required: true },
   resultado: { type: String, enum: ["apto", "no apto"], required: true },
-  etiquetas: [
+  subetiquetas: [
     {
-      etiquetaId: { type: String, required: true, ref: "Etiqueta" },
-      valor: { type: String, required: true },
+      subetiquetaId: { type: String, required: true, ref: "Subetiqueta" },
     },
   ],
 });
