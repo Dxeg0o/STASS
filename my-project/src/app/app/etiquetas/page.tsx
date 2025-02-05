@@ -124,11 +124,15 @@ export default function EtiquetasDashboard() {
     } else {
       // Agregar una subetiqueta a la etiqueta seleccionada
       try {
-        const res = await fetch(`/api/tags/${etiquetaPrincipalSeleccionada}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ subetiqueta: trimmedText }),
-        });
+        // Ahora se envía el id de la etiqueta como query parameter
+        const res = await fetch(
+          `/api/tags?id=${etiquetaPrincipalSeleccionada}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subetiqueta: trimmedText }),
+          }
+        );
         if (!res.ok) throw new Error("Error al agregar la subetiqueta");
         await fetchEtiquetas();
       } catch (err) {
@@ -149,7 +153,8 @@ export default function EtiquetasDashboard() {
 
     if (subTexto) {
       try {
-        const res = await fetch(`/api/tags/${id}`, {
+        // Para remover una subetiqueta se utiliza PATCH y se envía el id como query parameter
+        const res = await fetch(`/api/tags?id=${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ removeSubetiqueta: subTexto }),
@@ -161,7 +166,8 @@ export default function EtiquetasDashboard() {
       }
     } else {
       try {
-        const res = await fetch(`/api/tags/${id}`, {
+        // Para eliminar una etiqueta se utiliza DELETE y se envía el id como query parameter
+        const res = await fetch(`/api/tags?id=${id}`, {
           method: "DELETE",
         });
         if (!res.ok) throw new Error("Error al eliminar la etiqueta");
