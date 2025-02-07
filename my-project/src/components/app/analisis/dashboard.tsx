@@ -25,9 +25,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+interface SubLabel {
+  id: string;
+  value: string;
+}
+
 interface Label {
   name: string;
-  subLabels?: string[];
+  subLabels?: SubLabel[];
 }
 
 interface QualityControlDashboardProps {
@@ -115,6 +120,7 @@ export default function QualityControlDashboard({
             <VideoFeed
               analisisId={analisisId}
               params={params}
+              selectedLabels={selectedLabels} // Nuevo prop
               onError={(message) => setError(message)}
             />
           </CardContent>
