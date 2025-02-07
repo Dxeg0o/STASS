@@ -5,11 +5,15 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { ChevronDown, ChevronUp, Check } from "lucide-react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 
-interface Label {
-  name: string;
-  subLabels?: string[];
+interface SubLabel {
+  id: string;
+  value: string;
 }
 
+interface Label {
+  name: string;
+  subLabels?: SubLabel[];
+}
 interface SelectedLabelsProps {
   labels: Label[];
   onLabelChange: (labels: Label[]) => void;
@@ -35,7 +39,6 @@ export default function SelectedLabels({
   const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Usamos un arreglo para permitir múltiples etiquetas expandidas
   const [expandedLabels, setExpandedLabels] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const { data } = useContext(AuthenticationContext);
@@ -43,17 +46,20 @@ export default function SelectedLabels({
   useEffect(() => {
     async function fetchLabels() {
       try {
-        // Se utiliza el empresaId del contexto como parámetro de consulta
         const response = await fetch(`/api/tags?empresaId=${data?.empresaId}`);
         if (!response.ok) throw new Error("Error fetching labels");
 
-        // Se castea la respuesta a un arreglo de objetos TagData
         const data2: TagData[] = await response.json();
 
-        // Se mapea la data para obtener el formato deseado en la UI
+        // Mapea la data para obtener el formato deseado, incluyendo el id de cada subetiqueta
         const mappedLabels: Label[] = data2.map((tag: TagData) => ({
           name: tag.titulo,
-          subLabels: tag.subetiquetas.map((sub) => sub.valor),
+          subLabels: tag.subetiquetas
+            .filter((sub) => sub) // Remove any null values
+            .map((sub) => ({
+              id: sub._id,
+              value: sub.valor,
+            })),
         }));
 
         setAvailableLabels(mappedLabels);
@@ -68,7 +74,6 @@ export default function SelectedLabels({
     fetchLabels();
   }, [data?.empresaId]);
 
-  // toggleLabel ahora sólo expande o colapsa la lista de subetiquetas
   const toggleLabel = (label: Label) => {
     if (expandedLabels.includes(label.name)) {
       setExpandedLabels(expandedLabels.filter((l) => l !== label.name));
@@ -77,21 +82,26 @@ export default function SelectedLabels({
     }
   };
 
-  const toggleSubLabel = (parentLabel: Label, subLabel: string) => {
+  const toggleSubLabel = (parentLabel: Label, subLabel: SubLabel) => {
     const parentIndex = labels.findIndex((l) => l.name === parentLabel.name);
     const updatedLabels = [...labels];
 
     if (parentIndex > -1) {
+      // Verifica si la subetiqueta ya está seleccionada (comparando por id)
+      const isSelected = updatedLabels[parentIndex].subLabels?.some(
+        (s) => s.id === subLabel.id
+      );
       updatedLabels[parentIndex] = {
         ...updatedLabels[parentIndex],
-        subLabels: updatedLabels[parentIndex].subLabels?.includes(subLabel)
-          ? [] // Deselecciona si ya estaba seleccionado
-          : [subLabel],
+        subLabels: isSelected
+          ? updatedLabels[parentIndex].subLabels?.filter(
+              (s) => s.id !== subLabel.id
+            )
+          : [...(updatedLabels[parentIndex].subLabels || []), subLabel],
       };
     } else {
       updatedLabels.push({ ...parentLabel, subLabels: [subLabel] });
     }
-
     onLabelChange(updatedLabels);
   };
 
@@ -114,14 +124,12 @@ export default function SelectedLabels({
     );
   }
 
-  // Filtra las etiquetas según la búsqueda (sin distinguir mayúsculas/minúsculas)
   const filteredLabels = availableLabels.filter((label) =>
     label.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="space-y-4">
-      {/* Barra de búsqueda */}
       <input
         type="text"
         placeholder="Buscar etiquetas..."
@@ -130,11 +138,9 @@ export default function SelectedLabels({
         className="w-full p-2 border border-gray-300 rounded"
       />
 
-      {/* Contenedor scrollable */}
       <div className="max-h-80 overflow-y-auto space-y-4">
         {filteredLabels.map((label) => {
           const isExpanded = expandedLabels.includes(label.name);
-          // Se obtiene el registro de subetiquetas seleccionadas para la etiqueta actual (si existe)
           const selectedParent = labels.find((l) => l.name === label.name);
           const hasSubSelected =
             selectedParent?.subLabels && selectedParent.subLabels.length > 0;
@@ -142,7 +148,6 @@ export default function SelectedLabels({
           return (
             <div key={label.name} className="space-y-2">
               <Button
-                // Si hay una subetiqueta seleccionada, se usa un fondo negro
                 variant={hasSubSelected ? "default" : "outline"}
                 onClick={() => toggleLabel(label)}
                 className={`w-full flex justify-between items-center gap-3 transition-all ${
@@ -162,17 +167,18 @@ export default function SelectedLabels({
               {label.subLabels && isExpanded && (
                 <div className="ml-6 grid grid-cols-1 md:grid-cols-2 gap-2">
                   {label.subLabels.map((subLabel) => {
-                    const isSubSelected =
-                      selectedParent?.subLabels?.includes(subLabel);
+                    const isSubSelected = selectedParent?.subLabels?.some(
+                      (s) => s.id === subLabel.id
+                    );
                     return (
                       <Button
-                        key={subLabel}
+                        key={subLabel.id}
                         variant={isSubSelected ? "secondary" : "ghost"}
                         onClick={() => toggleSubLabel(label, subLabel)}
                         className="flex items-center gap-2 justify-start h-9"
                       >
                         {isSubSelected && <Check className="h-4 w-4" />}
-                        {subLabel}
+                        {subLabel.value}
                       </Button>
                     );
                   })}

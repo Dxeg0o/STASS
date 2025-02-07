@@ -1,7 +1,15 @@
 import mongoose from "mongoose";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
+interface SubLabel {
+  id: string;
+  value: string;
+}
 
+interface Label {
+  name: string;
+  subLabels?: SubLabel[];
+}
 interface VideoFeedProps {
   analisisId: string;
   params: {
@@ -10,21 +18,23 @@ interface VideoFeedProps {
     minWidth: number;
     maxWidth: number;
   };
+  selectedLabels: Label[]; // Ahora usa la definición unificada
   onError?: (message: string) => void;
 }
 
-export default function VideoFeed({ analisisId, params }: VideoFeedProps) {
+export default function VideoFeed({
+  analisisId,
+  params,
+  selectedLabels,
+}: VideoFeedProps) {
   const webcamRef = useRef<Webcam>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-
-  // Extract params for useEffect dependencies
   const { minLength, maxLength, minWidth, maxWidth } = params;
 
   const sendImageToBackend = useCallback(
     async (image: string) => {
       try {
-        console.log(analisisId);
         if (
           minWidth === undefined ||
           maxWidth === undefined ||
@@ -36,7 +46,7 @@ export default function VideoFeed({ analisisId, params }: VideoFeedProps) {
           );
           return;
         }
-        const base64Data = image.split(",")[1]; // Remove the prefix 'data:image/jpeg;base64,'
+        const base64Data = image.split(",")[1];
         const response = await fetch(
           "https://stass-apis.onrender.com/asparagus",
           {
@@ -66,12 +76,17 @@ export default function VideoFeed({ analisisId, params }: VideoFeedProps) {
             const [minSize, maxSize] = [result.altura, result.radio].sort(
               (a, b) => a - b
             );
-
             const width = minSize;
             const length = maxSize;
-
             const isWidthValid = width >= minWidth && width <= maxWidth;
             const isLengthValid = length >= minLength && length <= maxLength;
+
+            // Extrae el id de cada subetiqueta seleccionada
+            const subetiquetas = selectedLabels.flatMap((label) =>
+              label.subLabels
+                ? label.subLabels.filter(Boolean).map((sub) => sub.id)
+                : []
+            );
 
             if (!isWidthValid) {
               console.log(
@@ -88,7 +103,6 @@ export default function VideoFeed({ analisisId, params }: VideoFeedProps) {
                 }`
               );
             }
-
             return {
               _id: new mongoose.Types.ObjectId().toString(),
               analisisId: analisisId,
@@ -98,7 +112,7 @@ export default function VideoFeed({ analisisId, params }: VideoFeedProps) {
               },
               fecha: new Date(),
               resultado: isWidthValid && isLengthValid ? "apto" : "no apto",
-              etiquetas: [],
+              subetiquetas: subetiquetas.map((id) => ({ subetiquetaId: id })),
             };
           });
 
@@ -128,7 +142,7 @@ export default function VideoFeed({ analisisId, params }: VideoFeedProps) {
         console.error("Error sending image to backend:", error);
       }
     },
-    [analisisId, minLength, maxLength, minWidth, maxWidth]
+    [analisisId, minLength, maxLength, minWidth, maxWidth, selectedLabels]
   );
 
   useEffect(() => {
@@ -149,7 +163,7 @@ export default function VideoFeed({ analisisId, params }: VideoFeedProps) {
     };
 
     getDevices();
-  }, []); // Dependencias vacías ya que no dependen de variables externas
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -159,7 +173,7 @@ export default function VideoFeed({ analisisId, params }: VideoFeedProps) {
           sendImageToBackend(imageSrc);
         }
       }
-    }, 5000); // Captura cada 5 segundos
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [sendImageToBackend]);
