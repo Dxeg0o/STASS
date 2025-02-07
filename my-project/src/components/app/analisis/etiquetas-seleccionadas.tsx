@@ -15,11 +15,17 @@ interface SelectedLabelsProps {
   onLabelChange: (labels: Label[]) => void;
 }
 
-// Define an interface to represent the API response for a tag
+// Interfaz que representa la respuesta de la API para una etiqueta
 interface TagData {
   _id: string;
   titulo: string;
-  valores: string[];
+  subetiquetas: {
+    _id: string;
+    etiquetaId: string;
+    valor: string;
+    fechaCreacion: Date;
+  }[];
+  fechaCreacion: Date;
 }
 
 export default function SelectedLabels({
@@ -29,24 +35,25 @@ export default function SelectedLabels({
   const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedLabel, setExpandedLabel] = useState<string | null>(null);
+  // Usamos un arreglo para permitir múltiples etiquetas expandidas
+  const [expandedLabels, setExpandedLabels] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const { data } = useContext(AuthenticationContext);
 
   useEffect(() => {
     async function fetchLabels() {
       try {
-        // Use the empresaId from context as a query parameter if available
-        const response = await fetch(`/api/tags?${data?.empresaId}`);
+        // Se utiliza el empresaId del contexto como parámetro de consulta
+        const response = await fetch(`/api/tags?empresaId=${data?.empresaId}`);
         if (!response.ok) throw new Error("Error fetching labels");
 
-        // Cast the fetched JSON as an array of TagData objects
+        // Se castea la respuesta a un arreglo de objetos TagData
         const data2: TagData[] = await response.json();
 
-        // Map the API data to the Label interface
+        // Se mapea la data para obtener el formato deseado en la UI
         const mappedLabels: Label[] = data2.map((tag: TagData) => ({
           name: tag.titulo,
-          subLabels: tag.valores,
+          subLabels: tag.subetiquetas.map((sub) => sub.valor),
         }));
 
         setAvailableLabels(mappedLabels);
@@ -61,14 +68,12 @@ export default function SelectedLabels({
     fetchLabels();
   }, [data?.empresaId]);
 
+  // toggleLabel ahora sólo expande o colapsa la lista de subetiquetas
   const toggleLabel = (label: Label) => {
-    const exists = labels.find((l) => l.name === label.name);
-    if (exists) {
-      onLabelChange(labels.filter((l) => l.name !== label.name));
-      setExpandedLabel(null);
+    if (expandedLabels.includes(label.name)) {
+      setExpandedLabels(expandedLabels.filter((l) => l !== label.name));
     } else {
-      onLabelChange([...labels, { ...label, subLabels: [] }]);
-      setExpandedLabel(label.name);
+      setExpandedLabels([...expandedLabels, label.name]);
     }
   };
 
@@ -80,7 +85,7 @@ export default function SelectedLabels({
       updatedLabels[parentIndex] = {
         ...updatedLabels[parentIndex],
         subLabels: updatedLabels[parentIndex].subLabels?.includes(subLabel)
-          ? []
+          ? [] // Deselecciona si ya estaba seleccionado
           : [subLabel],
       };
     } else {
@@ -109,14 +114,14 @@ export default function SelectedLabels({
     );
   }
 
-  // Filter the labels based on the search query (case-insensitive)
+  // Filtra las etiquetas según la búsqueda (sin distinguir mayúsculas/minúsculas)
   const filteredLabels = availableLabels.filter((label) =>
     label.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="space-y-4">
-      {/* Search bar */}
+      {/* Barra de búsqueda */}
       <input
         type="text"
         placeholder="Buscar etiquetas..."
@@ -125,24 +130,27 @@ export default function SelectedLabels({
         className="w-full p-2 border border-gray-300 rounded"
       />
 
-      {/* Scrollable container */}
+      {/* Contenedor scrollable */}
       <div className="max-h-80 overflow-y-auto space-y-4">
         {filteredLabels.map((label) => {
-          const isSelected = labels.some((l) => l.name === label.name);
-          const isExpanded = expandedLabel === label.name;
+          const isExpanded = expandedLabels.includes(label.name);
+          // Se obtiene el registro de subetiquetas seleccionadas para la etiqueta actual (si existe)
+          const selectedParent = labels.find((l) => l.name === label.name);
+          const hasSubSelected =
+            selectedParent?.subLabels && selectedParent.subLabels.length > 0;
 
           return (
             <div key={label.name} className="space-y-2">
               <Button
-                variant={isSelected ? "default" : "outline"}
+                // Si hay una subetiqueta seleccionada, se usa un fondo negro
+                variant={hasSubSelected ? "default" : "outline"}
                 onClick={() => toggleLabel(label)}
-                className="w-full flex justify-between items-center gap-3 transition-all"
+                className={`w-full flex justify-between items-center gap-3 transition-all ${
+                  hasSubSelected ? "bg-black text-white" : ""
+                }`}
                 aria-expanded={isExpanded}
               >
-                <div className="flex items-center gap-2">
-                  {isSelected && <Check className="h-4 w-4" />}
-                  {label.name}
-                </div>
+                <div className="flex items-center gap-2">{label.name}</div>
                 {label.subLabels &&
                   (isExpanded ? (
                     <ChevronUp className="h-4 w-4" />
@@ -151,13 +159,11 @@ export default function SelectedLabels({
                   ))}
               </Button>
 
-              {label.subLabels && isSelected && (
+              {label.subLabels && isExpanded && (
                 <div className="ml-6 grid grid-cols-1 md:grid-cols-2 gap-2">
                   {label.subLabels.map((subLabel) => {
-                    const isSubSelected = labels
-                      .find((l) => l.name === label.name)
-                      ?.subLabels?.includes(subLabel);
-
+                    const isSubSelected =
+                      selectedParent?.subLabels?.includes(subLabel);
                     return (
                       <Button
                         key={subLabel}

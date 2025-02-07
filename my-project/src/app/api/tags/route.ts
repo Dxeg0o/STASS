@@ -1,25 +1,40 @@
 import { NextResponse, NextRequest } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import Etiqueta from "@/models/tags";
+import Subetiqueta from "@/models/subtags";
 import mongoose from "mongoose";
 
 export async function GET(request: NextRequest) {
   await connectDb();
-
-  // Extraemos el parámetro empresaId de la URL
   const { searchParams } = new URL(request.url);
   const empresaId = searchParams.get("empresaId");
 
-  let tags;
+  let matchQuery = {};
   if (empresaId) {
-    // Si se proporciona empresaId, filtramos las etiquetas
-    tags = await Etiqueta.find({ empresaId });
-  } else {
-    // Si no se proporciona, obtenemos todas las etiquetas
-    tags = await Etiqueta.find();
+    matchQuery = { empresaId };
   }
 
-  return NextResponse.json(tags);
+  try {
+    // Se realiza un $lookup para unir las subetiquetas asociadas a cada etiqueta
+    const tags = await Etiqueta.aggregate([
+      { $match: matchQuery },
+      {
+        $lookup: {
+          from: "subetiquetas", // nombre de la colección de Subetiqueta (por defecto, pluralizado)
+          localField: "_id",
+          foreignField: "etiquetaId",
+          as: "subetiquetas",
+        },
+      },
+    ]);
+    return NextResponse.json(tags);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Error al obtener las etiquetas" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -30,6 +45,9 @@ export async function POST(request: NextRequest) {
   if (!data._id) {
     data._id = new mongoose.Types.ObjectId().toString();
   }
+
+  // Eliminamos "valores" si viene, ya que no se utiliza en la nueva estructura
+  delete data.valores;
 
   try {
     const tag = await Etiqueta.create(data);
@@ -42,6 +60,7 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
 export async function DELETE(request: NextRequest) {
   await connectDb();
   const { searchParams } = new URL(request.url);
@@ -64,7 +83,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ message: "Etiqueta eliminada exitosamente" });
+    // También se eliminan todas las subetiquetas asociadas a la etiqueta eliminada
+    await Subetiqueta.deleteMany({ etiquetaId: id });
+
+    return NextResponse.json({
+      message: "Etiqueta y sus subetiquetas eliminadas exitosamente",
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
@@ -77,14 +101,10 @@ export async function DELETE(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   await connectDb();
 
-  // Extraemos el id de la URL
   const { searchParams } = new URL(request.url);
   const queryId = searchParams.get("id");
 
-  // Obtenemos los datos del body
   const data = await request.json();
-
-  // Si no viene _id en el body, usamos el id de la query
   const id = data._id || queryId;
 
   if (!id) {
@@ -95,41 +115,33 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    // Aquí podrías diferenciar la lógica según si es para agregar o eliminar una subetiqueta
-    // Ejemplo para agregar una subetiqueta:
+    // Si se envía "subetiqueta", se crea una nueva subetiqueta asociada a la etiqueta indicada
     if (data.subetiqueta) {
-      // Suponiendo que la lógica es agregar una subetiqueta al arreglo "valores"
-      const updatedTag = await Etiqueta.findByIdAndUpdate(
-        id,
-        { $push: { valores: data.subetiqueta } },
-        { new: true }
-      );
-      if (!updatedTag) {
-        return NextResponse.json(
-          { error: "Etiqueta no encontrada" },
-          { status: 404 }
-        );
-      }
-      return NextResponse.json(updatedTag);
+      const newSubetiqueta = {
+        _id: new mongoose.Types.ObjectId().toString(),
+        etiquetaId: id,
+        valor: data.subetiqueta,
+        fechaCreacion: new Date(),
+      };
+      const createdSub = await Subetiqueta.create(newSubetiqueta);
+      return NextResponse.json(createdSub);
     }
 
-    // Ejemplo para eliminar una subetiqueta:
+    // Si se envía "removeSubetiqueta", se elimina la subetiqueta con ese valor
     if (data.removeSubetiqueta) {
-      const updatedTag = await Etiqueta.findByIdAndUpdate(
-        id,
-        { $pull: { valores: data.removeSubetiqueta } },
-        { new: true }
-      );
-      if (!updatedTag) {
+      const removedSub = await Subetiqueta.findOneAndDelete({
+        etiquetaId: id,
+        valor: data.removeSubetiqueta,
+      });
+      if (!removedSub) {
         return NextResponse.json(
-          { error: "Etiqueta no encontrada" },
+          { error: "Subetiqueta no encontrada" },
           { status: 404 }
         );
       }
-      return NextResponse.json(updatedTag);
+      return NextResponse.json(removedSub);
     }
 
-    // En caso de otros tipos de actualizaciones, puedes agregar la lógica necesaria
     return NextResponse.json(
       { error: "No se especificó una acción válida" },
       { status: 400 }
