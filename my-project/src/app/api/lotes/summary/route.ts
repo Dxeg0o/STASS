@@ -48,8 +48,8 @@ export async function GET(request: Request) {
     {
       $group: {
         _id: null,
-        countIn: { $sum: "$countIn" },
-        countOut: { $sum: "$countOut" },
+        countIn: { $sum: "$count_in" },
+        countOut: { $sum: "$count_out" },
         lastTimestamp: { $max: "$timestamp" },
       },
     },
