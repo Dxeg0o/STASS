@@ -1,44 +1,103 @@
 "use client";
+
+import { useContext, useState, useEffect } from "react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
-import { LoteSelector } from "@/components/app/lotes/loteselector";
+import { LoteSelector, Lote } from "@/components/app/lotes/loteselector";
+import { SummaryLote } from "@/components/app/lotes/summarylote";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useContext } from "react";
 
 export default function Dashboard() {
-  const { data, loading } = useContext(AuthenticationContext);
+  const { data, loading: authLoading } = useContext(AuthenticationContext);
+  const [lotes, setLotes] = useState<Lote[]>([]);
+  const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (loading) {
+  // Carga inicial de lotes y lote activo
+  useEffect(() => {
+    if (!data) return;
+    const empresaId = data.empresaId;
+    setLoading(true);
+
+    const fetchLotes = fetch(`/api/lotes?empresaId=${empresaId}`);
+    const fetchActive = fetch(
+      `/api/lotes/activity/last?empresaId=${empresaId}`
+    );
+
+    Promise.all([fetchLotes, fetchActive])
+      .then(async ([lRes, aRes]) => {
+        if (!lRes.ok || !aRes.ok) throw new Error("Error al cargar datos");
+        const lotesData: Lote[] = await lRes.json();
+        const active: Lote | null = await aRes.json();
+        setLotes(lotesData);
+        setSelectedLote(active ?? lotesData[0] ?? null);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [data]);
+
+  // Handlers de selección, creación y cierre
+  const handleSelect = async (lote: Lote | null) => {
+    setSelectedLote(lote);
+    if (lote) {
+      await fetch("/api/lotes/activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loteId: lote.id }),
+      });
+    } else {
+      await fetch("/api/lotes/activity/close", { method: "POST" });
+    }
+  };
+
+  const handleCreate = async (nombre: string) => {
+    if (!data) return;
+    const res = await fetch("/api/lotes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre, empresaId: data.empresaId }),
+    });
+    if (res.ok) {
+      const nuevo: Lote = await res.json();
+      setLotes((prev) => [nuevo, ...prev]);
+      setSelectedLote(nuevo);
+    }
+  };
+
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center h-full">Cargando…</div>
     );
   }
-
   if (!data) {
     return (
       <div className="text-center text-red-500">No estás autenticado.</div>
     );
   }
 
-  const empresaId = data.empresaId;
+  const loteId = selectedLote?.id ?? "";
 
   return (
     <div className="w-full max-w-6xl mx-auto p-6">
       <div className="flex flex-col space-y-6">
         <h1 className="text-2xl font-bold">Dashboard QualiBlick</h1>
 
-        {/* Sección prominente para el Selector de Lotes */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>Control de Lotes</CardTitle>
           </CardHeader>
           <CardContent>
-            {/* <-- Le pasamos la empresaId para que haga GET /api/lotes?empresaId=... */}
-            <LoteSelector empresaId={empresaId} />
+            <LoteSelector
+              lotes={lotes}
+              selectedLote={selectedLote}
+              loading={loading}
+              onSelect={handleSelect}
+              onSelectNone={() => handleSelect(null)}
+              onCreate={handleCreate}
+            />
           </CardContent>
         </Card>
 
-        {/* Contenido del dashboard que depende del lote seleccionado */}
         <Tabs defaultValue="resumen">
           <TabsList className="grid grid-cols-3 mb-4">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
@@ -47,25 +106,11 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="resumen">
-            <Card>
-              <CardHeader>
-                <CardTitle>Resumen del Lote</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Información general y estadísticas del lote seleccionado.</p>
-              </CardContent>
-            </Card>
+            <SummaryLote loteId={loteId} />
           </TabsContent>
 
           <TabsContent value="datos">
-            <Card>
-              <CardHeader>
-                <CardTitle>Datos del Lote</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Visualización de los datos específicos de este lote.</p>
-              </CardContent>
-            </Card>
+            {/* ... contenido de datos ... */}
           </TabsContent>
 
           <TabsContent value="graficos">
@@ -74,7 +119,7 @@ export default function Dashboard() {
                 <CardTitle>Gráficos del Lote</CardTitle>
               </CardHeader>
               <CardContent>
-                <p>Análisis gráfico del lote seleccionado.</p>
+                <p>Aquí se generarán los gráficos de conteos del lote.</p>
               </CardContent>
             </Card>
           </TabsContent>
