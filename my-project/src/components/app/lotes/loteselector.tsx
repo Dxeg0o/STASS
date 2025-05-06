@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Plus, Search } from "lucide-react";
+import { Check, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
