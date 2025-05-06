@@ -13,7 +13,12 @@ export async function GET(request: Request) {
   }
 
   await connectDb();
-  const lotes = await Lote.find({ empresaId }).sort({ fechaCreacion: -1 });
+  const docs = await Lote.find({ empresaId }).sort({ fechaCreacion: -1 });
+  const lotes = docs.map((lote) => ({
+    id: lote.id.toString(),
+    nombre: lote.nombre,
+    fechaCreacion: lote.fechaCreacion,
+  }));
   return NextResponse.json(lotes);
 }
 

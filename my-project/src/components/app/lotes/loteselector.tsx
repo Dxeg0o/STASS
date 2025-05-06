@@ -1,4 +1,3 @@
-// components/app/lotes/LoteSelector.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -32,32 +31,56 @@ export function LoteSelector({ empresaId }: LoteSelectorProps) {
   const [newLoteName, setNewLoteName] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Carga inicial de lotes desde la API
+  // Dentro de LoteSelector.tsx
+
   useEffect(() => {
     if (!empresaId) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    fetch(`/api/lotes?empresaId=${empresaId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error al cargar lotes");
-        return res.json();
-      })
-      .then((data: Lote[]) => {
-        setLotes(data);
-        setSelectedLote(data[0] ?? null);
+
+    // Disparamos ambas peticiones en paralelo
+    const lotesReq = fetch(`/api/lotes?empresaId=${empresaId}`);
+    const activeReq = fetch(`/api/lotes/activity/last?empresaId=${empresaId}`);
+
+    Promise.all([lotesReq, activeReq])
+      .then(async ([lRes, aRes]) => {
+        if (!lRes.ok) throw new Error("Error al cargar lotes");
+        if (!aRes.ok) throw new Error("Error al cargar lote activo");
+
+        const lotesData: Lote[] = await lRes.json();
+        const activeData: Lote | null = await aRes.json();
+
+        setLotes(lotesData);
+        // Si hay lote activo, lo seleccionamos; si no, tomo el primero
+        if (activeData) {
+          setSelectedLote(activeData);
+        } else {
+          setSelectedLote(lotesData[0] ?? null);
+        }
       })
       .catch((err) => {
         console.error(err);
         setLotes([]);
+        setSelectedLote(null);
       })
       .finally(() => setLoading(false));
   }, [empresaId]);
 
-  const handleSelectLote = (lote: Lote) => {
+  const handleSelectLote = async (lote: Lote) => {
     setSelectedLote(lote);
     setOpen(false);
+
+    try {
+      await fetch("/api/lotes/activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loteId: lote.id }),
+      });
+    } catch (error) {
+      console.error("Error al registrar actividad de lote:", error);
+    }
   };
 
   const handleCreateNewLote = () => {
@@ -72,8 +95,8 @@ export function LoteSelector({ empresaId }: LoteSelectorProps) {
         return res.json();
       })
       .then((lote: Lote) => {
+        // Solo crear, sin seleccionar automáticamente
         setLotes((prev) => [lote, ...prev]);
-        setSelectedLote(lote);
         setNewLoteName("");
         setShowNewLoteForm(false);
         setOpen(false);
@@ -95,16 +118,18 @@ export function LoteSelector({ empresaId }: LoteSelectorProps) {
 
   return (
     <div className="w-full">
-      {/* Vista principal */}
       <div className="flex flex-col space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Lote Activo</h2>
           <Button
             variant="outline"
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              setShowNewLoteForm(true);
+              setOpen(true);
+            }}
             className="px-4 py-2"
           >
-            Cambiar Lote
+            Crear Nuevo Lote
           </Button>
         </div>
         <div className="bg-white rounded-lg border p-4 flex justify-between items-center">
@@ -124,7 +149,6 @@ export function LoteSelector({ empresaId }: LoteSelectorProps) {
         </div>
       </div>
 
-      {/* Modal de selección/creación */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md md:max-w-lg">
           <DialogHeader>
@@ -153,7 +177,6 @@ export function LoteSelector({ empresaId }: LoteSelectorProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Buscador */}
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                 <Input
@@ -163,8 +186,6 @@ export function LoteSelector({ empresaId }: LoteSelectorProps) {
                   className="pl-8"
                 />
               </div>
-
-              {/* Lista de lotes */}
               <ScrollArea className="h-72 rounded-md border">
                 <div className="p-2">
                   {filteredLotes.length > 0 ? (
@@ -203,8 +224,6 @@ export function LoteSelector({ empresaId }: LoteSelectorProps) {
                   )}
                 </div>
               </ScrollArea>
-
-              {/* Acciones */}
               <div className="flex justify-between">
                 <Button
                   variant="outline"
