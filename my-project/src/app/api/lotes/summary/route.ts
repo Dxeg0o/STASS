@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
-import mongoose from "mongoose";
 import { LoteActivity } from "@/models/loteactivity";
 import { Conteo } from "@/models/conteo";
 export async function GET(request: Request) {

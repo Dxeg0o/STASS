@@ -1,4 +1,4 @@
-import { Home, Settings, BarChart2, Tag, ChartSpline } from "lucide-react";
+import { Home, Settings, ChartSpline } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,18 +23,8 @@ const mainItems = [
     icon: Home,
   },
   {
-    title: "Análisis",
-    url: "/app/analisis",
-    icon: BarChart2,
-  },
-  {
-    title: "Etiquetas",
-    url: "/app/etiquetas",
-    icon: Tag,
-  },
-  {
-    title: "Gráficos",
-    url: "/app/graficos",
+    title: "Datos",
+    url: "/app/datos",
     icon: ChartSpline,
   },
 ];
