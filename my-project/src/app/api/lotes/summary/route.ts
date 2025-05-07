@@ -1,10 +1,8 @@
-// app/api/lotes/summary/route.ts
 import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import mongoose from "mongoose";
 import { LoteActivity } from "@/models/loteactivity";
 import { Conteo } from "@/models/conteo";
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const loteId = searchParams.get("loteId");
@@ -13,64 +11,52 @@ export async function GET(request: Request) {
   }
 
   await connectDb();
-  const oid = new mongoose.Types.ObjectId(loteId);
 
-  // 1) Obtengo todas las sesiones de actividad para este lote
-  const activities = await LoteActivity.find({ loteId: oid });
-  const now = new Date();
+  // 1) Todas las sesiones de actividad para este lote
+  const activities = await LoteActivity.find({ loteId });
 
-  // 2) Construyo condiciones $or para cada rango [startTime, endTime|null→now]
-  const orConds = activities.map(({ startTime, endTime }) => ({
-    loteId: oid,
-    timestamp: {
-      $gte: startTime,
-      $lte: endTime ?? now,
-    },
-  }));
-
-  // Si no hay actividades, devuelvo un resumen vacío
-  if (orConds.length === 0) {
-    return NextResponse.json(
-      {
-        countIn: 0,
-        countOut: 0,
-        lastTimestamp: null,
-        dispositivo: "",
-        servicioId: "",
-      },
-      { status: 200 }
-    );
+  // 2) Si no hay sesiones, devuelvo resumen vacío
+  if (activities.length === 0) {
+    return NextResponse.json({
+      countIn: 0,
+      countOut: 0,
+      lastTimestamp: null,
+      dispositivo: "",
+      servicioId: "",
+    });
   }
 
-  // 3) Agrego los conteos dentro de esos rangos
-  const agg = await Conteo.aggregate([
+  const now = new Date();
+  // 3) Construyo un array de condiciones SOLO por rango de timestamp
+  const orConds = activities.map(({ startTime, endTime }) => ({
+    timestamp: { $gte: startTime, $lte: endTime ?? now },
+  }));
+
+  // 4) Agrego todos los conteos en esos intervalos
+  const [agg] = await Conteo.aggregate([
     { $match: { $or: orConds } },
     {
       $group: {
         _id: null,
-        countIn: { $sum: "$count_in" },
-        countOut: { $sum: "$count_out" },
+        countIn: { $sum: "$count_in" }, // <- aquí
+        countOut: { $sum: "$count_out" }, // <- y aquí
         lastTimestamp: { $max: "$timestamp" },
       },
     },
   ]);
 
-  const { countIn = 0, countOut = 0, lastTimestamp } = agg[0] || {};
+  const { countIn = 0, countOut = 0, lastTimestamp } = agg || {};
 
-  // 4) Busco el último registro para extraer dispositivo y servicioId
-  const lastEntry = await Conteo.findOne({
-    loteId: oid,
-    timestamp: lastTimestamp,
+  // 5) Busco el último documento para extraer dispositivo y servicioId
+  const lastEntry = lastTimestamp
+    ? await Conteo.findOne({ timestamp: lastTimestamp })
+    : null;
+
+  return NextResponse.json({
+    countIn,
+    countOut,
+    lastTimestamp,
+    dispositivo: lastEntry?.dispositivo || "",
+    servicioId: lastEntry?.servicioId || "",
   });
-
-  return NextResponse.json(
-    {
-      countIn,
-      countOut,
-      lastTimestamp,
-      dispositivo: lastEntry?.dispositivo || "",
-      servicioId: lastEntry?.servicioId || "",
-    },
-    { status: 200 }
-  );
 }
