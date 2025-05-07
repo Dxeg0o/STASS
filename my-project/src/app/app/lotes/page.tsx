@@ -19,18 +19,17 @@ export default function Dashboard() {
     const empresaId = data.empresaId;
     setLoading(true);
 
-    const fetchLotes = fetch(`/api/lotes?empresaId=${empresaId}`);
-    const fetchActive = fetch(
-      `/api/lotes/activity/last?empresaId=${empresaId}`
-    );
-
-    Promise.all([fetchLotes, fetchActive])
+    Promise.all([
+      fetch(`/api/lotes?empresaId=${empresaId}`),
+      fetch(`/api/lotes/activity/last?empresaId=${empresaId}`),
+    ])
       .then(async ([lRes, aRes]) => {
         if (!lRes.ok || !aRes.ok) throw new Error("Error al cargar datos");
         const lotesData: Lote[] = await lRes.json();
         const active: Lote | null = await aRes.json();
         setLotes(lotesData);
-        setSelectedLote(active ?? lotesData[0] ?? null);
+        // <-- sólo activo, sin fallback
+        setSelectedLote(active);
       })
       .catch(console.error)
       .finally(() => setLoading(false));

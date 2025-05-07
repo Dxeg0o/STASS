@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import { LoteActivity } from "@/models/loteactivity";
 import mongoose from "mongoose";
+import { Lote } from "@/models/lotes"; // asegúrate de tener exportado tu modelo de Lote
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -16,20 +17,26 @@ export async function GET(request: Request) {
 
   await connectDb();
 
-  // 1) Buscamos sesión abierta (endTime: null) para esta empresa
-  const activity = await LoteActivity.findOne({ endTime: null })
-    .sort({ startTime: -1 })
-    .populate({
-      path: "loteId",
-      match: { empresaId: new mongoose.Types.ObjectId(empresaId) },
-    });
+  // 1) Averiguo los IDs de lotes de esta empresa
+  const loteDocs = await Lote.find({
+    empresaId: new mongoose.Types.ObjectId(empresaId),
+  }).select("_id");
+  const loteIds = loteDocs.map((l) => l._id);
 
-  if (!activity?.loteId) {
-    // Si no hay sesión abierta, devolvemos null
+  // 2) Busco la última actividad de esos lotes
+  const activity = await LoteActivity.findOne({
+    loteId: { $in: loteIds },
+  })
+    .sort({ startTime: -1 })
+    .populate("loteId"); // trae completo el documento Lote
+
+  // 3) Si no hay actividad o la última ya está cerrada, no hay lote activo
+  if (!activity || activity.endTime !== null) {
     return NextResponse.json(null, { status: 200 });
   }
 
-  const lote = activity.loteId;
+  // 4) Si está abierta (endTime === null), devuelvo el lote
+  const lote = activity.loteId as any;
   return NextResponse.json(
     {
       id: lote._id.toString(),
