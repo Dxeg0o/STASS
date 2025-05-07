@@ -72,16 +72,9 @@ export function SummaryLote({ loteId }: SummaryLoteProps) {
           <CardTitle>Ingresos</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold">{summary.countIn}</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Salidas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold">{summary.countOut}</p>
+          <p className="text-3xl font-bold">
+            {summary.countIn + summary.countOut}
+          </p>
         </CardContent>
       </Card>
 
