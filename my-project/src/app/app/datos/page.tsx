@@ -8,8 +8,20 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
 import { Summary, ResumenLote } from "@/components/app/lotes/resumenlote";
 
+// Define aquí la forma de cada registro de conteo
+interface ConteoRecord {
+  _id: string;
+  timestamp: string;
+  count_in: number;
+  count_out: number;
+  dispositivo: string;
+  // puedes añadir más campos si tu API los devuelve
+}
+
 export default function Dashboard() {
   const { data, loading: authLoading } = useContext(AuthenticationContext);
+
+  // Estados para lotes
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
@@ -20,12 +32,12 @@ export default function Dashboard() {
   const [errorSummary, setErrorSummary] = useState<string | null>(null);
 
   // Datos por lote
-  const [records, setRecords] = useState<any[]>([]);
+  const [records, setRecords] = useState<ConteoRecord[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [errorRecords, setErrorRecords] = useState<string | null>(null);
 
   // Datos totales de la empresa
-  const [totalRecords, setTotalRecords] = useState<any[]>([]);
+  const [totalRecords, setTotalRecords] = useState<ConteoRecord[]>([]);
   const [loadingTotal, setLoadingTotal] = useState(false);
   const [errorTotal, setErrorTotal] = useState<string | null>(null);
 
@@ -70,7 +82,7 @@ export default function Dashboard() {
         if (!res.ok) throw new Error("Error al cargar los registros");
         return res.json();
       })
-      .then((arr: any[]) => setRecords(arr))
+      .then((arr: ConteoRecord[]) => setRecords(arr))
       .catch((err) => setErrorRecords(err.message))
       .finally(() => setDataLoading(false));
   }, [selectedLote, data]);
@@ -84,7 +96,7 @@ export default function Dashboard() {
         if (!res.ok) throw new Error("Error al cargar datos totales");
         return res.json();
       })
-      .then((arr: any[]) => setTotalRecords(arr))
+      .then((arr: ConteoRecord[]) => setTotalRecords(arr))
       .catch((err) => setErrorTotal(err.message))
       .finally(() => setLoadingTotal(false));
   }, [data]);
@@ -249,7 +261,6 @@ export default function Dashboard() {
                             onClick={downloadExcel}
                             className="px-4 py-2 bg-blue-600 text-white rounded"
                           >
-                            {" "}
                             Descargar Excel
                           </button>
                         </div>
