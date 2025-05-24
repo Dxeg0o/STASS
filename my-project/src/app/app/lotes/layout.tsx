@@ -1,7 +1,6 @@
 "use client";
 
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import AuthContext, { AuthenticationContext } from "../../context/AuthContext";
 import ProtectedRoute from "../ProtectedRoute";
 import { useContext } from "react";
