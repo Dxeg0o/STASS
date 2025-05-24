@@ -1,4 +1,4 @@
-import { Home, Settings, ChartSpline } from "lucide-react";
+import { Home, Settings, ChartSpline, Archive } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -26,6 +26,11 @@ const mainItems = [
     title: "Datos",
     url: "/app/datos",
     icon: ChartSpline,
+  },
+  {
+    title: "Lotes",
+    url: "/app/lotes",
+    icon: Archive,
   },
 ];
 

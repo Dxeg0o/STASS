@@ -79,7 +79,7 @@ export default function Dashboard() {
   return (
     <div className="w-full max-w-6xl mx-auto p-6">
       <div className="flex flex-col space-y-6">
-        <h1 className="text-2xl font-bold">Dashboard QualiBlick</h1>
+        <h1 className="text-2xl font-bold">Lotes</h1>
 
         <Card>
           <CardHeader className="pb-3">
