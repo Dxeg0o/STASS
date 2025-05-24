@@ -25,7 +25,6 @@ import { AuthenticationContext } from "../../app/context/AuthContext";
 // Menú principal
 const mainItems = [
   { title: "Inicio", url: "/app", icon: Home },
-  { title: "Datos", url: "/app/datos", icon: ChartSpline },
   { title: "Lotes", url: "/app/lotes", icon: Archive },
 ];
 
