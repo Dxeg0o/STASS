@@ -5,7 +5,7 @@ import { deleteCookie } from "cookies-next/client";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { useContext } from "react";
-import { Home, Settings, ChartSpline, Archive, LogOut } from "lucide-react";
+import { Home, Settings, Archive, LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import clsx from "clsx";
