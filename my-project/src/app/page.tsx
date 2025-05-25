@@ -1,366 +1,456 @@
 "use client";
-import { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Menu, X, BarChart, ShieldCheck, Globe2 } from "lucide-react";
-import { motion } from "framer-motion";
-import { ProductCard } from "@/components/landing/product-card";
 
-export default function LandingPage() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+import type React from "react";
+import { useState, useEffect } from "react";
+import {
+  ChevronDown,
+  Target,
+  BarChart3,
+  Lightbulb,
+  ShieldCheck,
+  TrendingUp,
+  Phone,
+  Mail,
+  Zap,
+  Leaf,
+  Cpu,
+  DollarSign,
+  Gauge,
+  Menu,
+  X,
+} from "lucide-react";
+
+// Interfaz para las props de los componentes de sección
+interface SectionProps {
+  id: string;
+}
+
+// Datos de la empresa (extraídos del PDF y requisitos)
+const companyData = {
+  name: "Qualiblick",
+  phone: "+56 9 6229 6916",
+  email: "dsoler.olguin@gmail.com",
+  hero: {
+    title: "La Revolución de la IA en el Agro.",
+    subtitle: "Optimiza tus procesos hoy.",
+    description:
+      "Aseguramos la competitividad de tus productos agroindustriales con IA de vanguardia, permitiendo un control total, reduciendo costos, acelerando tus procesos y mejorando la calidad.",
+    cta: "Descubre Nuestras Soluciones",
+  },
+  mission: {
+    title: "Nuestra Misión: Calidad Accesible",
+    text: "Impulsar el crecimiento de las PYMES agroindustriales con herramientas accesibles basadas en IA, democratizando el acceso a tecnología de punta para optimizar la calidad y eficiencia.",
+  },
+  solutions: {
+    title: "Soluciones: Innovación y Creación",
+    intro:
+      "Desarrollamos soluciones de IA a medida que ofrecen control total de tus productos, minimizan riesgos y optimizan tu producción de manera inteligente y sostenible.",
+    items: [
+      {
+        icon: Cpu,
+        name: "Control Total con IA",
+        description:
+          "Sistemas inteligentes para el monitoreo y gestión integral de la calidad y producción en tiempo real.",
+      },
+      {
+        icon: ShieldCheck,
+        name: "Minimización de Riesgos",
+        description:
+          "Modelos predictivos y análisis avanzados para anticipar problemas y asegurar la inocuidad y consistencia.",
+      },
+      {
+        icon: Zap,
+        name: "Optimización de Procesos",
+        description:
+          "Algoritmos de IA para eficientar la cadena productiva, desde la cosecha hasta el empaque, reduciendo mermas.",
+      },
+      {
+        icon: Leaf,
+        name: "Agricultura de Precisión",
+        description:
+          "Tecnología para la toma de decisiones basada en datos, mejorando el rendimiento y la sostenibilidad de los cultivos.",
+      },
+    ],
+  },
+  results: {
+    title: "Resultados Preliminares: Impacto Medible",
+    intro:
+      "Nuestras pruebas piloto demuestran consistentemente una significativa reducción de costos y una mayor agilidad operativa en diversos procesos agroindustriales.",
+    stats: [
+      {
+        icon: Gauge,
+        value: "89%",
+        label: "Optimización de Eficiencia",
+        description:
+          "Mejora promedio en la eficiencia de los procesos clave intervenidos.",
+      },
+      {
+        icon: DollarSign,
+        value: "7.3X",
+        label: "Retorno de Inversión",
+        description:
+          "Potencial de retorno sobre la inversión en tecnología IA implementada.",
+      },
+      {
+        icon: TrendingUp,
+        value: "72%",
+        label: "Reducción de Mermas",
+        description:
+          "Disminución en pérdidas de producto gracias a la detección temprana y control mejorado.",
+      },
+    ],
+  },
+  contact: {
+    title: "Hablemos de tu Proyecto",
+    text: "Estamos listos para ayudarte a integrar la inteligencia artificial en tus operaciones. Conversemos sobre cómo Qualiblick puede potenciar tu negocio.",
+  },
+};
+
+// Componente de Logo
+const Logo: React.FC = () => (
+  <div className="flex items-center space-x-2">
+    <svg
+      width="36"
+      height="36"
+      viewBox="0 0 100 100"
+      xmlns="http://www.w3.org/2000/svg"
+      className="text-amber-400"
+    >
+      <path
+        d="M50 0 L61.8 38.2 L100 38.2 L69.1 61.8 L80.9 100 L50 76.4 L19.1 100 L30.9 61.8 L0 38.2 L38.2 38.2 Z"
+        fill="currentColor"
+      />
+    </svg>
+    <span className="text-2xl font-bold text-green-500">
+      Quali<span className="text-green-600">blick</span>
+    </span>
+  </div>
+);
+
+// Componente de Navegación
+const Navbar: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const navLinks = [
+    { href: "#home", label: "Inicio" },
+    { href: "#mision", label: "Misión" },
+    { href: "#soluciones", label: "Soluciones" },
+    { href: "#resultados", label: "Resultados" },
+    { href: "#contacto", label: "Contacto" },
+  ];
+
+  const scrollToSection = (
+    e: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
+    href: string
+  ) => {
+    e.preventDefault();
+    document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
+    setIsOpen(false);
+  };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <header className="px-4 lg:px-6 h-16 flex items-center fixed w-full bg-white/80 backdrop-blur-md z-50 shadow-sm">
-        <Link className="flex items-center justify-center" href="/">
-          <Image
-            src="/images/Qualiblick.png"
-            alt="Logo Qualiblick"
-            width={170}
-            height={84}
-            unoptimized={true}
-          />
-        </Link>
-        <nav className="ml-auto hidden md:flex gap-6 items-center">
-          <Link
-            className="text-sm font-medium text-gray-800 hover:text-green-600 transition-colors"
-            href="#soluciones"
-          >
-            Soluciones
-          </Link>
-          <Link
-            className="text-sm font-medium text-gray-800 hover:text-green-600 transition-colors"
-            href="#beneficios"
-          >
-            Beneficios
-          </Link>
-          <Link
-            className="text-sm font-medium text-gray-800 hover:text-green-600 transition-colors"
-            href="#sobre-nosotros"
-          >
-            Sobre Nosotros
-          </Link>
-          <Link
-            className="text-sm font-medium text-gray-800 hover:text-green-600 transition-colors"
-            href="#contacto"
-          >
-            Contacto
-          </Link>
-          <Link
-            className="mr-0 ml-0 hidden md:inline-flex bg-[#16a34a] hover:bg-[#16a34ae8]/90 text-white border rounded-md py-1 px-2"
-            href={"/register"}
-          >
-            Regístrate
-          </Link>
-          <Link
-            className="mr-0 ml-0 hidden md:inline-flex bg-[#024521] hover:bg-[#024521]/90 text-white border rounded-md py-1 px-2"
-            href={"/login"}
-          >
-            Iniciar Sesión
-          </Link>
-        </nav>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="ml-auto md:hidden text-gray-600"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
+    <nav className="bg-slate-900/80 backdrop-blur-md text-white p-4 fixed w-full z-50 shadow-lg">
+      <div className="container mx-auto flex justify-between items-center">
+        <a
+          href="#home"
+          onClick={(e) => scrollToSection(e, "#home")}
+          className="hover:opacity-80 transition-opacity"
         >
-          {isMenuOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
-        </Button>
-      </header>
-      {isMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-white md:hidden pt-16">
-          <nav className="flex flex-col items-center gap-4 p-4">
-            <Link
-              className="text-lg font-medium text-gray-800 hover:text-green-600 transition-colors"
-              href="#soluciones"
-              onClick={() => setIsMenuOpen(false)}
+          <Logo />
+        </a>
+        <div className="hidden md:flex space-x-6">
+          {navLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              onClick={(e) => scrollToSection(e, link.href)}
+              className="hover:text-amber-400 transition-colors duration-300 font-medium"
             >
-              Soluciones
-            </Link>
-            <Link
-              className="text-lg font-medium text-gray-800 hover:text-green-600 transition-colors"
-              href="#beneficios"
-              onClick={() => setIsMenuOpen(false)}
+              {link.label}
+            </a>
+          ))}
+        </div>
+        <div className="md:hidden">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="text-white focus:outline-none"
+          >
+            {isOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
+      </div>
+      {isOpen && (
+        <div className="md:hidden absolute top-full left-0 right-0 bg-slate-800 shadow-xl py-2">
+          {navLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              onClick={(e) => scrollToSection(e, link.href)}
+              className="block px-4 py-3 text-center hover:bg-slate-700 hover:text-amber-400 transition-colors duration-300"
             >
-              Beneficios
-            </Link>
-            <Link
-              className="text-lg font-medium text-gray-800 hover:text-green-600 transition-colors"
-              href="#sobre-nosotros"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Sobre Nosotros
-            </Link>
-            <Link
-              className="text-lg font-medium text-gray-800 hover:text-green-600 transition-colors"
-              href="#contacto"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Contacto
-            </Link>
-            <Link
-              className="mt-4 w-full bg-[#024521] hover:bg-[#024521]/90 text-white"
-              href={"/login"}
-            >
-              Iniciar Sesión
-            </Link>
-          </nav>
+              {link.label}
+            </a>
+          ))}
         </div>
       )}
-      <main className="flex-1 pt-16">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-[#f1faf5]">
-          <div className="container mx-auto px-4 md:px-6 max-w-5xl">
-            <div className="text-center">
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-[#024521]"
-              >
-                Control inteligente de{" "}
-                <span className="underline decoration-[#f3c301]">calidad</span>{" "}
-                que impulsa tus exportaciones{" "}
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="mt-4 text-xl text-[#03312e] max-w-3xl mx-auto"
-              >
-                Ayudamos a las pymes exportadoras a{" "}
-                <strong>controlar la calidad</strong> de sus productos,
-                reduciendo hasta un{" "}
-                <strong>30% los costos de inspección manual</strong>. Todo esto
-                con tecnología de punta, sin necesidad de grandes inversiones.
-              </motion.p>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                className="mt-8"
-              >
-                <Link
-                  href="#soluciones"
-                  className="inline-block bg-[#058240] hover:bg-[#058240]/90 text-[white] font-bold py-3 px-8 rounded-full text-lg transition-all duration-200 transform hover:scale-105"
-                >
-                  Descubra Nuestras Soluciones
-                </Link>
-              </motion.div>
-            </div>
-          </div>
-        </section>
+    </nav>
+  );
+};
 
-        <section
-          id="soluciones"
-          className="w-full py-16 md:py-24 lg:py-32 bg-[white]"
-        >
-          <div className="container mx-auto px-4 md:px-6">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-[#024521]">
-              Soluciones adaptadas a tus productos
-            </h2>
+// Componente Hero
+const Hero: React.FC<SectionProps> = ({ id }) => {
+  const scrollToSolutions = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    document
+      .querySelector("#soluciones")
+      ?.scrollIntoView({ behavior: "smooth" });
+  };
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
-              <ProductCard name="Uvas" linkHref="/uvas" />
-              <ProductCard name="Espárragos" linkHref="/esparragos" />
-              <ProductCard name="Cerezas" linkHref="/cerezas" />
-            </div>
-          </div>
-        </section>
+  return (
+    <section
+      id={id}
+      className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-green-900 text-white flex items-center justify-center pt-20 relative overflow-hidden"
+    >
+      {/* Fondo abstracto sutil */}
+      <div className="absolute inset-0 opacity-10">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern
+              id="heroPattern"
+              patternUnits="userSpaceOnUse"
+              width="100"
+              height="100"
+              patternTransform="scale(1) rotate(45)"
+            >
+              <path
+                d="M0 50 L50 0 L100 50 L50 100 Z"
+                fill="rgba(200,255,200,0.1)"
+              />
+              <circle cx="50" cy="50" r="2" fill="rgba(250, 180, 40, 0.2)" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#heroPattern)" />
+        </svg>
+      </div>
 
-        <section
-          id="beneficios"
-          className="w-full py-16 md:py-24 lg:py-32 bg-[#f1faf5]"
-        >
-          <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-[#024521]">
-              Beneficios Clave
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-xl shadow-md text-center"
-              >
-                <div className="text-green-600 mb-4">
-                  <ShieldCheck size={48} className="mx-auto" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  Cumplimiento y Confianza
-                </h3>
-                <p className="text-gray-600">
-                  Monitorea el cumplimiento de tus proveedores en tiempo real,
-                  detectando rápidamente insumos fuera de estándar. Asegura un
-                  producto final confiable y apto para los mercados más
-                  exigentes.
-                </p>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-xl shadow-md text-center"
-              >
-                <div className="text-green-600 mb-4">
-                  <BarChart size={48} className="mx-auto" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  Reducción de Costos Reales
-                </h3>
-                <p className="text-gray-600">
-                  Reduce mermas y costos ocasionados por producto defectuoso,
-                  disminuye la dependencia de inspecciones manuales
-                  ineficientes, y aumenta la rentabilidad al evitar gastos
-                  recurrentes.
-                </p>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="bg-white p-6 rounded-xl shadow-md text-center"
-              >
-                <div className="text-green-600 mb-4">
-                  <Globe2 size={48} className="mx-auto" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  Acceso a Mercados Exigentes
-                </h3>
-                <p className="text-gray-600">
-                  Cumple y supera regulaciones internacionales, posicionando tu
-                  marca como un referente de calidad. Diversifica tus canales de
-                  venta, accede a mejores precios y eleva tu reputación.
-                </p>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="sobre-nosotros"
-          className="w-full py-16 md:py-24 lg:py-32 bg-white"
-        >
-          <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-              <div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl mb-6 text-[#024521]">
-                  Sobre QualiBlick
-                </h2>
-                <p className="text-lg text-[#03312e] mb-6">
-                  En QualiBlick, revolucionamos la industria agrícola con
-                  tecnología de punta. Nuestra misión es empoderar a las pymes
-                  exportadoras con herramientas de control de calidad basadas en
-                  datos, para que puedan identificar rápidamente desviaciones,
-                  mejorar sus procesos y mantener la competitividad.
-                </p>
-                <p className="text-lg text-[#03312e] mb-6">
-                  Nuestro enfoque integral garantiza que puedas{" "}
-                  <strong>reaccionar con agilidad</strong> ante problemas,{" "}
-                  <strong>mantener la consistencia</strong> del producto y{" "}
-                  <strong>alcanzar estándares internacionales</strong>. Con
-                  QualiBlick, tu reputación de calidad se consolida y tu negocio
-                  crece de manera sostenible.
-                </p>
-              </div>
-              <div className="flex md:justify-end justify-center md:mx-0 mx-24">
-                <Image
-                  src="/images/Qualiblick.png"
-                  alt="Equipo QualiBlick"
-                  width={500}
-                  height={500}
-                  className=""
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="contacto"
-          className="w-full py-16 md:py-24 lg:py-32 bg-[#f1faf5]  "
-        >
-          <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center mb-12 text-[#024521]">
-              Contáctenos
-            </h2>
-            <div className="text-center max-w-3xl mx-auto">
-              <p className="text-xl text-[#03312e] mb-8">
-                ¿Listo para optimizar la calidad de tus exportaciones y reducir
-                costos desde el origen? Contáctanos y descubre cómo QualiBlick
-                puede ayudarte a convertir la{" "}
-                <strong>gestión de calidad en una ventaja competitiva</strong>.
-              </p>
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <Link
-                  href="mailto:info@qualiblick.com"
-                  className="inline-block bg-[#058240] hover:bg-[#058240]/90 text-white font-bold py-3 px-8 rounded-full text-lg transition-all duration-200 transform hover:scale-105"
-                >
-                  Enviar Correo
-                </Link>
-                <Link
-                  href="tel:+123456789"
-                  className="inline-block bg-gray-200 hover:bg-gray-300 text-[#03312e] font-bold py-3 px-8 rounded-full text-lg transition-all duration-200 transform hover:scale-105"
-                >
-                  Llamar Ahora
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-      <footer className="bg-[#024521] text-white py-12">
-        <div className="container mx-auto px-4 md:px-6 max-w-7xl">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="text-xl font-bold mb-4">QualiBlick</h3>
-              <p className="text-white">
-                Innovando en las exportaciones con tecnología de vanguardia.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Enlaces Rápidos</h4>
-              <nav className="flex flex-col gap-2">
-                <Link
-                  className="text-white hover:text-[#f1faf5] transition-colors"
-                  href="#soluciones"
-                >
-                  Soluciones
-                </Link>
-                <Link
-                  className="text-white hover:text-[#f1faf5] transition-colors"
-                  href="#beneficios"
-                >
-                  Beneficios
-                </Link>
-                <Link
-                  className="text-white hover:text-[#f1faf5] transition-colors"
-                  href="#sobre-nosotros"
-                >
-                  Sobre Nosotros
-                </Link>
-                <Link
-                  className="text-white hover:text-[#f1faf5] transition-colors"
-                  href="#contacto"
-                >
-                  Contacto
-                </Link>
-              </nav>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Contacto</h4>
-              <p className="text-white">Email: info@qualiblick.com</p>
-              <p className="text-white">Teléfono: +123 456 789</p>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 border-t border-white text-center">
-            <p className="text-white">
-              © 2024 QualiBlick. Todos los derechos reservados.
+      <div className="container mx-auto px-6 z-10">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Contenido de texto */}
+          <div className="text-center lg:text-left">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight animate-fade-in-down">
+              {companyData.hero.title}{" "}
+              <span className="text-amber-400">
+                {companyData.hero.subtitle}
+              </span>
+            </h1>
+            <p className="text-lg md:text-xl text-slate-300 mb-10 max-w-2xl animate-fade-in-up animation-delay-300">
+              {companyData.hero.description}
             </p>
+            <button
+              onClick={scrollToSolutions}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-4 px-10 rounded-lg text-lg transition-all duration-300 ease-in-out transform hover:scale-105 shadow-xl hover:shadow-amber-500/50 animate-fade-in-up animation-delay-600"
+            >
+              {companyData.hero.cta} <ChevronDown className="inline ml-2" />
+            </button>
+          </div>
+
+          {/* Imagen mejorada */}
+          <div className="relative lg:block hidden">
+            <div className="relative w-full h-96 rounded-2xl overflow-hidden shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
+              <img
+                src="images/ChatGPT Image 25 may 2025, 14_02_47.png"
+                alt="Visualización de IA en Agroindustria"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent"></div>
+              <div className="absolute bottom-4 left-4 right-4"></div>
+            </div>
+            {/* Elementos decorativos */}
+            <div className="absolute -top-4 -right-4 w-24 h-24 bg-amber-400/20 rounded-full blur-xl"></div>
+            <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-green-400/20 rounded-full blur-xl"></div>
           </div>
         </div>
-      </footer>
+      </div>
+
+      {/* Imagen para móviles */}
+      <div className="lg:hidden absolute bottom-0 left-0 right-0 h-32 opacity-20">
+        <img
+          src="/placeholder.svg?height=200&width=800"
+          alt="Visualización de IA en Agroindustria"
+          className="w-full h-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
+      </div>
+    </section>
+  );
+};
+
+// Componente Misión
+const Mission: React.FC<SectionProps> = ({ id }) => (
+  <section id={id} className="py-20 bg-slate-100">
+    <div className="container mx-auto px-6 text-center">
+      <Target size={60} className="mx-auto mb-6 text-green-600" />
+      <h2 className="text-4xl font-bold text-slate-800 mb-4">
+        {companyData.mission.title}
+      </h2>
+      <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
+        {companyData.mission.text}
+      </p>
+    </div>
+  </section>
+);
+
+// Componente Soluciones
+const Solutions: React.FC<SectionProps> = ({ id }) => (
+  <section id={id} className="py-20 bg-slate-800 text-white">
+    <div className="container mx-auto px-6">
+      <Lightbulb size={60} className="mx-auto mb-6 text-amber-400" />
+      <h2 className="text-4xl font-bold text-center mb-4">
+        {companyData.solutions.title}
+      </h2>
+      <p className="text-lg text-slate-300 text-center max-w-3xl mx-auto mb-16 leading-relaxed">
+        {companyData.solutions.intro}
+      </p>
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {companyData.solutions.items.map((item, index) => (
+          <div
+            key={index}
+            className="bg-slate-700 p-8 rounded-xl shadow-2xl hover:shadow-amber-500/30 transition-all duration-300 transform hover:-translate-y-2 flex flex-col items-center text-center"
+          >
+            <item.icon size={48} className="mb-6 text-amber-400" />
+            <h3 className="text-2xl font-semibold mb-3">{item.name}</h3>
+            <p className="text-slate-300 leading-relaxed">{item.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+// Componente Resultados
+const Results: React.FC<SectionProps> = ({ id }) => (
+  <section id={id} className="py-20 bg-slate-50">
+    <div className="container mx-auto px-6">
+      <BarChart3 size={60} className="mx-auto mb-6 text-green-600" />
+      <h2 className="text-4xl font-bold text-slate-800 text-center mb-4">
+        {companyData.results.title}
+      </h2>
+      <p className="text-lg text-slate-600 text-center max-w-3xl mx-auto mb-16 leading-relaxed">
+        {companyData.results.intro}
+      </p>
+      <div className="grid md:grid-cols-3 gap-8">
+        {companyData.results.stats.map((stat, index) => (
+          <div
+            key={index}
+            className="bg-white p-8 rounded-xl shadow-xl hover:shadow-green-500/20 transition-all duration-300 transform hover:scale-105 flex flex-col items-center text-center"
+          >
+            <stat.icon size={48} className="mb-4 text-green-600" />
+            <div className="text-5xl font-extrabold text-green-700 mb-2">
+              {stat.value}
+            </div>
+            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+              {stat.label}
+            </h3>
+            <p className="text-slate-500 text-sm">{stat.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+// Componente Contacto
+const Contact: React.FC<SectionProps> = ({ id }) => (
+  <section
+    id={id}
+    className="py-20 bg-gradient-to-br from-slate-900 to-slate-800 text-white"
+  >
+    <div className="container mx-auto px-6 text-center">
+      <Mail size={60} className="mx-auto mb-6 text-amber-400" />
+      <h2 className="text-4xl font-bold mb-4">{companyData.contact.title}</h2>
+      <p className="text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+        {companyData.contact.text}
+      </p>
+      <div className="space-y-6 md:space-y-0 md:space-x-12 md:flex md:justify-center items-center">
+        <a
+          href={`tel:${companyData.phone.replace(/\s/g, "")}`}
+          className="flex items-center justify-center text-xl hover:text-amber-400 transition-colors duration-300 group"
+        >
+          <Phone
+            size={28}
+            className="mr-3 text-amber-400 group-hover:animate-pulse"
+          />
+          {companyData.phone}
+        </a>
+        <a
+          href={`mailto:${companyData.email}`}
+          className="flex items-center justify-center text-xl hover:text-amber-400 transition-colors duration-300 group"
+        >
+          <Mail
+            size={28}
+            className="mr-3 text-amber-400 group-hover:animate-pulse"
+          />
+          {companyData.email}
+        </a>
+      </div>
+    </div>
+  </section>
+);
+
+// Componente Footer
+const Footer: React.FC = () => (
+  <footer className="bg-slate-900 text-slate-400 py-10 text-center">
+    <div className="container mx-auto px-6">
+      <div className="mb-4">
+        <Logo />
+      </div>
+      <p>
+        &copy; {new Date().getFullYear()} {companyData.name}. Todos los derechos
+        reservados.
+      </p>
+      <p className="text-sm mt-1">
+        Transformando la Agroindustria con Inteligencia Artificial.
+      </p>
+    </div>
+  </footer>
+);
+
+// Componente Principal de la App
+const App: React.FC = () => {
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("animate-fade-in-up-scroll");
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    document
+      .querySelectorAll("section > div > *:not(h2):not(p:first-of-type)")
+      .forEach((el) => {
+        observer.observe(el);
+      });
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div className="font-sans antialiased bg-slate-100">
+      <Navbar />
+      <main>
+        <Hero id="home" />
+        <Mission id="mision" />
+        <Solutions id="soluciones" />
+        <Results id="resultados" />
+        <Contact id="contacto" />
+      </main>
+      <Footer />
     </div>
   );
-}
+};
+
+export default App;
