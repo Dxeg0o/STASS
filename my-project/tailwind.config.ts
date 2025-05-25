@@ -11,6 +11,10 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        primary: "#0F3636", // color oscuro principal
+        accent: "#FBC458", // amarillo/ámbar de acento
+        light: "#ECE8E2", // tono crema suave
+        white: "#FFFFFF", // blanco puro
       },
     },
   },
