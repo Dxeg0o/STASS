@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation"; // Para redirigir tras el inicio de sesión
-import Image from "next/image";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
