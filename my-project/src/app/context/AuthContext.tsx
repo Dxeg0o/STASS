@@ -9,6 +9,7 @@ interface User {
   name: string;
   email: string;
   empresaId: string;
+  rol_usuario: string;
 }
 
 interface State {

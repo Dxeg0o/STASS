@@ -1,274 +1,310 @@
 "use client";
+import React, { useContext, useState, useEffect } from "react";
+import { AuthenticationContext } from "@/app/context/AuthContext";
+import { Lote } from "@/components/app/lotes/loteselector";
+import { ResumenLoteSelector } from "@/components/app/lotes/resumenloteselector";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import * as XLSX from "xlsx";
+import { Summary, ResumenLote } from "@/components/app/lotes/resumenlote";
 
-import { useState } from "react";
-
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DateRange } from "react-day-picker";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker";
-import { RefreshCw, ChevronDown, ArrowRight } from "lucide-react";
-import Link from "next/link";
-
-interface Analysis {
-  id: string;
-  product: string;
-  date: string;
-  status: "active" | "completed";
-  totalCount: number;
-  passPercentage: number;
+// Define aquí la forma de cada registro de conteo
+interface ConteoRecord {
+  _id: string;
+  timestamp: string;
+  count_in: number;
+  count_out: number;
+  dispositivo: string;
+  // puedes añadir más campos si tu API los devuelve
 }
 
 export default function Dashboard() {
-  const [selectedProduct, setSelectedProduct] = useState<string>("all");
-  const [displayedHistoricalCount, setDisplayedHistoricalCount] = useState(5);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [dateRange] = useState<DateRange | undefined>();
+  const { data, loading: authLoading } = useContext(AuthenticationContext);
 
-  // Datos de ejemplo simplificados
-  const [analyses, setAnalyses] = useState<Analysis[]>([
-    {
-      id: "1",
-      product: "asparagus",
-      date: new Date().toISOString(),
-      status: "active",
-      totalCount: 1500,
-      passPercentage: 92,
-    },
-    {
-      id: "2",
-      product: "grape",
-      date: "2024-03-14",
-      status: "completed",
-      totalCount: 2800,
-      passPercentage: 88,
-    },
-    {
-      id: "3",
-      product: "carrot",
-      date: "2024-03-13",
-      status: "completed",
-      totalCount: 4200,
-      passPercentage: 95,
-    },
-  ]);
+  // Estados para lotes
+  const [lotes, setLotes] = useState<Lote[]>([]);
+  const [loadingLotes, setLoadingLotes] = useState(false);
+  const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsRefreshing(false);
-      // Add a new analysis to show refresh working
-      setAnalyses((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          product: "apple",
-          date: new Date().toISOString(),
-          status: "active",
-          totalCount: 3200,
-          passPercentage: 90,
-        },
-      ]);
-    }, 1000);
+  // Resumen por lote
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [errorSummary, setErrorSummary] = useState<string | null>(null);
+
+  // Datos por lote
+  const [records, setRecords] = useState<ConteoRecord[]>([]);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [errorRecords, setErrorRecords] = useState<string | null>(null);
+
+  // Datos totales de la empresa
+  const [totalRecords, setTotalRecords] = useState<ConteoRecord[]>([]);
+  const [loadingTotal, setLoadingTotal] = useState(false);
+  const [errorTotal, setErrorTotal] = useState<string | null>(null);
+
+  // Carga de lotes
+  useEffect(() => {
+    if (!data) return;
+    setLoadingLotes(true);
+    fetch(`/api/lotes?empresaId=${data.empresaId}`)
+      .then((res) => res.json())
+      .then((arr: Lote[]) => setLotes(arr))
+      .catch(console.error)
+      .finally(() => setLoadingLotes(false));
+  }, [data]);
+
+  // Carga resumen de lote seleccionado
+  useEffect(() => {
+    if (!selectedLote) {
+      setSummary(null);
+      setErrorSummary(null);
+      return;
+    }
+    setLoadingSummary(true);
+    fetch(`/api/lotes/summary?loteId=${selectedLote.id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al cargar resumen");
+        return res.json();
+      })
+      .then((data: Summary) => setSummary(data))
+      .catch((err) => setErrorSummary(err.message))
+      .finally(() => setLoadingSummary(false));
+  }, [selectedLote]);
+
+  // Carga datos por lote
+  useEffect(() => {
+    if (!selectedLote || !data) {
+      setRecords([]);
+      return;
+    }
+    setDataLoading(true);
+    fetch(`/api/conteos?empresaId=${data.empresaId}&loteId=${selectedLote.id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al cargar los registros");
+        return res.json();
+      })
+      .then((arr: ConteoRecord[]) => setRecords(arr))
+      .catch((err) => setErrorRecords(err.message))
+      .finally(() => setDataLoading(false));
+  }, [selectedLote, data]);
+
+  // Carga datos totales
+  useEffect(() => {
+    if (!data) return;
+    setLoadingTotal(true);
+    fetch(`/api/conteos?empresaId=${data.empresaId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al cargar datos totales");
+        return res.json();
+      })
+      .then((arr: ConteoRecord[]) => setTotalRecords(arr))
+      .catch((err) => setErrorTotal(err.message))
+      .finally(() => setLoadingTotal(false));
+  }, [data]);
+
+  // Función para exportar Excel de datos por lote
+  const downloadExcel = () => {
+    if (records.length === 0) {
+      alert("No hay datos para exportar");
+      return;
+    }
+    const sheetData = records.map((r) => ({
+      Hora: new Date(r.timestamp).toLocaleString("es-CL"),
+      Conteo: r.count_in + r.count_out,
+      Dispositivo: r.dispositivo,
+    }));
+    const ws = XLSX.utils.json_to_sheet(sheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Conteos");
+    XLSX.writeFile(
+      wb,
+      `conteos_${selectedLote?.nombre || "sin_lote"}_${new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[:T]/g, "-")}.xlsx`
+    );
   };
 
-  const filterAnalyses = (analysis: Analysis) => {
-    const matchesProduct =
-      selectedProduct === "all" || analysis.product === selectedProduct;
-    const matchesDate =
-      !dateRange ||
-      (new Date(analysis.date) >= (dateRange.from || new Date(0)) &&
-        new Date(analysis.date) <= (dateRange.to || new Date()));
-    return matchesProduct && matchesDate;
-  };
-
-  const filteredAnalyses = analyses
-    .filter(filterAnalyses)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  const activeAnalyses = filteredAnalyses.filter((a) => a.status === "active");
-  const historicalAnalyses = filteredAnalyses.filter(
-    (a) => a.status === "completed"
-  );
+  if (authLoading) return <div>Cargando…</div>;
+  if (!data) return <div>No estás autenticado.</div>;
 
   return (
-    <div className="flex-col md:flex">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Panel de Análisis
-          </h2>
-          <div className="flex items-center gap-4">
-            <DatePickerWithRange />
-            <Button onClick={handleRefresh} disabled={isRefreshing}>
-              {isRefreshing ? (
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              Actualizar
-            </Button>
-          </div>
-        </div>
+    <div className="w-full max-w-6xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Hola {data.name}!</h1>
 
-        {/* Sección de Filtros */}
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <select
-              value={selectedProduct}
-              onChange={(e) => setSelectedProduct(e.target.value)}
-              className="px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Todos los Productos</option>
-              {[...new Set(analyses.map((a) => a.product))].map((product) => (
-                <option key={product} value={product}>
-                  {product.charAt(0).toUpperCase() + product.slice(1)}
-                </option>
-              ))}
-            </select>
-            <span className="text-sm text-gray-500">
-              Mostrando {filteredAnalyses.length} análisis
-            </span>
-          </div>
-        </div>
+      {/* Pestañas principales: Totales y Por Lote */}
+      <Tabs defaultValue="datosTotales">
+        <TabsList className="grid grid-cols-2 mb-4">
+          <TabsTrigger value="datosTotales">Datos Totales</TabsTrigger>
+          <TabsTrigger value="datosPorLote">Datos por Lote</TabsTrigger>
+        </TabsList>
 
-        {/* Sección de Análisis Activos */}
-        {activeAnalyses.length > 0 && (
-          <Card>
+        {/* DATOS TOTALES */}
+        <TabsContent value="datosTotales">
+          {loadingTotal ? (
+            <p>Cargando datos totales…</p>
+          ) : errorTotal ? (
+            <p className="text-red-600">{errorTotal}</p>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Datos Totales</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full table-auto divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                          Hora
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                          Conteo
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                          Dispositivo
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {totalRecords.map((rec) => (
+                        <tr key={rec._id}>
+                          <td className="px-4 py-2">
+                            {new Date(rec.timestamp).toLocaleString("es-CL")}
+                          </td>
+                          <td className="px-4 py-2">
+                            {rec.count_in + rec.count_out}
+                          </td>
+                          <td className="px-4 py-2">{rec.dispositivo}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* DATOS POR LOTE */}
+        <TabsContent value="datosPorLote">
+          {/* Selector de lote */}
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-2xl flex items-center justify-between">
-                Controles de Calidad Activos
-                <span className="text-sm font-normal text-gray-500">
-                  Monitoreo en tiempo real
-                </span>
-              </CardTitle>
+              <CardTitle>Control de Lotes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4">
-                {activeAnalyses.map((analysis) => (
-                  <AnalysisItem key={analysis.id} analysis={analysis} />
-                ))}
-              </div>
+              <ResumenLoteSelector
+                lotes={lotes}
+                selectedLote={selectedLote}
+                loading={loadingLotes}
+                onSelect={(l) => setSelectedLote(l)}
+                onSelectNone={() => setSelectedLote(null)}
+                onCreate={async (nombre) => {
+                  const res = await fetch("/api/lotes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nombre, empresaId: data.empresaId }),
+                  });
+                  if (res.ok) {
+                    const nuevo: Lote = await res.json();
+                    setLotes((prev) => [nuevo, ...prev]);
+                    setSelectedLote(nuevo);
+                  }
+                }}
+              />
             </CardContent>
           </Card>
-        )}
 
-        {/* Sección de Análisis Históricos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl flex items-center justify-between">
-              Análisis Histórico
-              <span className="text-sm font-normal text-gray-500">
-                {historicalAnalyses.length} informes completados
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              {historicalAnalyses.length === 0 ? (
-                <div className="text-gray-500 text-center py-4">
-                  No hay datos históricos disponibles
-                </div>
+          {/* Sub-pestañas: Resumen y Datos */}
+          <Tabs defaultValue="resumen">
+            <TabsList className="grid grid-cols-2 mb-4">
+              <TabsTrigger value="resumen">Resumen</TabsTrigger>
+              <TabsTrigger value="datos">Datos</TabsTrigger>
+            </TabsList>
+
+            {/* Resumen por Lote */}
+            <TabsContent value="resumen">
+              {!selectedLote ? (
+                <p className="text-center py-4">
+                  Selecciona primero un lote para ver el resumen.
+                </p>
               ) : (
-                <>
-                  {historicalAnalyses
-                    .slice(0, displayedHistoricalCount)
-                    .map((analysis) => (
-                      <AnalysisItem key={analysis.id} analysis={analysis} />
-                    ))}
-
-                  {historicalAnalyses.length > displayedHistoricalCount && (
-                    <Button
-                      variant="ghost"
-                      className="w-full text-blue-600 hover:bg-gray-50"
-                      onClick={() =>
-                        setDisplayedHistoricalCount((prev) => prev + 5)
-                      }
-                    >
-                      <ChevronDown className="mr-2 h-4 w-4" />
-                      Cargar Más (
-                      {historicalAnalyses.length -
-                        displayedHistoricalCount}{" "}
-                      restantes)
-                    </Button>
-                  )}
-                </>
+                <ResumenLote
+                  summary={summary}
+                  loading={loadingSummary}
+                  error={errorSummary}
+                />
               )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </TabsContent>
+
+            {/* Datos por Lote */}
+            <TabsContent value="datos">
+              {!selectedLote ? (
+                <p className="text-center py-4">
+                  Selecciona primero un lote para ver los datos.
+                </p>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Datos de Conteos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {dataLoading ? (
+                      <p>Cargando datos…</p>
+                    ) : errorRecords ? (
+                      <p className="text-red-600">{errorRecords}</p>
+                    ) : (
+                      <>
+                        <div className="flex justify-between mb-4">
+                          <div>Total registros: {records.length}</div>
+                          <button
+                            onClick={downloadExcel}
+                            className="px-4 py-2 bg-blue-600 text-white rounded"
+                          >
+                            Descargar Excel
+                          </button>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full table-auto divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                                  Hora
+                                </th>
+                                <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                                  Conteo
+                                </th>
+                                <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                                  Dispositivo
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {records.map((r) => (
+                                <tr key={r._id}>
+                                  <td className="px-4 py-2">
+                                    {new Date(r.timestamp).toLocaleString(
+                                      "es-CL"
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-2">
+                                    {r.count_in + r.count_out}
+                                  </td>
+                                  <td className="px-4 py-2">{r.dispositivo}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
-
-const AnalysisItem = ({ analysis }: { analysis: Analysis }) => (
-  <div className="group p-4 border rounded-lg hover:shadow-md transition-all bg-white grid grid-cols-[2fr_1fr_1fr_1.5fr_1fr] items-center gap-4 hover:border-blue-100">
-    {/* Product Column */}
-    <div>
-      <h3 className="font-semibold capitalize text-gray-800">
-        {analysis.product}
-      </h3>
-      <p className="text-sm text-gray-500 mt-1">
-        {new Date(analysis.date).toLocaleDateString("en-US", {
-          weekday: "short",
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}
-      </p>
-    </div>
-
-    {/* Status Column */}
-    <div className="flex items-center gap-2">
-      <span
-        className={`inline-block w-2 h-2 rounded-full ${
-          analysis.status === "active"
-            ? "bg-green-500 animate-pulse"
-            : "bg-gray-300"
-        }`}
-      />
-      <span className="text-sm capitalize text-gray-600">
-        {analysis.status}
-      </span>
-    </div>
-
-    {/* Units Analyzed Column */}
-    <div>
-      <p className="text-lg font-semibold text-gray-800">
-        {analysis.totalCount.toLocaleString()}
-      </p>
-      <p className="text-sm text-gray-500">Unidades</p>
-    </div>
-
-    {/* Pass Rate Column */}
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-700">Aprobación</span>
-        <span className="text-sm text-gray-500">
-          {analysis.passPercentage}%
-        </span>
-      </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-green-500 transition-all duration-500"
-          style={{ width: `${analysis.passPercentage}%` }}
-        />
-      </div>
-    </div>
-
-    {/* Details Button Column */}
-    <div className="flex justify-end">
-      <Link href={`/analysis/${analysis.id}`} className="w-full max-w-[160px]">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:border-blue-300 transition-all"
-        >
-          <span>Detalles</span>
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </Button>
-      </Link>
-    </div>
-  </div>
-);

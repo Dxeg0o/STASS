@@ -1,59 +1,57 @@
-import { Home, Settings, BarChart2, Tag, ChartSpline } from "lucide-react";
+"use client";
+
+import axios from "axios";
+import { deleteCookie } from "cookies-next/client";
+import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useContext } from "react";
+import { Home, Settings, Archive, LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import clsx from "clsx";
 
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { AuthenticationContext } from "../../app/context/AuthContext";
 
-// Menu items with separated groups
+// Menú principal
 const mainItems = [
-  {
-    title: "Inicio",
-    url: "/app",
-    icon: Home,
-  },
-  {
-    title: "Análisis",
-    url: "/app/analisis",
-    icon: BarChart2,
-  },
-  {
-    title: "Etiquetas",
-    url: "/app/etiquetas",
-    icon: Tag,
-  },
-  {
-    title: "Gráficos",
-    url: "/app/graficos",
-    icon: ChartSpline,
-  },
+  { title: "Inicio", url: "/app", icon: Home },
+  { title: "Lotes", url: "/app/lotes", icon: Archive },
 ];
 
+// Menú secundario (antes de logout)
 const secondaryItems = [
-  {
-    title: "Configuraciones",
-    url: "/app/configuraciones",
-    icon: Settings,
-  },
+  { title: "Configuraciones", url: "/app/configuraciones", icon: Settings },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { setAuthState } = useContext(AuthenticationContext);
 
+  const handleLogout = () => {
+    // 1. Borrar la cookie del token
+    deleteCookie("token");
+    // 2. Limpiar el header de axios
+    delete axios.defaults.headers.common["Authorization"];
+    // 3. Resetear el estado de auth
+    setAuthState?.({ data: null, error: null, loading: false });
+    // 4. Redirigir al login
+    router.push("/login");
+  };
   return (
     <Sidebar className="border-r border-neutral-100 bg-white shadow-sm">
       <SidebarContent>
-        {/* Logo Section */}
+        {/* Logo */}
         <SidebarGroup>
           <SidebarGroupLabel className="flex h-20 items-center px-6">
             <Image
@@ -67,7 +65,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
         </SidebarGroup>
 
-        {/* Main Navigation */}
+        {/* Navegación principal */}
         <SidebarGroup className="mt-4">
           <SidebarGroupContent>
             <SidebarMenu>
@@ -98,7 +96,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Secondary Navigation */}
+        {/* Navegación secundaria + logout */}
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
@@ -125,6 +123,25 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {/* Item de Cerrar sesión */}
+              <SidebarMenuItem key="logout">
+                <SidebarMenuButton
+                  asChild
+                  onClick={handleLogout}
+                  className="mx-4 rounded-lg px-4 py-3 text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-all"
+                >
+                  <button className="group flex items-center w-full">
+                    <LogOut
+                      className="mr-3 h-5 w-5 shrink-0"
+                      strokeWidth={1.75}
+                    />
+                    <span className="text-sm font-medium tracking-wide">
+                      Cerrar sesión
+                    </span>
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
