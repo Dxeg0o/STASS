@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
+import Navbar from "@/components/Navbar"; // <-- Asegúrate de que la ruta sea correcta
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -41,25 +42,16 @@ export default function LoginPage() {
         setError("Ocurrió un error inesperado.");
       }
     } finally {
-      // Siempre ejecutado, éxito o fallo
       setIsLoading(false);
     }
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <header className="px-4 lg:px-6 h-16 flex items-center fixed w-full bg-white/80 backdrop-blur-md z-50 shadow-sm">
-        <Link className="flex items-center justify-center" href="/">
-          <Image
-            src="/images/Qualiblick.png"
-            alt="Logo Qualiblick"
-            width={170}
-            height={84}
-            unoptimized={true}
-          />
-        </Link>
-      </header>
-      <main className="flex-1 flex items-center justify-center px-4 py-16">
+      {/* Aquí montamos nuestro Navbar */}
+      <Navbar />
+
+      <main className="flex-1 flex items-center justify-center px-4 py-32">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -132,6 +124,7 @@ export default function LoginPage() {
           </p>
         </motion.div>
       </main>
+
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-green-700">
           © 2024 QualiBlick. Todos los derechos reservados.

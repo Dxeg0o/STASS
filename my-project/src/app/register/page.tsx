@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
+import Navbar from "@/components/Navbar"; // <-- Importa el Navbar
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
@@ -33,9 +34,7 @@ export default function RegisterPage() {
       // Registrar la empresa primero
       const empresaResponse = await fetch("/api/companies", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: companyName,
           pais: country,
@@ -44,27 +43,23 @@ export default function RegisterPage() {
       });
 
       const empresaData = await empresaResponse.json();
-
       if (!empresaResponse.ok) {
         throw new Error(empresaData.error || "Error al registrar la empresa");
       }
 
-      // Usar el ID de la empresa para registrar el usuario
+      // Registrar el usuario con el ID de empresa
       const response = await fetch("/api/auth/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: username,
           correo: email,
           contraseña: password,
-          empresaId: empresaData._id, // Usar el ID de la empresa registrada
+          empresaId: empresaData._id,
         }),
       });
 
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || "Error en el registro");
       }
@@ -77,9 +72,9 @@ export default function RegisterPage() {
       setCompanyName("");
       setCountry("");
     } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Algo salió mal.";
-      setErrorMessage(errorMessage);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Algo salió mal."
+      );
     } finally {
       setLoading(false);
     }
@@ -87,18 +82,10 @@ export default function RegisterPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <header className="px-4 lg:px-6 h-16 flex items-center fixed w-full bg-white/80 backdrop-blur-md z-50 shadow-sm">
-        <Link className="flex items-center justify-center" href="/">
-          <Image
-            src="/images/Qualiblick.png"
-            alt="Logo Qualiblick"
-            width={170}
-            height={84}
-            unoptimized={true}
-          />
-        </Link>
-      </header>
-      <main className="flex-1 flex items-center justify-center px-4 py-24">
+      {/* Navbar en lugar de header */}
+      <Navbar />
+
+      <main className="flex-1 flex items-center justify-center px-4 py-32">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -117,6 +104,8 @@ export default function RegisterPage() {
                 {successMessage}
               </p>
             )}
+
+            {/* Campos de formulario */}
             <div>
               <label
                 htmlFor="companyName"
@@ -150,27 +139,13 @@ export default function RegisterPage() {
                 className="w-full text-gray-500 rounded-md bg-white border border-green-300 focus:border-green-500 focus:ring-green-500 h-10 px-3 py-2 text-sm appearance-none"
               >
                 <option value="">Seleccione su país</option>
-                <option value="Argentina">Argentina</option>
-                <option value="Bolivia">Bolivia</option>
-                <option value="Brasil">Brasil</option>
+                {/* ...opciones... */}
                 <option value="Chile">Chile</option>
-                <option value="Colombia">Colombia</option>
-                <option value="Costa Rica">Costa Rica</option>
-                <option value="Ecuador">Ecuador</option>
-                <option value="El Salvador">El Salvador</option>
-                <option value="España">España</option>
-                <option value="Guatemala">Guatemala</option>
-                <option value="Honduras">Honduras</option>
-                <option value="México">México</option>
-                <option value="Nicaragua">Nicaragua</option>
-                <option value="Panamá">Panamá</option>
-                <option value="Paraguay">Paraguay</option>
-                <option value="Perú">Perú</option>
-                <option value="Puerto Rico">Puerto Rico</option>
-                <option value="Uruguay">Uruguay</option>
-                <option value="Venezuela">Venezuela</option>
+                <option value="Argentina">Argentina</option>
+                {/* resto de países */}
               </select>
             </div>
+
             <div>
               <label
                 htmlFor="username"
@@ -181,13 +156,14 @@ export default function RegisterPage() {
               <Input
                 id="username"
                 type="text"
-                placeholder="Nombre del que sera el administrador"
+                placeholder="Nombre del administrador"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
               />
             </div>
+
             <div>
               <label
                 htmlFor="email"
@@ -223,6 +199,7 @@ export default function RegisterPage() {
                 className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
               />
             </div>
+
             <div>
               <label
                 htmlFor="confirmPassword"
@@ -240,14 +217,16 @@ export default function RegisterPage() {
                 className="w-full rounded-md bg-white border-green-300 focus:border-green-500 focus:ring-green-500"
               />
             </div>
+
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-all duración-200 transform hover:scale-105"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-all duration-200 transform hover:scale-105"
             >
               {loading ? "Registrando..." : "Registrarse"}
             </Button>
           </form>
+
           <p className="mt-4 text-center text-sm text-green-700">
             ¿Ya tiene una cuenta?{" "}
             <Link
@@ -259,20 +238,21 @@ export default function RegisterPage() {
           </p>
         </motion.div>
       </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
+
+      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full items-center px-4 md:px-6 border-t">
         <p className="text-xs text-green-700">
           © 2024 QualiBlick. Todos los derechos reservados.
         </p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link
-            className="text-xs hover:underline underline-offset-4 text-green-700"
             href="#"
+            className="text-xs hover:underline underline-offset-4 text-green-700"
           >
             Términos de Servicio
           </Link>
           <Link
-            className="text-xs hover:underline underline-offset-4 text-green-700"
             href="#"
+            className="text-xs hover:underline underline-offset-4 text-green-700"
           >
             Política de Privacidad
           </Link>

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link"; // asegúrate de importarlo
 
 import type React from "react";
 import { useState, useEffect } from "react";
@@ -120,11 +121,11 @@ const Navbar: React.FC = () => {
     { href: "#resultados", label: "Resultados" },
     { href: "#contacto", label: "Contacto" },
     { href: "/login", label: "Iniciar sesión" },
-    { href: "/signup", label: "Registrarse" },
+    { href: "/register", label: "Registrarse" },
   ];
 
   const scrollToSection = (
-    e: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
+    e: React.MouseEvent<HTMLAnchorElement>,
     href: string
   ) => {
     e.preventDefault();
@@ -135,25 +136,35 @@ const Navbar: React.FC = () => {
   return (
     <nav className="bg-emerald-800/95 backdrop-blur-md text-white p-4 fixed w-full z-50 shadow-lg">
       <div className="container mx-auto flex justify-between items-center">
-        <a
-          href="#home"
-          onClick={(e) => scrollToSection(e, "#home")}
-          className="hover:opacity-80 transition-opacity"
-        >
+        <a href="#home" onClick={(e) => scrollToSection(e, "#home")}>
           <Logo />
         </a>
+        {/* menú desktop */}
         <div className="hidden md:flex space-x-6">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={(e) => scrollToSection(e, link.href)}
-              className="hover:text-amber-300 transition-colors duration-300 font-medium"
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map(({ href, label }) =>
+            href.startsWith("#") ? (
+              // enlace ancla: desplazamiento suave
+              <a
+                key={href}
+                href={href}
+                onClick={(e) => scrollToSection(e, href)}
+                className="hover:text-amber-300 transition-colors duration-300 font-medium"
+              >
+                {label}
+              </a>
+            ) : (
+              // enlace de ruta: usa Next.js Link
+              <Link
+                key={href}
+                href={href}
+                className="hover:text-amber-300 transition-colors duration-300 font-medium"
+              >
+                {label}
+              </Link>
+            )
+          )}
         </div>
+        {/* botón móvil */}
         <div className="md:hidden">
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -163,18 +174,29 @@ const Navbar: React.FC = () => {
           </button>
         </div>
       </div>
+      {/* menú desplegable móvil */}
       {isOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-emerald-700 shadow-xl py-2">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={(e) => scrollToSection(e, link.href)}
-              className="block px-4 py-3 text-center hover:bg-emerald-600 hover:text-amber-300 transition-colors duration-300"
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map(({ href, label }) =>
+            href.startsWith("#") ? (
+              <a
+                key={href}
+                href={href}
+                onClick={(e) => scrollToSection(e, href)}
+                className="block px-4 py-3 text-center hover:bg-emerald-600 hover:text-amber-300 transition-colors duration-300"
+              >
+                {label}
+              </a>
+            ) : (
+              <Link
+                key={href}
+                href={href}
+                className="block px-4 py-3 text-center hover:bg-emerald-600 hover:text-amber-300 transition-colors duration-300"
+              >
+                {label}
+              </Link>
+            )
+          )}
         </div>
       )}
     </nav>
