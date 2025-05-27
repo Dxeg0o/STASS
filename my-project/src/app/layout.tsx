@@ -17,27 +17,36 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.qualiblick.com"),
-  title: "QualiBlick - Asegura calidad en tus exportaciones agrícolas",
+  title: "Qualiblick - La Revolución de la IA en el Agro",
   description:
-    "Reducimos hasta un 30% los costos de inspección manual mediante tecnología de punta, sin grandes inversiones iniciales.",
+    "Aseguramos la competitividad de tus productos agroindustriales con IA de vanguardia. Control total, menos costos, más calidad y eficiencia.",
   openGraph: {
-    title: "QualiBlick - Asegura calidad en tus exportaciones agrícolas",
+    title: "Qualiblick - La Revolución de la IA en el Agro",
     description:
-      "Reducimos hasta un 30% los costos de inspección manual mediante tecnología de punta, sin grandes inversiones iniciales.",
+      "Optimiza tus procesos agroindustriales con soluciones inteligentes. IA para control de calidad, agricultura de precisión y eficiencia productiva.",
     url: "https://www.qualiblick.com",
-    siteName: "QualiBlick",
+    siteName: "Qualiblick",
     images: [
       {
         url: "/images/Qualiblick2.png",
         width: 800,
         height: 800,
-        alt: "Logo de QualiBlick",
+        alt: "Logo de Qualiblick",
       },
     ],
-
-    locale: "es_LA",
+    locale: "es_CL",
     type: "website",
   },
+  keywords: [
+    "IA agroindustria",
+    "agricultura de precisión",
+    "control de calidad",
+    "optimización procesos",
+    "reducción de mermas",
+    "soluciones inteligentes agro",
+    "Qualiblick",
+  ],
+  authors: [{ name: "Qualiblick", url: "https://www.qualiblick.com" }],
   icons: {
     icon: "/images/Qualiblick2.png",
   },
@@ -49,7 +58,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
