@@ -190,7 +190,7 @@ export default function Dashboard() {
           {/* Selector de lote */}
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Control de Lotes</CardTitle>
+              <CardTitle>Datos de Conteo por Lotes</CardTitle>
             </CardHeader>
             <CardContent>
               <ResumenLoteSelector
@@ -199,18 +199,6 @@ export default function Dashboard() {
                 loading={loadingLotes}
                 onSelect={(l) => setSelectedLote(l)}
                 onSelectNone={() => setSelectedLote(null)}
-                onCreate={async (nombre) => {
-                  const res = await fetch("/api/lotes", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ nombre, empresaId: data.empresaId }),
-                  });
-                  if (res.ok) {
-                    const nuevo: Lote = await res.json();
-                    setLotes((prev) => [nuevo, ...prev]);
-                    setSelectedLote(nuevo);
-                  }
-                }}
               />
             </CardContent>
           </Card>
