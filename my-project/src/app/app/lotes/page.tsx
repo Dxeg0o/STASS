@@ -28,16 +28,32 @@ export default function Dashboard() {
         const lotesData: Lote[] = await lRes.json();
         const active: Lote | null = await aRes.json();
         setLotes(lotesData);
-        // <-- sólo activo, sin fallback
         setSelectedLote(active);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [data]);
 
-  // Handlers de selección, creación y cierre
+  // Handler con confirmación
   const handleSelect = async (lote: Lote | null) => {
+    // Confirmar si ya hay un lote seleccionado y se intenta cambiar
+    if (selectedLote && lote?.id !== selectedLote.id) {
+      const confirmed = confirm(
+        `¿Estás seguro de que deseas cambiar del lote "${selectedLote.nombre}" al lote "${lote?.nombre}"?`
+      );
+      if (!confirmed) return;
+    }
+
+    // Confirmar si se quiere cerrar el lote actual
+    if (selectedLote && !lote) {
+      const confirmed = confirm(
+        `¿Estás seguro de que deseas cerrar el lote "${selectedLote.nombre}"?`
+      );
+      if (!confirmed) return;
+    }
+
     setSelectedLote(lote);
+
     if (lote) {
       await fetch("/api/lotes/activity", {
         method: "POST",
