@@ -1,23 +1,26 @@
-// components/app/AppSidebar.tsx
 "use client";
 
 import axios from "axios";
 import { deleteCookie } from "cookies-next/client";
 import { useRouter, usePathname } from "next/navigation";
-import { useContext } from "react";
+import { useContext, type ComponentType, type SVGProps } from "react";
 import { Home, Settings, Archive, LogOut, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { AuthenticationContext } from "../../app/context/AuthContext"; // Ajusta la ruta si es necesario
 
-// Menú principal
-type MenuItem = { title: string; url: string; icon: any };
+// Definimos un tipo más específico para los iconos
+type MenuItem = {
+  title: string;
+  url: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+};
+
 const mainItems: MenuItem[] = [
   { title: "Inicio", url: "/app", icon: Home },
   { title: "Lotes", url: "/app/lotes", icon: Archive },
 ];
 
-// Menú secundario (antes de logout)
 const secondaryItems: MenuItem[] = [
   { title: "Configuraciones", url: "/app/configuraciones", icon: Settings },
 ];
@@ -30,7 +33,7 @@ interface AppSidebarProps {
 export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { setAuthState, data } = useContext(AuthenticationContext);
+  const { setAuthState } = useContext(AuthenticationContext);
 
   const handleLogout = async () => {
     try {

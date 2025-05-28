@@ -1,11 +1,9 @@
 // components/app/AppNavbar.tsx
 "use client";
 
-import { useContext } from "react";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { AuthenticationContext } from "../../app/context/AuthContext";
 
 interface AppNavbarProps {
   isSidebarOpen: boolean;
@@ -13,8 +11,6 @@ interface AppNavbarProps {
 }
 
 export function AppNavbar({ isSidebarOpen, toggleSidebar }: AppNavbarProps) {
-  const { data } = useContext(AuthenticationContext);
-
   return (
     <nav className="bg-emerald-800 text-white shadow-md fixed top-0 left-0 right-0 z-40 h-16 flex items-center px-4 md:px-6">
       <div className="flex items-center justify-between w-full">
