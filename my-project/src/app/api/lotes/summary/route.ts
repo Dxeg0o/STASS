@@ -4,6 +4,14 @@ import { connectDb } from "@/lib/mongodb";
 import { LoteActivity } from "@/models/loteactivity";
 import { Conteo } from "@/models/conteo";
 
+// 1) Definimos aquí la interfaz que describe cada resultado del $group:
+interface DeviceGroup {
+  _id: string; // equivale a "dispositivo"
+  countIn: number; // suma de count_in
+  countOut: number; // suma de count_out
+  lastTimestamp: Date; // máximo timestamp encontrado
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const loteId = searchParams.get("loteId");
@@ -28,8 +36,8 @@ export async function GET(request: Request) {
     timestamp: { $gte: startTime, $lte: endTime ?? now },
   }));
 
-  // 4) Agrupo resultados por dispositivo
-  const groups = await Conteo.aggregate([
+  // 4) Agrupo resultados por dispositivo, especificando el tipo genérico <DeviceGroup>
+  const groups = await Conteo.aggregate<DeviceGroup>([
     { $match: { $or: orConds } },
     {
       $group: {
@@ -43,11 +51,11 @@ export async function GET(request: Request) {
 
   // 5) Para cada grupo, obtengo el servicioId del último documento (por timestamp) de ese dispositivo
   const summaryArray = await Promise.all(
-    groups.map(async (grp: any) => {
-      const dispositivo = grp._id as string;
-      const countIn = grp.countIn as number;
-      const countOut = grp.countOut as number;
-      const lastTimestamp = grp.lastTimestamp as Date;
+    groups.map(async (grp: DeviceGroup) => {
+      const dispositivo = grp._id;
+      const countIn = grp.countIn;
+      const countOut = grp.countOut;
+      const lastTimestamp = grp.lastTimestamp;
 
       // Buscar el documento que corresponde a este dispositivo y timestamp
       const lastEntry = await Conteo.findOne({
