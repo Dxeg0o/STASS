@@ -5,15 +5,15 @@ import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export interface Summary {
+  dispositivo: string;
   countIn: number;
   countOut: number;
-  lastTimestamp: string | null;
-  dispositivo: string;
+  lastTimestamp: string; // vendrá como ISO string
   servicioId: string;
 }
 
 interface ResumenLoteProps {
-  summary: Summary | null;
+  summary: Summary[] | null;
   loading: boolean;
   error: string | null;
 }
@@ -28,64 +28,73 @@ export function ResumenLote({ summary, loading, error }: ResumenLoteProps) {
   }
 
   // 2) Ningún lote seleccionado o sin datos
-  if (!summary) {
+  if (!summary || summary.length === 0) {
     return (
       <p className="text-center text-gray-500">
-        Selecciona primero un lote para ver el resumen.
+        No hay datos de resumen para este lote.
       </p>
     );
   }
 
-  // 3) Render principal
-  const fechaLocal = summary.lastTimestamp
-    ? new Date(summary.lastTimestamp).toLocaleString("es-CL", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "—";
-
+  // 3) Renderizamos una tarjeta que contiene la tabla de resumen por dispositivo
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Ingresos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold">
-            {summary.countIn + summary.countOut}
-          </p>
-        </CardContent>
-      </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle>Resumen por Dispositivo</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="min-w-full table-auto divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase">
+                  Dispositivo
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase">
+                  Conteo
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium uppercase">
+                  Último Conteo
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase">
+                  Servicio
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {summary.map((item) => {
+                // Convertimos el lastTimestamp de ISO string a fecha local
+                const fechaLocal = item.lastTimestamp
+                  ? new Date(item.lastTimestamp).toLocaleString("es-CL", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "—";
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Último Conteo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm">{fechaLocal}</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Dispositivo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm">{summary.dispositivo || "—"}</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Servicio</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm">{summary.servicioId || "—"}</p>
-        </CardContent>
-      </Card>
-    </div>
+                return (
+                  <tr key={item.dispositivo}>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {item.dispositivo}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700 text-right">
+                      {item.countIn + item.countOut}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700 text-center">
+                      {fechaLocal}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {item.servicioId || "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

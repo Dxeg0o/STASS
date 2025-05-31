@@ -1,3 +1,4 @@
+// app/dashboard/page.tsx
 "use client";
 import React, { useContext, useState, useEffect } from "react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
@@ -6,7 +7,7 @@ import { ResumenLoteSelector } from "@/components/app/lotes/resumenloteselector"
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
-import { Summary, ResumenLote } from "@/components/app/lotes/resumenlote";
+import { ResumenLote, Summary } from "@/components/app/lotes/resumenlote";
 
 // Define aquí la forma de cada registro de conteo
 interface ConteoRecord {
@@ -26,8 +27,8 @@ export default function Dashboard() {
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
 
-  // Resumen por lote
-  const [summary, setSummary] = useState<Summary | null>(null);
+  // Resumen por lote (ahora Summary[] | null)
+  const [summary, setSummary] = useState<Summary[] | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [errorSummary, setErrorSummary] = useState<string | null>(null);
 
@@ -52,7 +53,7 @@ export default function Dashboard() {
       .finally(() => setLoadingLotes(false));
   }, [data]);
 
-  // Carga resumen de lote seleccionado
+  // Carga resumen de lote seleccionado (ahora espera Summary[])
   useEffect(() => {
     if (!selectedLote) {
       setSummary(null);
@@ -65,7 +66,7 @@ export default function Dashboard() {
         if (!res.ok) throw new Error("Error al cargar resumen");
         return res.json();
       })
-      .then((data: Summary) => setSummary(data))
+      .then((arr: Summary[]) => setSummary(arr))
       .catch((err) => setErrorSummary(err.message))
       .finally(() => setLoadingSummary(false));
   }, [selectedLote]);
