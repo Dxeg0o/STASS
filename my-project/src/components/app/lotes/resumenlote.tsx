@@ -36,13 +36,26 @@ export function ResumenLote({ summary, loading, error }: ResumenLoteProps) {
     );
   }
 
-  // 3) Renderizamos una tarjeta que contiene la tabla de resumen por dispositivo
+  // 3) Calcular el total de "bulbos" (suma de countIn + countOut) en todo el lote
+  const totalBulbos = summary.reduce((acc, item) => {
+    return acc + item.countIn + item.countOut;
+  }, 0);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Resumen por Dispositivo</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* 3.1) Mostrar total de bulbos en todo el lote */}
+        <div className="mb-4">
+          <p className="text-lg font-semibold">
+            Total Bulbos Lote:{" "}
+            <span className="text-2xl font-bold">{totalBulbos}</span>
+          </p>
+        </div>
+
+        {/* 3.2) Tabla con detalle por dispositivo */}
         <div className="overflow-x-auto">
           <table className="min-w-full table-auto divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -51,7 +64,7 @@ export function ResumenLote({ summary, loading, error }: ResumenLoteProps) {
                   Dispositivo
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium uppercase">
-                  Conteo
+                  Ingresos
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium uppercase">
                   Último Conteo
@@ -63,7 +76,7 @@ export function ResumenLote({ summary, loading, error }: ResumenLoteProps) {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {summary.map((item) => {
-                // Convertimos el lastTimestamp de ISO string a fecha local
+                // Convertimos el lastTimestamp de ISO string a fecha local ("es-CL")
                 const fechaLocal = item.lastTimestamp
                   ? new Date(item.lastTimestamp).toLocaleString("es-CL", {
                       year: "numeric",

@@ -1,14 +1,14 @@
 // app/dashboard/page.tsx
+
 "use client";
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useCallback } from "react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Lote } from "@/components/app/lotes/loteselector";
 import { ResumenLoteSelector } from "@/components/app/lotes/resumenloteselector";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
-import { ResumenLote, Summary } from "@/components/app/lotes/resumenlote";
-
+import { Summary, ResumenLote } from "@/components/app/lotes/resumenlote";
 // Define aquí la forma de cada registro de conteo
 interface ConteoRecord {
   _id: string;
@@ -42,42 +42,63 @@ export default function Dashboard() {
   const [loadingTotal, setLoadingTotal] = useState(false);
   const [errorTotal, setErrorTotal] = useState<string | null>(null);
 
-  // Carga de lotes
+  // ============== Funciones de carga (fetch) ==============
+
+  // 1) Carga lotes al montar o cuando cambia `data`
   useEffect(() => {
     if (!data) return;
     setLoadingLotes(true);
     fetch(`/api/lotes?empresaId=${data.empresaId}`)
       .then((res) => res.json())
       .then((arr: Lote[]) => setLotes(arr))
-      .catch(console.error)
+      .catch((err) => console.error(err))
       .finally(() => setLoadingLotes(false));
   }, [data]);
 
-  // Carga resumen de lote seleccionado (ahora espera Summary[])
-  useEffect(() => {
+  // 2) Función para recargar el resumen de un lote (Summary[])
+  const fetchSummaryData = useCallback(() => {
     if (!selectedLote) {
       setSummary(null);
       setErrorSummary(null);
       return;
     }
+
     setLoadingSummary(true);
+    setErrorSummary(null);
+
     fetch(`/api/lotes/summary?loteId=${selectedLote.id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Error al cargar resumen");
         return res.json();
       })
-      .then((arr: Summary[]) => setSummary(arr))
+      .then((arr: Summary[]) => {
+        setSummary(arr);
+      })
       .catch((err) => setErrorSummary(err.message))
       .finally(() => setLoadingSummary(false));
   }, [selectedLote]);
 
-  // Carga datos por lote
+  // 3) useEffect para invocar fetchSummaryData cuando cambie selectedLote
   useEffect(() => {
+    // cada vez que cambie de lote, cargo el nuevo resumen
+    if (selectedLote) {
+      fetchSummaryData();
+    } else {
+      setSummary(null);
+      setErrorSummary(null);
+    }
+  }, [selectedLote, fetchSummaryData]);
+
+  // 4) Función para recargar los registros de conteo (ConteoRecord[])
+  const fetchRecordsData = useCallback(() => {
     if (!selectedLote || !data) {
       setRecords([]);
       return;
     }
+
     setDataLoading(true);
+    setErrorRecords(null);
+
     fetch(`/api/conteos?empresaId=${data.empresaId}&loteId=${selectedLote.id}`)
       .then((res) => {
         if (!res.ok) throw new Error("Error al cargar los registros");
@@ -88,7 +109,18 @@ export default function Dashboard() {
       .finally(() => setDataLoading(false));
   }, [selectedLote, data]);
 
-  // Carga datos totales
+  // 5) useEffect para invocar fetchRecordsData cuando cambie selectedLote
+  useEffect(() => {
+    // cada vez que cambie de lote, cargo los registros
+    if (selectedLote) {
+      fetchRecordsData();
+    } else {
+      setRecords([]);
+      setErrorRecords(null);
+    }
+  }, [selectedLote, fetchRecordsData]);
+
+  // 6) Carga datos totales de la empresa
   useEffect(() => {
     if (!data) return;
     setLoadingTotal(true);
@@ -102,7 +134,7 @@ export default function Dashboard() {
       .finally(() => setLoadingTotal(false));
   }, [data]);
 
-  // Función para exportar Excel de datos por lote
+  // 7) Función para exportar Excel de datos por lote
   const downloadExcel = () => {
     if (records.length === 0) {
       alert("No hay datos para exportar");
@@ -125,6 +157,7 @@ export default function Dashboard() {
     );
   };
 
+  // ============== Renderizado ==============
   if (authLoading) return <div>Cargando…</div>;
   if (!data) return <div>No estás autenticado.</div>;
 
@@ -139,6 +172,7 @@ export default function Dashboard() {
           <TabsTrigger value="datosPorLote">Datos por Lote</TabsTrigger>
         </TabsList>
 
+        {/* ------------------------------------------------------ */}
         {/* DATOS TOTALES */}
         <TabsContent value="datosTotales">
           {loadingTotal ? (
@@ -186,6 +220,7 @@ export default function Dashboard() {
           )}
         </TabsContent>
 
+        {/* ------------------------------------------------------ */}
         {/* DATOS POR LOTE */}
         <TabsContent value="datosPorLote">
           {/* Selector de lote */}
@@ -211,6 +246,7 @@ export default function Dashboard() {
               <TabsTrigger value="datos">Datos</TabsTrigger>
             </TabsList>
 
+            {/* -------------------------------------------------- */}
             {/* Resumen por Lote */}
             <TabsContent value="resumen">
               {!selectedLote ? (
@@ -218,14 +254,25 @@ export default function Dashboard() {
                   Selecciona primero un lote para ver el resumen.
                 </p>
               ) : (
-                <ResumenLote
-                  summary={summary}
-                  loading={loadingSummary}
-                  error={errorSummary}
-                />
+                <>
+                  <div className="flex justify-end mb-2">
+                    <button
+                      onClick={fetchSummaryData}
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                    >
+                      🔄 Refrescar Resumen
+                    </button>
+                  </div>
+                  <ResumenLote
+                    summary={summary}
+                    loading={loadingSummary}
+                    error={errorSummary}
+                  />
+                </>
               )}
             </TabsContent>
 
+            {/* -------------------------------------------------- */}
             {/* Datos por Lote */}
             <TabsContent value="datos">
               {!selectedLote ? (
@@ -238,54 +285,61 @@ export default function Dashboard() {
                     <CardTitle>Datos de Conteos</CardTitle>
                   </CardHeader>
                   <CardContent>
+                    <div className="flex justify-between mb-4">
+                      <div>Total registros: {records.length}</div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={fetchRecordsData}
+                          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                          🔄 Refrescar Datos
+                        </button>
+                        <button
+                          onClick={downloadExcel}
+                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                          Descargar Excel
+                        </button>
+                      </div>
+                    </div>
+
                     {dataLoading ? (
                       <p>Cargando datos…</p>
                     ) : errorRecords ? (
                       <p className="text-red-600">{errorRecords}</p>
                     ) : (
-                      <>
-                        <div className="flex justify-between mb-4">
-                          <div>Total registros: {records.length}</div>
-                          <button
-                            onClick={downloadExcel}
-                            className="px-4 py-2 bg-blue-600 text-white rounded"
-                          >
-                            Descargar Excel
-                          </button>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full table-auto divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="px-4 py-2 text-left text-xs font-medium uppercase">
-                                  Hora
-                                </th>
-                                <th className="px-4 py-2 text-left text-xs font-medium uppercase">
-                                  Conteo
-                                </th>
-                                <th className="px-4 py-2 text-left text-xs font-medium uppercase">
-                                  Dispositivo
-                                </th>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full table-auto divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                                Hora
+                              </th>
+                              <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                                Conteo
+                              </th>
+                              <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                                Dispositivo
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {records.map((r) => (
+                              <tr key={r._id}>
+                                <td className="px-4 py-2">
+                                  {new Date(r.timestamp).toLocaleString(
+                                    "es-CL"
+                                  )}
+                                </td>
+                                <td className="px-4 py-2">
+                                  {r.count_in + r.count_out}
+                                </td>
+                                <td className="px-4 py-2">{r.dispositivo}</td>
                               </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                              {records.map((r) => (
-                                <tr key={r._id}>
-                                  <td className="px-4 py-2">
-                                    {new Date(r.timestamp).toLocaleString(
-                                      "es-CL"
-                                    )}
-                                  </td>
-                                  <td className="px-4 py-2">
-                                    {r.count_in + r.count_out}
-                                  </td>
-                                  <td className="px-4 py-2">{r.dispositivo}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
