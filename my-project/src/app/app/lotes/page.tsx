@@ -1,3 +1,4 @@
+// app/dashboard/page.tsx
 "use client";
 
 import { useContext, useState, useEffect } from "react";
@@ -13,38 +14,41 @@ export default function Dashboard() {
   const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Carga inicial de lotes y lote activo
+  // Carga inicial: 1) lista de lotes 2) lote activo
   useEffect(() => {
     if (!data) return;
     const empresaId = data.empresaId;
     setLoading(true);
 
     Promise.all([
+      // 1) Obtener todos los lotes de la empresa
       fetch(`/api/lotes?empresaId=${empresaId}`),
+      // 2) Obtener el lote activo (última sesión) de la empresa
       fetch(`/api/lotes/activity/last?empresaId=${empresaId}`),
     ])
       .then(async ([lRes, aRes]) => {
         if (!lRes.ok || !aRes.ok) throw new Error("Error al cargar datos");
+        // 1) Listado completo de lotes
         const lotesData: Lote[] = await lRes.json();
-        const active: Lote | null = await aRes.json();
+        // 2) El lote activo (o null si no hay ninguno abierto)
+        const activeLote: Lote | null = await aRes.json();
         setLotes(lotesData);
-        setSelectedLote(active);
+        setSelectedLote(activeLote);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [data]);
 
-  // Handler con confirmación
+  // Handler para seleccionar / cerrar lote
   const handleSelect = async (lote: Lote | null) => {
-    // Confirmar si ya hay un lote seleccionado y se intenta cambiar
+    // Si ya hay un lote abierto y se intenta cambiar a otro
     if (selectedLote && lote?.id !== selectedLote.id) {
       const confirmed = confirm(
         `¿Estás seguro de que deseas cambiar del lote "${selectedLote.nombre}" al lote "${lote?.nombre}"?`
       );
       if (!confirmed) return;
     }
-
-    // Confirmar si se quiere cerrar el lote actual
+    // Si queremos cerrar el lote actual
     if (selectedLote && !lote) {
       const confirmed = confirm(
         `¿Estás seguro de que deseas cerrar el lote "${selectedLote.nombre}"?`
@@ -55,16 +59,19 @@ export default function Dashboard() {
     setSelectedLote(lote);
 
     if (lote) {
+      // Abrir una sesión para ese lote
       await fetch("/api/lotes/activity", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ loteId: lote.id }),
       });
     } else {
+      // Cerrar la sesión del lote actual
       await fetch("/api/lotes/activity/close", { method: "POST" });
     }
   };
 
+  // Handler para crear un lote nuevo
   const handleCreate = async (nombre: string) => {
     if (!data) return;
     const res = await fetch("/api/lotes", {
@@ -74,8 +81,15 @@ export default function Dashboard() {
     });
     if (res.ok) {
       const nuevo: Lote = await res.json();
+      // Lo agregamos al principio de la lista y lo marcamos como seleccionado
       setLotes((prev) => [nuevo, ...prev]);
       setSelectedLote(nuevo);
+      // Abrimos sesión para ese nuevo lote
+      await fetch("/api/lotes/activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loteId: nuevo.id }),
+      });
     }
   };
 
@@ -121,11 +135,25 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="resumen">
-            <SummaryLote loteId={loteId} />
+            {selectedLote ? (
+              <SummaryLote loteId={loteId} />
+            ) : (
+              <div className="text-center text-gray-500">
+                Selecciona un lote para ver su resumen.
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="datos">
-            {/* ... contenido de datos ... */}
+            {/* Aquí iría tu contenido de “Datos” */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Datos del Lote</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>Implementa aquí tu vista de datos.</p>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="graficos">

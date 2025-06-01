@@ -42,34 +42,34 @@ export function ResumenLote({ summary, loading, error }: ResumenLoteProps) {
   }, 0);
 
   return (
-    <Card>
+    <Card className="w-full bg-white shadow rounded-lg">
       <CardHeader>
         <CardTitle>Resumen por Dispositivo</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
         {/* 3.1) Mostrar total de bulbos en todo el lote */}
-        <div className="mb-4">
-          <p className="text-lg font-semibold">
+        <div>
+          <p className="text-xl font-bold">
             Total Bulbos Lote:{" "}
-            <span className="text-2xl font-bold">{totalBulbos}</span>
+            <span className="text-green-600">{totalBulbos}</span>
           </p>
         </div>
 
         {/* 3.2) Tabla con detalle por dispositivo */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full table-auto divide-y divide-gray-200">
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Dispositivo
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Ingresos
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium uppercase">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Último Conteo
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Servicio
                 </th>
               </tr>
@@ -87,18 +87,20 @@ export function ResumenLote({ summary, loading, error }: ResumenLoteProps) {
                     })
                   : "—";
 
+                const ingresos = item.countIn + item.countOut;
+
                 return (
                   <tr key={item.dispositivo}>
-                    <td className="px-6 py-4 text-sm text-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {item.dispositivo}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700 text-right">
-                      {item.countIn + item.countOut}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                      {ingresos}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700 text-center">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
                       {fechaLocal}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
                       {item.servicioId || "—"}
                     </td>
                   </tr>
