@@ -104,7 +104,15 @@ export default function Dashboard() {
         if (!res.ok) throw new Error("Error al cargar los registros");
         return res.json();
       })
-      .then((arr: ConteoRecord[]) => setRecords(arr))
+      .then((arr: ConteoRecord[]) => {
+        // Ordenamos de más reciente a más antiguo según el campo timestamp
+        const sortedArr = arr.sort((a, b) => {
+          return (
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+        });
+        setRecords(sortedArr);
+      })
       .catch((err) => setErrorRecords(err.message))
       .finally(() => setDataLoading(false));
   }, [selectedLote, data]);
