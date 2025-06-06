@@ -14,13 +14,14 @@ interface Summary {
 
 interface SummaryLoteProps {
   loteId: string;
-  /** (Opcional) Si deseas exponer desde el componente padre un callback
-   *  para “refrescar” externamente, puedes pasarlo por props,
-   *  por ejemplo onRefresh: () => void. Aquí asumimos que el botón
-   *  “Refrescar Resumen” vive en un contenedor superior. */
+  /**
+   * Opcional: si cambia este valor se volverá a solicitar el resumen.
+   * Permite que un componente padre fuerce la recarga sin cambiar el lote.
+   */
+  refreshKey?: number;
 }
 
-export function SummaryLote({ loteId }: SummaryLoteProps) {
+export function SummaryLote({ loteId, refreshKey }: SummaryLoteProps) {
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +49,7 @@ export function SummaryLote({ loteId }: SummaryLoteProps) {
       .finally(() => {
         setLoading(false);
       });
-  }, [loteId]);
+  }, [loteId, refreshKey]);
 
   // Calcular el total de bulbos de todo el lote (suma de countIn + countOut por dispositivo)
   const totalBulbos = summaries.reduce(
