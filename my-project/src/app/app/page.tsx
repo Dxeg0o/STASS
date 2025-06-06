@@ -149,39 +149,81 @@ export default function Dashboard() {
     <div className="w-full max-w-6xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Hola {data.name}!</h1>
 
-      <h2 className="text-xl font-semibold">Datos totales</h2>
-      <p className="mt-1">Total conteos: {totalSum}</p>
-      <p className="mb-4">Lote activo: {activeLote ? activeLote.nombre : "Ninguno"}</p>
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold">Datos totales</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {/* Conteo total */}
+          <div>
+            <h3 className="text-lg font-medium">Conteo total</h3>
+            {loadingTotal ? (
+              <p className="text-gray-500">Cargando conteos…</p>
+            ) : (
+              <p className="text-3xl font-bold text-green-600">{totalSum}</p>
+            )}
+          </div>
 
-      <div className="mb-8 space-y-4">
-        <Select
-          value={range}
-          onValueChange={(v) =>
-            setRange(v as "today" | "last3" | "week" | "month")
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Solo hoy</SelectItem>
-            <SelectItem value="last3">Últimos 3 días</SelectItem>
-            <SelectItem value="week">Última semana</SelectItem>
-            <SelectItem value="month">Último mes</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="w-full h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={volumeData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="hora" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="volumen" stroke="#8884d8" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+          {/* Lote activo */}
+          <div>
+            <h3 className="text-lg font-medium mb-2">Lote activo actual</h3>
+            {activeLote ? (
+              <div className="p-4 rounded-md bg-gray-50">
+                <p className="text-xl font-semibold">{activeLote.nombre}</p>
+                {activeLote.fechaCreacion && (
+                  <p className="text-sm text-gray-500">
+                    Creado: {new Date(activeLote.fechaCreacion).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-500">Ningún lote activo</p>
+            )}
+          </div>
+
+          {/* Gráfico volumen */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-medium">Volumen por hora</h3>
+              <Select
+                value={range}
+                onValueChange={(v) =>
+                  setRange(v as "today" | "last3" | "week" | "month")
+                }
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Solo hoy</SelectItem>
+                  <SelectItem value="last3">Últimos 3 días</SelectItem>
+                  <SelectItem value="week">Última semana</SelectItem>
+                  <SelectItem value="month">Último mes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {loadingTotal ? (
+              <p className="text-center text-gray-500">Cargando datos…</p>
+            ) : volumeData.length === 0 ? (
+              <p className="text-center text-gray-500">
+                No hay datos registrados para este periodo
+              </p>
+            ) : (
+              <div className="w-full h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={volumeData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="hora" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="volumen" stroke="#8884d8" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Pestañas principales: Totales y Por Lote */}
       <Tabs defaultValue="datosTotales">
