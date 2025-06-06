@@ -6,6 +6,7 @@ import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Lote } from "@/components/app/lotes/loteselector";
 import { ResumenLoteSelector } from "@/components/app/lotes/resumenloteselector";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoteDataTabs } from "@/components/app/lotes/lotedatatabs";
 import {
@@ -146,42 +147,58 @@ export default function Dashboard() {
   if (!data) return <div>No estás autenticado.</div>;
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Hola {data.name}!</h1>
+    <div className="w-full max-w-6xl mx-auto p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Hola {data.name}!</h1>
 
-      <h2 className="text-xl font-semibold">Datos totales</h2>
-      <p className="mt-1">Total conteos: {totalSum}</p>
-      <p className="mb-4">Lote activo: {activeLote ? activeLote.nombre : "Ninguno"}</p>
+      {/* Inicio general */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Inicio general</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p className="text-lg font-semibold">Total conteos: {totalSum}</p>
+            <p className="text-sm text-muted-foreground">
+              Lote activo: {activeLote ? activeLote.nombre : "Ninguno"}
+            </p>
+          </div>
 
-      <div className="mb-8 space-y-4">
-        <Select
-          value={range}
-          onValueChange={(v) =>
-            setRange(v as "today" | "last3" | "week" | "month")
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Solo hoy</SelectItem>
-            <SelectItem value="last3">Últimos 3 días</SelectItem>
-            <SelectItem value="week">Última semana</SelectItem>
-            <SelectItem value="month">Último mes</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="w-full h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={volumeData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="hora" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="volumen" stroke="#8884d8" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+          <Select
+            value={range}
+            onValueChange={(v) => setRange(v as "today" | "last3" | "week" | "month")}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Solo hoy</SelectItem>
+              <SelectItem value="last3">Últimos 3 días</SelectItem>
+              <SelectItem value="week">Última semana</SelectItem>
+              <SelectItem value="month">Último mes</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {loadingTotal ? (
+            <Skeleton className="w-full h-64" />
+          ) : volumeData.length === 0 ? (
+            <div className="w-full h-64 flex items-center justify-center rounded-md border text-muted-foreground">
+              No hay datos disponibles para este periodo
+            </div>
+          ) : (
+            <div className="w-full h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={volumeData} margin={{ left: 12, right: 12, top: 12, bottom: 12 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="hora" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="volumen" stroke="#0F3636" strokeWidth={2} dot={{ r: 2 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Pestañas principales: Totales y Por Lote */}
       <Tabs defaultValue="datosTotales">
