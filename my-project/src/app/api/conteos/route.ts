@@ -4,38 +4,51 @@ import { connectDb } from "@/lib/mongodb";
 import mongoose from "mongoose";
 import { Conteo } from "@/models/conteo";
 import { LoteActivity } from "@/models/loteactivity";
+import { Lote } from "@/models/lotes";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const loteId = searchParams.get("loteId");
-  if (!loteId) {
-    return NextResponse.json({ error: "loteId es requerido" }, { status: 400 });
+  const empresaId = searchParams.get("empresaId");
+
+  if (!loteId && !empresaId) {
+    return NextResponse.json(
+      { error: "loteId o empresaId son requeridos" },
+      { status: 400 }
+    );
   }
 
   await connectDb();
 
-  // 1) Traer todas las sesiones de actividad de este lote
-  const activities = await LoteActivity.find({
-    loteId: new mongoose.Types.ObjectId(loteId),
-  }).lean();
+  let activities;
+  if (loteId) {
+    // Obtener sesiones asociadas a un lote específico
+    activities = await LoteActivity.find({
+      loteId: new mongoose.Types.ObjectId(loteId),
+    }).lean();
+  } else if (empresaId) {
+    // Buscar todos los lotes de la empresa
+    const loteDocs = await Lote.find({ empresaId }, { _id: 1 });
+    const loteIds = loteDocs.map((l) => l._id);
+    if (loteIds.length === 0) {
+      return NextResponse.json([]);
+    }
+    // Sesiones de todos esos lotes
+    activities = await LoteActivity.find({ loteId: { $in: loteIds } }).lean();
+  }
 
-  // 2) Si no hay sesiones, devolvemos un arreglo vacío
-  if (activities.length === 0) {
-    return NextResponse.json([], { status: 200 });
+  if (!activities || activities.length === 0) {
+    return NextResponse.json([]);
   }
 
   const now = new Date();
-
-  // 3) Construir un array de condiciones OR por cada intervalo [startTime, endTime]
   const orConds = activities.map(({ startTime, endTime }) => ({
     timestamp: { $gte: startTime, $lte: endTime ?? now },
   }));
 
-  // 4) Buscar todos los conteos que estén en cualquiera de esos intervalos
   const conteos = await Conteo.find({ $or: orConds })
     .sort({ timestamp: 1 })
     .lean();
 
-  // 5) Devolverlos directamente
   return NextResponse.json(conteos);
 }

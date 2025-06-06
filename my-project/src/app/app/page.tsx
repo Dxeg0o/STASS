@@ -1,7 +1,13 @@
 // app/dashboard/page.tsx
 
 "use client";
-import React, { useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Lote } from "@/components/app/lotes/loteselector";
 import { ResumenLoteSelector } from "@/components/app/lotes/resumenloteselector";
@@ -9,6 +15,22 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
 import { Summary, ResumenLote } from "@/components/app/lotes/resumenlote";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 // Define aquí la forma de cada registro de conteo
 interface ConteoRecord {
   _id: string;
@@ -42,6 +64,12 @@ export default function Dashboard() {
   const [loadingTotal, setLoadingTotal] = useState(false);
   const [errorTotal, setErrorTotal] = useState<string | null>(null);
 
+  const [activeLote, setActiveLote] = useState<Lote | null>(null);
+  const [totalSum, setTotalSum] = useState(0);
+  const [range, setRange] = useState<"today" | "last3" | "week" | "month">(
+    "today"
+  );
+
   // ============== Funciones de carga (fetch) ==============
 
   // 1) Carga lotes al montar o cuando cambia `data`
@@ -53,6 +81,15 @@ export default function Dashboard() {
       .then((arr: Lote[]) => setLotes(arr))
       .catch((err) => console.error(err))
       .finally(() => setLoadingLotes(false));
+  }, [data]);
+
+  // Lote activo actual de la empresa
+  useEffect(() => {
+    if (!data) return;
+    fetch(`/api/lotes/activity/last?empresaId=${data.empresaId}`)
+      .then((res) => res.json())
+      .then((l: Lote | null) => setActiveLote(l))
+      .catch(() => setActiveLote(null));
   }, [data]);
 
   // 2) Función para recargar el resumen de un lote (Summary[])
@@ -142,6 +179,55 @@ export default function Dashboard() {
       .finally(() => setLoadingTotal(false));
   }, [data]);
 
+  // Calcular suma total de conteos
+  useEffect(() => {
+    const sum = totalRecords.reduce(
+      (acc, r) => acc + r.count_in + r.count_out,
+      0
+    );
+    setTotalSum(sum);
+  }, [totalRecords]);
+
+  const filteredRecords = useMemo(() => {
+    const now = new Date();
+    let start = new Date();
+    switch (range) {
+      case "today":
+        start.setHours(0, 0, 0, 0);
+        break;
+      case "last3":
+        start = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+        break;
+      case "week":
+        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "month":
+        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+    }
+    return totalRecords.filter((r) => new Date(r.timestamp) >= start);
+  }, [totalRecords, range]);
+
+  const volumeData = useMemo(() => {
+    const map = new Map<number, number>();
+    filteredRecords.forEach((r) => {
+      const d = new Date(r.timestamp);
+      d.setMinutes(0, 0, 0);
+      const key = d.getTime();
+      map.set(key, (map.get(key) ?? 0) + r.count_in + r.count_out);
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([time, count]) => ({
+        hora: new Date(time).toLocaleString("es-CL", {
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+        }),
+        volumen: count,
+      }));
+  }, [filteredRecords]);
+
   // 7) Función para exportar Excel de datos por lote
   const downloadExcel = () => {
     if (records.length === 0) {
@@ -172,6 +258,35 @@ export default function Dashboard() {
   return (
     <div className="w-full max-w-6xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Hola {data.name}!</h1>
+
+      <h2 className="text-xl font-semibold">Datos totales</h2>
+      <p className="mt-1">Total conteos: {totalSum}</p>
+      <p className="mb-4">Lote activo: {activeLote ? activeLote.nombre : "Ninguno"}</p>
+
+      <div className="mb-8 space-y-4">
+        <Select value={range} onValueChange={(v) => setRange(v as any)}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="today">Solo hoy</SelectItem>
+            <SelectItem value="last3">Últimos 3 días</SelectItem>
+            <SelectItem value="week">Última semana</SelectItem>
+            <SelectItem value="month">Último mes</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="w-full h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={volumeData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="hora" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="volumen" stroke="#8884d8" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
 
       {/* Pestañas principales: Totales y Por Lote */}
       <Tabs defaultValue="datosTotales">
