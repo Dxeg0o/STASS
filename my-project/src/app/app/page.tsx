@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 // Define aquí la forma de cada registro de conteo
 interface ConteoRecord {
   _id: string;
@@ -31,7 +32,6 @@ interface ConteoRecord {
   count_in: number;
   count_out: number;
   dispositivo: string;
-  // puedes añadir más campos si tu API los devuelve
 }
 
 export default function Dashboard() {
@@ -41,7 +41,6 @@ export default function Dashboard() {
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
-
 
   // Datos totales de la empresa
   const [totalRecords, setTotalRecords] = useState<ConteoRecord[]>([]);
@@ -55,8 +54,6 @@ export default function Dashboard() {
   );
 
   // ============== Funciones de carga (fetch) ==============
-
-  // 1) Carga lotes al montar o cuando cambia `data`
   useEffect(() => {
     if (!data) return;
     setLoadingLotes(true);
@@ -76,8 +73,7 @@ export default function Dashboard() {
       .catch(() => setActiveLote(null));
   }, [data]);
 
-
-  // 6) Carga datos totales de la empresa
+  //  Carga datos totales de la empresa
   useEffect(() => {
     if (!data) return;
     setLoadingTotal(true);
@@ -140,7 +136,6 @@ export default function Dashboard() {
       }));
   }, [filteredRecords]);
 
-
   // ============== Renderizado ==============
   if (authLoading) return <div>Cargando…</div>;
   if (!data) return <div>No estás autenticado.</div>;
@@ -149,44 +144,11 @@ export default function Dashboard() {
     <div className="w-full max-w-6xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Hola {data.name}!</h1>
 
-      <h2 className="text-xl font-semibold">Datos totales</h2>
-      <p className="mt-1">Total conteos: {totalSum}</p>
-      <p className="mb-4">Lote activo: {activeLote ? activeLote.nombre : "Ninguno"}</p>
-
-      <div className="mb-8 space-y-4">
-        <Select
-          value={range}
-          onValueChange={(v) =>
-            setRange(v as "today" | "last3" | "week" | "month")
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Solo hoy</SelectItem>
-            <SelectItem value="last3">Últimos 3 días</SelectItem>
-            <SelectItem value="week">Última semana</SelectItem>
-            <SelectItem value="month">Último mes</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="w-full h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={volumeData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="hora" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="volumen" stroke="#8884d8" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Pestañas principales: Totales y Por Lote */}
+      {/* ------------------------------------------------------ */}
+      {/* Pestañas principales: “Datos Totales” y “Datos por Lote” */}
       <Tabs defaultValue="datosTotales">
         <TabsList className="grid grid-cols-2 mb-4">
-          <TabsTrigger value="datosTotales">Datos Totales</TabsTrigger>
+          <TabsTrigger value="datosTotales">Resumen</TabsTrigger>
           <TabsTrigger value="datosPorLote">Datos por Lote</TabsTrigger>
         </TabsList>
 
@@ -194,44 +156,90 @@ export default function Dashboard() {
         {/* DATOS TOTALES */}
         <TabsContent value="datosTotales">
           {loadingTotal ? (
-            <p>Cargando datos totales…</p>
+            <p className="text-center text-gray-500">Cargando datos totales…</p>
           ) : errorTotal ? (
             <p className="text-red-600">{errorTotal}</p>
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>Datos Totales</CardTitle>
+                <CardTitle className="text-xl font-semibold">Resumen</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full table-auto divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">
-                          Hora
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">
-                          Conteo
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">
-                          Dispositivo
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {totalRecords.map((rec) => (
-                        <tr key={rec._id}>
-                          <td className="px-4 py-2">
-                            {new Date(rec.timestamp).toLocaleString("es-CL")}
-                          </td>
-                          <td className="px-4 py-2">
-                            {rec.count_in + rec.count_out}
-                          </td>
-                          <td className="px-4 py-2">{rec.dispositivo}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <CardContent className="space-y-8">
+                {/* Conteo total */}
+                <div>
+                  <h3 className="text-lg font-medium">Conteo total</h3>
+                  <p className="text-3xl font-bold text-green-600">
+                    {totalSum}
+                  </p>
+                </div>
+
+                {/* Lote activo */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">
+                    Lote activo actual
+                  </h3>
+                  {activeLote ? (
+                    <div className="p-4 rounded-md bg-gray-50">
+                      <p className="text-xl font-semibold">
+                        {activeLote.nombre}
+                      </p>
+                      {activeLote.fechaCreacion && (
+                        <p className="text-sm text-gray-500">
+                          Creado:{" "}
+                          {new Date(
+                            activeLote.fechaCreacion
+                          ).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">Ningún lote activo</p>
+                  )}
+                </div>
+
+                {/* Gráfico volumen */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-medium">Volumen por hora</h3>
+                    <Select
+                      value={range}
+                      onValueChange={(v) =>
+                        setRange(v as "today" | "last3" | "week" | "month")
+                      }
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="today">Solo hoy</SelectItem>
+                        <SelectItem value="last3">Últimos 3 días</SelectItem>
+                        <SelectItem value="week">Última semana</SelectItem>
+                        <SelectItem value="month">Último mes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {volumeData.length === 0 ? (
+                    <p className="text-center text-gray-500">
+                      No hay datos registrados para este periodo
+                    </p>
+                  ) : (
+                    <div className="w-full h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={volumeData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="hora" />
+                          <YAxis />
+                          <Tooltip />
+                          <Line
+                            type="monotone"
+                            dataKey="volumen"
+                            stroke="#8884d8"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
