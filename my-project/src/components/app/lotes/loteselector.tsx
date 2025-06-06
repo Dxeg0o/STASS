@@ -24,7 +24,11 @@ interface LoteSelectorProps {
   loading: boolean;
   onSelect: (lote: Lote) => void;
   onSelectNone: () => void;
-  onCreate: (nombre: string) => void;
+  onCreate?: (nombre: string) => void;
+  title?: string;
+  infoLabel?: string;
+  actionLabel?: string;
+  description?: string;
 }
 
 export function LoteSelector({
@@ -34,6 +38,10 @@ export function LoteSelector({
   onSelect,
   onSelectNone,
   onCreate,
+  title = "Lote Activo",
+  infoLabel = "Trabajando en:",
+  actionLabel = "Cambiar",
+  description,
 }: LoteSelectorProps) {
   const [open, setOpen] = React.useState(false);
   const [showNewForm, setShowNewForm] = React.useState(false);
@@ -56,31 +64,37 @@ export function LoteSelector({
     <div className="w-full">
       <div className="flex flex-col space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Lote Activo</h2>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setShowNewForm(true);
-              setOpen(true);
-            }}
-          >
-            Crear Nuevo Lote
-          </Button>
+          <div>
+            <h2 className="text-lg font-semibold">{title}</h2>
+            {description && (
+              <p className="text-sm font-bold text-red-600">{description}</p>
+            )}
+          </div>
+          {onCreate && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowNewForm(true);
+                setOpen(true);
+              }}
+            >
+              Crear Nuevo Lote
+            </Button>
+          )}
         </div>
         <div className="bg-white rounded-lg border p-4 flex justify-between items-center">
           <div>
-            <p className="text-sm text-gray-500">Trabajando en:</p>
+            <p className="text-sm text-gray-500">{infoLabel}</p>
             <p className="text-xl font-medium">
               {selectedLote?.nombre || "Ningún lote seleccionado"}
             </p>
             {selectedLote?.fechaCreacion && (
               <p className="text-xs text-gray-400">
-                Creado:{" "}
-                {new Date(selectedLote.fechaCreacion).toLocaleDateString()}
+                Creado: {new Date(selectedLote.fechaCreacion).toLocaleDateString()}
               </p>
             )}
           </div>
-          <Button onClick={() => setOpen(true)}>Cambiar</Button>
+          <Button onClick={() => setOpen(true)}>{actionLabel}</Button>
         </div>
       </div>
 
@@ -88,11 +102,11 @@ export function LoteSelector({
         <DialogContent className="sm:max-w-md md:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl">
-              {showNewForm ? "Crear Nuevo Lote" : "Seleccionar Lote"}
+              {onCreate && showNewForm ? "Crear Nuevo Lote" : "Seleccionar Lote"}
             </DialogTitle>
           </DialogHeader>
 
-          {showNewForm ? (
+          {onCreate && showNewForm ? (
             <div className="space-y-4 py-4">
               <Input
                 placeholder="Nombre del nuevo lote"
@@ -106,7 +120,7 @@ export function LoteSelector({
                 </Button>
                 <Button
                   onClick={() => {
-                    onCreate(newName.trim());
+                    onCreate?.(newName.trim());
                     setNewName("");
                     setShowNewForm(false);
                     setOpen(false);
