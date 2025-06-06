@@ -4,7 +4,7 @@
 import { useContext, useState, useEffect } from "react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { LoteSelector, Lote } from "@/components/app/lotes/loteselector";
-import { SummaryLote } from "@/components/app/lotes/summarylote";
+import { LoteTabs } from "@/components/app/lotes/lotetabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -127,46 +127,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="resumen">
-          <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="resumen">Resumen</TabsTrigger>
-            <TabsTrigger value="datos">Datos</TabsTrigger>
-            <TabsTrigger value="graficos">Gráficos</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="resumen">
-            {selectedLote ? (
-              <SummaryLote loteId={loteId} />
-            ) : (
-              <div className="text-center text-gray-500">
-                Selecciona un lote para ver su resumen.
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="datos">
-            {/* Aquí iría tu contenido de “Datos” */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Datos del Lote</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Implementa aquí tu vista de datos.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="graficos">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gráficos del Lote</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Aquí se generarán los gráficos de conteos del lote.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <LoteTabs loteId={loteId} />
       </div>
     </div>
   );
