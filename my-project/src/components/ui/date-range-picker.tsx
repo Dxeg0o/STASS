@@ -1,23 +1,23 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { CalendarIcon } from "@radix-ui/react-icons"
-import { format } from "date-fns"
-import { DateRange } from "react-day-picker"
+import * as React from "react";
+import { CalendarIcon } from "@radix-ui/react-icons";
+import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 
 export interface DatePickerWithRangeProps
-  extends React.HTMLAttributes<HTMLDivElement> {
-  value?: DateRange | undefined
-  onChange?: (range: DateRange | undefined) => void
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "onChange"> {
+  value?: DateRange | undefined;
+  onChange?: (range: DateRange | undefined) => void;
 }
 
 export function DatePickerWithRange({
@@ -30,18 +30,18 @@ export function DatePickerWithRange({
       from: new Date(),
       to: new Date(),
     }
-  )
+  );
 
   React.useEffect(() => {
     if (value) {
-      setDate(value)
+      setDate(value);
     }
-  }, [value])
+  }, [value]);
 
   const handleSelect = (range: DateRange | undefined) => {
-    setDate(range)
-    onChange?.(range)
-  }
+    setDate(range);
+    onChange?.(range);
+  };
 
   return (
     <div className={cn("grid gap-2", className)}>
@@ -82,6 +82,5 @@ export function DatePickerWithRange({
         </PopoverContent>
       </Popover>
     </div>
-  )
+  );
 }
-
