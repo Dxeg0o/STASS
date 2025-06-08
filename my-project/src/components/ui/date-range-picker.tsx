@@ -1,12 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { CalendarIcon } from "@radix-ui/react-icons"
+import { CalendarIcon, ArrowRightIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
 import { DateRange } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -39,37 +40,66 @@ export function DatePickerWithRange({
   }, [value])
 
   const handleSelect = (range: DateRange | undefined) => {
+    if (!range) return
     setDate(range)
-    onChange?.(range)
+    if (range.from && !range.to) {
+      setActiveField("to")
+      setOpen(true)
+    } else if (range.from && range.to) {
+      if (range.to < range.from) {
+        setError("La fecha de término no puede ser anterior a la de inicio")
+      } else {
+        setError("")
+        setOpen(false)
+        onChange?.(range)
+      }
+    }
   }
+
+  const [activeField, setActiveField] = React.useState<"from" | "to">("from")
+  const [open, setOpen] = React.useState(false)
+  const [error, setError] = React.useState("")
 
   return (
     <div className={cn("grid gap-2", className)}>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            id="date"
-            variant={"outline"}
-            className={cn(
-              "w-[300px] justify-start text-left font-normal",
-              !date && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
-              date.to ? (
-                <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
-                </>
-              ) : (
-                format(date.from, "LLL dd, y")
-              )
-            ) : (
-              <span>Pick a date</span>
-            )}
-          </Button>
-        </PopoverTrigger>
+      <Popover open={open} onOpenChange={setOpen}>
+        <div className="flex items-end gap-2">
+          <div className="flex flex-col flex-1">
+            <label htmlFor="start-date" className="text-sm">Inicio</label>
+            <PopoverTrigger asChild>
+              <Input
+                id="start-date"
+                aria-label="Fecha de inicio"
+                readOnly
+                value={date?.from ? format(date.from, "yyyy-MM-dd") : ""}
+                placeholder="Inicio"
+                onFocus={() => {
+                  setActiveField("from")
+                  setOpen(true)
+                }}
+                className={cn(activeField === "from" && open && "ring-2 ring-primary")}
+              />
+            </PopoverTrigger>
+          </div>
+          <ArrowRightIcon className="mb-2" />
+          <div className="flex flex-col flex-1">
+            <label htmlFor="end-date" className="text-sm">Fin</label>
+            <PopoverTrigger asChild>
+              <Input
+                id="end-date"
+                aria-label="Fecha de término"
+                readOnly
+                value={date?.to ? format(date.to, "yyyy-MM-dd") : ""}
+                placeholder="Fin"
+                onFocus={() => {
+                  setActiveField("to")
+                  setOpen(true)
+                }}
+                className={cn(activeField === "to" && open && "ring-2 ring-primary")}
+              />
+            </PopoverTrigger>
+          </div>
+        </div>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             initialFocus
@@ -79,6 +109,11 @@ export function DatePickerWithRange({
             onSelect={handleSelect}
             numberOfMonths={2}
           />
+          {error && (
+            <p className="mt-2 text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          )}
         </PopoverContent>
       </Popover>
     </div>
