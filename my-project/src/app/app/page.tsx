@@ -17,13 +17,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DateRange } from "react-day-picker";
+import { startOfDay, endOfDay, format } from "date-fns";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { motion } from "framer-motion";
 
 // Define aquí la forma de cada registro de conteo
 interface ConteoRecord {
@@ -49,9 +46,10 @@ export default function Dashboard() {
 
   const [activeLote, setActiveLote] = useState<Lote | null>(null);
   const [totalSum, setTotalSum] = useState(0);
-  const [range, setRange] = useState<"today" | "last3" | "week" | "month">(
-    "today"
-  );
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(),
+    to: new Date(),
+  });
 
   // ============== Funciones de carga (fetch) ==============
   useEffect(() => {
@@ -97,24 +95,48 @@ export default function Dashboard() {
   }, [totalRecords]);
 
   const filteredRecords = useMemo(() => {
-    const now = new Date();
-    let start = new Date();
-    switch (range) {
-      case "today":
-        start.setHours(0, 0, 0, 0);
-        break;
-      case "last3":
-        start = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-        break;
-      case "week":
-        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case "month":
-        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
+    if (!dateRange?.from || !dateRange.to) return [];
+    const start = startOfDay(dateRange.from);
+    const end = endOfDay(dateRange.to);
+    return totalRecords.filter((r) => {
+      const d = new Date(r.timestamp);
+      return d >= start && d <= end;
+    });
+  }, [totalRecords, dateRange]);
+
+  const totalRangeCount = useMemo(() => {
+    return filteredRecords.reduce(
+      (acc, r) => acc + r.count_in + r.count_out,
+      0
+    );
+  }, [filteredRecords]);
+
+  const startInfo = useMemo(() => {
+    const map = new Map<string, Date>();
+    filteredRecords.forEach((r) => {
+      const d = new Date(r.timestamp);
+      const key = format(d, "yyyy-MM-dd");
+      const current = map.get(key);
+      if (!current || d < current) {
+        map.set(key, d);
+      }
+    });
+
+    if (map.size === 0) return null;
+    const times = Array.from(map.values());
+    if (times.length === 1) {
+      return { label: "Hora de inicio", value: format(times[0], "HH:mm") };
     }
-    return totalRecords.filter((r) => new Date(r.timestamp) >= start);
-  }, [totalRecords, range]);
+    const avgMinutes =
+      times.reduce((acc, d) => acc + d.getHours() * 60 + d.getMinutes(), 0) /
+      times.length;
+    const h = Math.floor(avgMinutes / 60);
+    const m = Math.round(avgMinutes % 60);
+    const value = `${h.toString().padStart(2, "0")}:${m
+      .toString()
+      .padStart(2, "0")}`;
+    return { label: "Hora promedio de inicio", value };
+  }, [filteredRecords]);
 
   const volumeData = useMemo(() => {
     const map = new Map<number, number>();
@@ -199,32 +221,42 @@ export default function Dashboard() {
 
                 {/* Gráfico volumen */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
                     <h3 className="text-lg font-medium">Volumen por hora</h3>
-                    <Select
-                      value={range}
-                      onValueChange={(v) =>
-                        setRange(v as "today" | "last3" | "week" | "month")
-                      }
-                    >
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="today">Solo hoy</SelectItem>
-                        <SelectItem value="last3">Últimos 3 días</SelectItem>
-                        <SelectItem value="week">Última semana</SelectItem>
-                        <SelectItem value="month">Último mes</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <DatePickerWithRange
+                      value={dateRange}
+                      onChange={setDateRange}
+                    />
                   </div>
+                  {startInfo && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Conteo total en rango</p>
+                        <p className="text-xl font-semibold text-green-600">
+                          {totalRangeCount}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">{startInfo.label}</p>
+                        <p className="text-xl font-semibold text-green-600">
+                          {startInfo.value}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {volumeData.length === 0 ? (
                     <p className="text-center text-gray-500">
                       No hay datos registrados para este periodo
                     </p>
                   ) : (
-                    <div className="w-full h-64">
+                    <motion.div
+                      key={`${dateRange?.from}-${dateRange?.to}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.4 }}
+                      className="w-full h-64"
+                    >
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={volumeData}>
                           <CartesianGrid strokeDasharray="3 3" />
@@ -238,7 +270,7 @@ export default function Dashboard() {
                           />
                         </LineChart>
                       </ResponsiveContainer>
-                    </div>
+                    </motion.div>
                   )}
                 </div>
               </CardContent>
