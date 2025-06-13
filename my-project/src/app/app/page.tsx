@@ -159,6 +159,13 @@ export default function Dashboard() {
       }));
   }, [filteredRecords]);
 
+  const lastOverallTimestamp = useMemo(() => {
+    if (totalRecords.length === 0) return null;
+    return new Date(
+      Math.max(...totalRecords.map((r) => new Date(r.timestamp).getTime()))
+    );
+  }, [totalRecords]);
+
   const downloadSummaryExcel = async () => {
     if (!data) return;
     try {
@@ -166,8 +173,19 @@ export default function Dashboard() {
         `/api/lotes/summary/all?empresaId=${data.empresaId}`
       );
       if (!res.ok) throw new Error("Error al obtener resumen");
-      const arr: { id: string; nombre: string; conteo: number }[] = await res.json();
-      const sheetData = arr.map((l) => ({ Lote: l.nombre, Conteo: l.conteo }));
+      const arr: {
+        id: string;
+        nombre: string;
+        conteo: number;
+        lastTimestamp: string | null;
+      }[] = await res.json();
+      const sheetData = arr.map((l) => ({
+        Lote: l.nombre,
+        Conteo: l.conteo,
+        "Último conteo": l.lastTimestamp
+          ? new Date(l.lastTimestamp).toLocaleString("es-CL")
+          : "—",
+      }));
       const ws = XLSX.utils.json_to_sheet(sheetData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Resumen");
@@ -247,6 +265,18 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <p className="text-gray-500">Ningún lote activo</p>
+                  )}
+                </div>
+
+                {/* Último conteo */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Último conteo</h3>
+                  {lastOverallTimestamp ? (
+                    <p className="text-xl font-semibold text-green-600">
+                      {lastOverallTimestamp.toLocaleString("es-CL")}
+                    </p>
+                  ) : (
+                    <p className="text-gray-500">—</p>
                   )}
                 </div>
 

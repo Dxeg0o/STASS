@@ -8,6 +8,7 @@ interface LoteCount {
   id: string;
   nombre: string;
   conteo: number;
+  lastTimestamp: Date | null;
 }
 
 export async function GET(request: Request) {
@@ -31,7 +32,12 @@ export async function GET(request: Request) {
       // Sesiones de actividad para este lote
       const acts = await LoteActivity.find({ loteId: lote._id }).lean();
       if (acts.length === 0) {
-        return { id: lote._id.toString(), nombre: lote.nombre, conteo: 0 };
+        return {
+          id: lote._id.toString(),
+          nombre: lote.nombre,
+          conteo: 0,
+          lastTimestamp: null,
+        };
       }
       const orConds = acts.map(({ startTime, endTime }) => ({
         timestamp: { $gte: startTime, $lte: endTime ?? now },
@@ -50,7 +56,17 @@ export async function GET(request: Request) {
         },
       ]);
       const total = agg[0] ? agg[0].totalIn + agg[0].totalOut : 0;
-      return { id: lote._id.toString(), nombre: lote.nombre, conteo: total };
+
+      const last = await Conteo.findOne({ $or: orConds })
+        .sort({ timestamp: -1 })
+        .lean();
+
+      return {
+        id: lote._id.toString(),
+        nombre: lote.nombre,
+        conteo: total,
+        lastTimestamp: last ? last.timestamp : null,
+      };
     })
   );
 
