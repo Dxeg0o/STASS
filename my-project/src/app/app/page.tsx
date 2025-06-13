@@ -2,6 +2,7 @@
 
 "use client";
 import React, { useContext, useState, useEffect, useMemo } from "react";
+import * as XLSX from "xlsx";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Lote } from "@/components/app/lotes/loteselector";
 import { ResumenLoteSelector } from "@/components/app/lotes/resumenloteselector";
@@ -158,6 +159,28 @@ export default function Dashboard() {
       }));
   }, [filteredRecords]);
 
+  const downloadSummaryExcel = async () => {
+    if (!data) return;
+    try {
+      const res = await fetch(
+        `/api/lotes/summary/all?empresaId=${data.empresaId}`
+      );
+      if (!res.ok) throw new Error("Error al obtener resumen");
+      const arr: { id: string; nombre: string; conteo: number }[] = await res.json();
+      const sheetData = arr.map((l) => ({ Lote: l.nombre, Conteo: l.conteo }));
+      const ws = XLSX.utils.json_to_sheet(sheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Resumen");
+      XLSX.writeFile(
+        wb,
+        `resumen_lotes_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`
+      );
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo generar el Excel");
+    }
+  };
+
   // ============== Renderizado ==============
   if (authLoading) return <div>Cargando…</div>;
   if (!data) return <div>No estás autenticado.</div>;
@@ -184,7 +207,15 @@ export default function Dashboard() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl font-semibold">Resumen</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl font-semibold">Resumen</CardTitle>
+                  <button
+                    onClick={downloadSummaryExcel}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Descargar Excel
+                  </button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* Conteo total */}
