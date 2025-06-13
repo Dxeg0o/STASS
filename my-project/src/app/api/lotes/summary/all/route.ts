@@ -8,7 +8,8 @@ interface LoteCount {
   id: string;
   nombre: string;
   conteo: number;
-  lastTimestamp: Date | null;
+  firstTimestamp: string | null;
+  lastTimestamp: string | null;
 }
 
 export async function GET(request: Request) {
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
           id: lote._id.toString(),
           nombre: lote.nombre,
           conteo: 0,
+          firstTimestamp: null,
           lastTimestamp: null,
         };
       }
@@ -60,11 +62,15 @@ export async function GET(request: Request) {
       const last = await Conteo.findOne({ $or: orConds })
         .sort({ timestamp: -1 })
         .lean();
+      const first = await Conteo.findOne({ $or: orConds })
+        .sort({ timestamp: 1 })
+        .lean();
 
       return {
         id: lote._id.toString(),
         nombre: lote.nombre,
         conteo: total,
+        firstTimestamp: first ? first.timestamp.toISOString() : null,
         lastTimestamp: last ? last.timestamp.toISOString() : null,
       };
     })

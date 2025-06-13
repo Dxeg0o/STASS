@@ -166,6 +166,13 @@ export default function Dashboard() {
     );
   }, [totalRecords]);
 
+  const firstOverallTimestamp = useMemo(() => {
+    if (totalRecords.length === 0) return null;
+    return new Date(
+      Math.min(...totalRecords.map((r) => new Date(r.timestamp).getTime()))
+    );
+  }, [totalRecords]);
+
   const downloadSummaryExcel = async () => {
     if (!data) return;
     try {
@@ -177,17 +184,21 @@ export default function Dashboard() {
         id: string;
         nombre: string;
         conteo: number;
+        firstTimestamp: string | null;
         lastTimestamp: string | null;
       }[] = await res.json();
       const sheetData = arr.map((l) => ({
         Lote: l.nombre,
         Conteo: l.conteo,
+        "Primer conteo": l.firstTimestamp
+          ? format(new Date(l.firstTimestamp), "yyyy-MM-dd HH:mm")
+          : "",
         "Último conteo": l.lastTimestamp
           ? format(new Date(l.lastTimestamp), "yyyy-MM-dd HH:mm")
           : "",
       }));
       const ws = XLSX.utils.json_to_sheet(sheetData, {
-        header: ["Lote", "Conteo", "Último conteo"],
+        header: ["Lote", "Conteo", "Primer conteo", "Último conteo"],
       });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Resumen");
@@ -276,6 +287,18 @@ export default function Dashboard() {
                   {lastOverallTimestamp ? (
                     <p className="text-xl font-semibold text-green-600">
                       {lastOverallTimestamp.toLocaleString("es-CL")}
+                    </p>
+                  ) : (
+                    <p className="text-gray-500">—</p>
+                  )}
+                </div>
+
+                {/* Primer conteo */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Primer conteo</h3>
+                  {firstOverallTimestamp ? (
+                    <p className="text-xl font-semibold text-green-600">
+                      {firstOverallTimestamp.toLocaleString("es-CL")}
                     </p>
                   ) : (
                     <p className="text-gray-500">—</p>
