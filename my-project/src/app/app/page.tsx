@@ -183,10 +183,12 @@ export default function Dashboard() {
         Lote: l.nombre,
         Conteo: l.conteo,
         "Último conteo": l.lastTimestamp
-          ? new Date(l.lastTimestamp).toLocaleString("es-CL")
-          : "—",
+          ? format(new Date(l.lastTimestamp), "yyyy-MM-dd HH:mm")
+          : "",
       }));
-      const ws = XLSX.utils.json_to_sheet(sheetData);
+      const ws = XLSX.utils.json_to_sheet(sheetData, {
+        header: ["Lote", "Conteo", "Último conteo"],
+      });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Resumen");
       XLSX.writeFile(

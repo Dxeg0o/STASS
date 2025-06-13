@@ -65,7 +65,7 @@ export async function GET(request: Request) {
         id: lote._id.toString(),
         nombre: lote.nombre,
         conteo: total,
-        lastTimestamp: last ? last.timestamp : null,
+        lastTimestamp: last ? last.timestamp.toISOString() : null,
       };
     })
   );
