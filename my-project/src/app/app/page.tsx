@@ -2,6 +2,7 @@
 
 "use client";
 import React, { useContext, useState, useEffect, useMemo } from "react";
+import * as XLSX from "xlsx";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Lote } from "@/components/app/lotes/loteselector";
 import { ResumenLoteSelector } from "@/components/app/lotes/resumenloteselector";
@@ -158,6 +159,53 @@ export default function Dashboard() {
       }));
   }, [filteredRecords]);
 
+  const lastOverallTimestamp = useMemo(() => {
+    if (totalRecords.length === 0) return null;
+    return new Date(
+      Math.max(...totalRecords.map((r) => new Date(r.timestamp).getTime()))
+    );
+  }, [totalRecords]);
+
+
+  const downloadSummaryExcel = async () => {
+    if (!data) return;
+    try {
+      const res = await fetch(
+        `/api/lotes/summary/all?empresaId=${data.empresaId}`
+      );
+      if (!res.ok) throw new Error("Error al obtener resumen");
+      const arr: {
+        id: string;
+        nombre: string;
+        conteo: number;
+        firstTimestamp: string | null;
+        lastTimestamp: string | null;
+      }[] = await res.json();
+      const sheetData = arr.map((l) => ({
+        Lote: l.nombre,
+        Conteo: l.conteo,
+        "Primer conteo": l.firstTimestamp
+          ? format(new Date(l.firstTimestamp), "yyyy-MM-dd HH:mm")
+          : "",
+        "Último conteo": l.lastTimestamp
+          ? format(new Date(l.lastTimestamp), "yyyy-MM-dd HH:mm")
+          : "",
+      }));
+      const ws = XLSX.utils.json_to_sheet(sheetData, {
+        header: ["Lote", "Conteo", "Primer conteo", "Último conteo"],
+      });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Resumen");
+      XLSX.writeFile(
+        wb,
+        `resumen_lotes_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`
+      );
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo generar el Excel");
+    }
+  };
+
   // ============== Renderizado ==============
   if (authLoading) return <div>Cargando…</div>;
   if (!data) return <div>No estás autenticado.</div>;
@@ -184,7 +232,15 @@ export default function Dashboard() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl font-semibold">Resumen</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl font-semibold">Resumen</CardTitle>
+                  <button
+                    onClick={downloadSummaryExcel}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Descargar Excel
+                  </button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* Conteo total */}
@@ -216,6 +272,18 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <p className="text-gray-500">Ningún lote activo</p>
+                  )}
+                </div>
+
+                {/* Último conteo */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Último conteo</h3>
+                  {lastOverallTimestamp ? (
+                    <p className="text-xl font-semibold text-green-600">
+                      {lastOverallTimestamp.toLocaleString("es-CL")}
+                    </p>
+                  ) : (
+                    <p className="text-gray-500">—</p>
                   )}
                 </div>
 
