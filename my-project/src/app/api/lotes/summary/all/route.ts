@@ -25,7 +25,9 @@ export async function GET(request: Request) {
   await connectDb();
 
   // Obtener todos los lotes de la empresa
-  const lotes = await Lote.find({ empresaId }).sort({ fechaCreacion: -1 }).lean();
+  const lotes = await Lote.find({ empresaId })
+    .sort({ fechaCreacion: -1 })
+    .lean();
   const now = new Date();
 
   const summaries: LoteCount[] = await Promise.all(
@@ -70,8 +72,20 @@ export async function GET(request: Request) {
         id: lote._id.toString(),
         nombre: lote.nombre,
         conteo: total,
-        firstTimestamp: first ? first.timestamp.toISOString() : null,
-        lastTimestamp: last ? last.timestamp.toISOString() : null,
+        firstTimestamp:
+          first &&
+          typeof first === "object" &&
+          "timestamp" in first &&
+          first.timestamp instanceof Date
+            ? first.timestamp.toISOString()
+            : null,
+        lastTimestamp:
+          last &&
+          typeof last === "object" &&
+          "timestamp" in last &&
+          last.timestamp instanceof Date
+            ? last.timestamp.toISOString()
+            : null,
       };
     })
   );
