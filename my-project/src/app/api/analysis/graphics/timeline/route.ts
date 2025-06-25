@@ -15,24 +15,27 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const predicciones = await Prediccion.find({ analisisId: id_analisis });
+        const aggregation = await Prediccion.aggregate([
+      { $match: { analisisId: id_analisis } },
+      { $group: { _id: "$resultado", count: { $sum: 1 } } },
+    ]);
 
-    if (predicciones.length === 0) {
+    if (!aggregation || aggregation.length === 0) {
       return NextResponse.json(
         { error: "No se encontraron predicciones" },
         { status: 404 }
       );
     }
 
-    const total = predicciones.length;
-    const aptos = predicciones.filter((p) => p.resultado === "apto").length;
-    const porcentajeAptos = ((aptos / total) * 100).toFixed(2);
+    const total = aggregation.reduce((acc, r) => acc + r.count, 0);
+    const aptos = aggregation.find((r) => r._id === "apto")?.count ?? 0;
+    const porcentajeAptos = total > 0 ? (aptos / total) * 100 : 0;
 
     // Devolver un array para el frontend
     const responseData = [
       {
         timestamp: new Date().toISOString(),
-        percentage: parseFloat(porcentajeAptos),
+        percentage: parseFloat(porcentajeAptos.toFixed(2)),
       },
     ];
 
