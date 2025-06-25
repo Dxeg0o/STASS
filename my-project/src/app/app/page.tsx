@@ -161,9 +161,12 @@ export default function Dashboard() {
 
   const lastOverallTimestamp = useMemo(() => {
     if (totalRecords.length === 0) return null;
-    return new Date(
-      Math.max(...totalRecords.map((r) => new Date(r.timestamp).getTime()))
-    );
+    let max = -Infinity;
+    for (const r of totalRecords) {
+      const t = new Date(r.timestamp).getTime();
+      if (t > max) max = t;
+    }
+    return max !== -Infinity ? new Date(max) : null;
   }, [totalRecords]);
 
 
