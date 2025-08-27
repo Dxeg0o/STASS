@@ -3,12 +3,14 @@
 
 import { useContext, useState, useEffect } from "react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
+import { useServicio } from "@/app/context/ServicioContext";
 import { LoteSelector, Lote } from "@/components/app/lotes/loteselector";
 import { LoteDataTabs } from "@/components/app/lotes/lotedatatabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Dashboard() {
   const { data, loading: authLoading } = useContext(AuthenticationContext);
+  const { servicio } = useServicio();
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,24 +21,20 @@ export default function Dashboard() {
     const empresaId = data.empresaId;
     setLoading(true);
 
-    Promise.all([
-      // 1) Obtener todos los lotes de la empresa
-      fetch(`/api/lotes?empresaId=${empresaId}`),
-      // 2) Obtener el lote activo (última sesión) de la empresa
-      fetch(`/api/lotes/activity/last?empresaId=${empresaId}`),
-    ])
+    const lotesUrl = `/api/lotes?empresaId=${empresaId}${servicio ? `&servicioId=${servicio.id}` : ""}`;
+    const lastUrl = `/api/lotes/activity/last?empresaId=${empresaId}${servicio ? `&servicioId=${servicio.id}` : ""}`;
+
+    Promise.all([fetch(lotesUrl), fetch(lastUrl)])
       .then(async ([lRes, aRes]) => {
         if (!lRes.ok || !aRes.ok) throw new Error("Error al cargar datos");
-        // 1) Listado completo de lotes
         const lotesData: Lote[] = await lRes.json();
-        // 2) El lote activo (o null si no hay ninguno abierto)
         const activeLote: Lote | null = await aRes.json();
         setLotes(lotesData);
         setSelectedLote(activeLote);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [data]);
+  }, [data, servicio]);
 
   // Handler para seleccionar / cerrar lote
   const handleSelect = async (lote: Lote | null) => {
@@ -72,18 +70,20 @@ export default function Dashboard() {
 
   // Handler para crear un lote nuevo
   const handleCreate = async (nombre: string) => {
-    if (!data) return;
+    if (!data || !servicio) return;
     const res = await fetch("/api/lotes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre, empresaId: data.empresaId }),
+      body: JSON.stringify({
+        nombre,
+        empresaId: data.empresaId,
+        servicioId: servicio.id,
+      }),
     });
     if (res.ok) {
       const nuevo: Lote = await res.json();
-      // Lo agregamos al principio de la lista y lo marcamos como seleccionado
       setLotes((prev) => [nuevo, ...prev]);
       setSelectedLote(nuevo);
-      // Abrimos sesión para ese nuevo lote
       await fetch("/api/lotes/activity", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

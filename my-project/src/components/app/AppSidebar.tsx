@@ -3,11 +3,25 @@
 import axios from "axios";
 import { deleteCookie } from "cookies-next/client";
 import { useRouter, usePathname } from "next/navigation";
-import { useContext, type ComponentType, type SVGProps } from "react";
+import {
+  useContext,
+  useEffect,
+  useState,
+  type ComponentType,
+  type SVGProps,
+} from "react";
 import { Home, Settings, Archive, LogOut, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { AuthenticationContext } from "../../app/context/AuthContext"; // Ajusta la ruta si es necesario
+import { useServicio, type Servicio } from "../../app/context/ServicioContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Definimos un tipo más específico para los iconos
 type MenuItem = {
@@ -33,7 +47,17 @@ interface AppSidebarProps {
 export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { setAuthState } = useContext(AuthenticationContext);
+  const { setAuthState, data } = useContext(AuthenticationContext);
+  const { servicio, setServicio } = useServicio();
+  const [servicios, setServicios] = useState<Servicio[]>([]);
+
+  useEffect(() => {
+    if (!data) return;
+    fetch(`/api/servicios?empresaId=${data.empresaId}`)
+      .then((res) => res.json())
+      .then((arr: Servicio[]) => setServicios(arr))
+      .catch(console.error);
+  }, [data]);
 
   const handleLogout = async () => {
     try {
@@ -44,6 +68,7 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
       deleteCookie("token", { path: "/" });
       delete axios.defaults.headers.common["Authorization"];
       setAuthState?.({ data: null, error: null, loading: false });
+      setServicio(null);
       router.push("/login");
     }
   };
@@ -78,6 +103,29 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
             <ChevronLeft size={24} />
           </button>
         )}
+      </div>
+
+      {/* Selector de servicio */}
+      <div className="p-4 border-b border-emerald-600">
+        <Select
+          value={servicio?.id ?? ""}
+          onValueChange={(val) => {
+            const sel = servicios.find((s) => s.id === val) || null;
+            setServicio(sel);
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Todos los servicios" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Todos los servicios</SelectItem>
+            {servicios.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.nombre}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Contenido del Sidebar */}

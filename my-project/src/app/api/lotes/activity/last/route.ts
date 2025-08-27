@@ -7,6 +7,7 @@ import { Lote, type LoteDocument } from "@/models/lotes";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const empresaId = searchParams.get("empresaId");
+  const servicioId = searchParams.get("servicioId");
   if (!empresaId) {
     return NextResponse.json(
       { error: "empresaId is required" },
@@ -17,7 +18,10 @@ export async function GET(request: Request) {
   await connectDb();
 
   // 1) Obtener solo los _id de los lotes de esta empresa
-  const loteDocs = await Lote.find({ empresaId: empresaId }, { _id: 1 });
+  const loteDocs = await Lote.find(
+    { empresaId: empresaId, ...(servicioId ? { servicioId } : {}) },
+    { _id: 1 }
+  );
   const loteIds = loteDocs.map((l) => l._id);
 
   // 2) Buscar la última actividad de esos lotes y poblar el documento completo
@@ -39,6 +43,7 @@ export async function GET(request: Request) {
       id: lote._id.toString(),
       nombre: lote.nombre,
       fechaCreacion: lote.fechaCreacion,
+      servicioId: lote.servicioId,
     },
     { status: 200 }
   );

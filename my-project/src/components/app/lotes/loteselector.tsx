@@ -16,6 +16,7 @@ export interface Lote {
   id: string;
   nombre: string;
   fechaCreacion?: string;
+  servicioId: string;
 }
 
 interface LoteSelectorProps {

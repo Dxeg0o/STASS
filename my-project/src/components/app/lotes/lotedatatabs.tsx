@@ -5,11 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SummaryLote } from "@/components/app/lotes/summarylote";
 import * as XLSX from "xlsx";
-
-export interface Lote {
-  id: string;
-  nombre: string;
-}
+import { Lote } from "./loteselector";
 
 interface ConteoRecord {
   _id: string;

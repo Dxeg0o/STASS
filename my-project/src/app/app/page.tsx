@@ -6,7 +6,7 @@ import * as XLSX from "xlsx";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Lote } from "@/components/app/lotes/loteselector";
 import { ResumenLoteSelector } from "@/components/app/lotes/resumenloteselector";
-import { ServicioSelector, Servicio } from "@/components/app/servicios/servicioselector";
+import { useServicio } from "@/app/context/ServicioContext";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoteDataTabs } from "@/components/app/lotes/lotedatatabs";
@@ -42,10 +42,7 @@ export default function Dashboard() {
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
 
-  // Servicios
-  const [servicios, setServicios] = useState<Servicio[]>([]);
-  const [loadingServicios, setLoadingServicios] = useState(false);
-  const [selectedServicio, setSelectedServicio] = useState<Servicio | null>(null);
+  const { servicio } = useServicio();
 
   // Datos totales de la empresa
   const [totalRecords, setTotalRecords] = useState<ConteoRecord[]>([]);
@@ -63,39 +60,35 @@ export default function Dashboard() {
   useEffect(() => {
     if (!data) return;
     setLoadingLotes(true);
-    fetch(`/api/lotes?empresaId=${data.empresaId}`)
+    const params = new URLSearchParams({ empresaId: data.empresaId });
+    if (servicio) params.append("servicioId", servicio.id);
+    fetch(`/api/lotes?${params.toString()}`)
       .then((res) => res.json())
-      .then((arr: Lote[]) => setLotes(arr))
+      .then((arr: Lote[]) => {
+        setLotes(arr);
+        setSelectedLote(null);
+      })
       .catch((err) => console.error(err))
       .finally(() => setLoadingLotes(false));
-  }, [data]);
-
-  // Servicios disponibles para la empresa
-  useEffect(() => {
-    if (!data) return;
-    setLoadingServicios(true);
-    fetch(`/api/servicios?empresaId=${data.empresaId}`)
-      .then((res) => res.json())
-      .then((arr: Servicio[]) => setServicios(arr))
-      .catch((err) => console.error(err))
-      .finally(() => setLoadingServicios(false));
-  }, [data]);
+  }, [data, servicio]);
 
   // Lote activo actual de la empresa
   useEffect(() => {
     if (!data) return;
-    fetch(`/api/lotes/activity/last?empresaId=${data.empresaId}`)
+    const params = new URLSearchParams({ empresaId: data.empresaId });
+    if (servicio) params.append("servicioId", servicio.id);
+    fetch(`/api/lotes/activity/last?${params.toString()}`)
       .then((res) => res.json())
       .then((l: Lote | null) => setActiveLote(l))
       .catch(() => setActiveLote(null));
-  }, [data]);
+  }, [data, servicio]);
 
   //  Carga datos totales de la empresa
   useEffect(() => {
     if (!data) return;
     setLoadingTotal(true);
     const params = new URLSearchParams({ empresaId: data.empresaId });
-    if (selectedServicio) params.append("servicioId", selectedServicio.id);
+    if (servicio) params.append("servicioId", servicio.id);
     fetch(`/api/conteos?${params.toString()}`)
       .then((res) => {
         if (!res.ok) throw new Error("Error al cargar datos totales");
@@ -104,7 +97,7 @@ export default function Dashboard() {
       .then((arr: ConteoRecord[]) => setTotalRecords(arr))
       .catch((err) => setErrorTotal(err.message))
       .finally(() => setLoadingTotal(false));
-  }, [data, selectedServicio]);
+  }, [data, servicio]);
 
   // Calcular suma total de conteos
   useEffect(() => {
@@ -186,9 +179,8 @@ export default function Dashboard() {
   const downloadSummaryExcel = async () => {
     if (!data) return;
     try {
-      const res = await fetch(
-        `/api/lotes/summary/all?empresaId=${data.empresaId}`
-      );
+      const url = `/api/lotes/summary/all?empresaId=${data.empresaId}${servicio ? `&servicioId=${servicio.id}` : ""}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Error al obtener resumen");
       const arr: {
         id: string;
@@ -241,15 +233,6 @@ export default function Dashboard() {
         {/* ------------------------------------------------------ */}
         {/* DATOS TOTALES */}
         <TabsContent value="datosTotales">
-          <div className="mb-6">
-            <ServicioSelector
-              servicios={servicios}
-              selectedServicio={selectedServicio}
-              loading={loadingServicios}
-              onSelect={(s) => setSelectedServicio(s)}
-              onSelectNone={() => setSelectedServicio(null)}
-            />
-          </div>
           {loadingTotal ? (
             <p className="text-center text-gray-500">Cargando datos totales…</p>
           ) : errorTotal ? (

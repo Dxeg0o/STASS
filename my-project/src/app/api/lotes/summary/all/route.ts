@@ -15,6 +15,7 @@ interface LoteCount {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const empresaId = searchParams.get("empresaId");
+  const servicioId = searchParams.get("servicioId");
   if (!empresaId) {
     return NextResponse.json(
       { error: "empresaId is required" },
@@ -24,8 +25,11 @@ export async function GET(request: Request) {
 
   await connectDb();
 
-  // Obtener todos los lotes de la empresa
-  const lotes = await Lote.find({ empresaId })
+  // Obtener todos los lotes de la empresa (y servicio si aplica)
+  const lotes = await Lote.find({
+    empresaId,
+    ...(servicioId ? { servicioId } : {}),
+  })
     .sort({ fechaCreacion: -1 })
     .lean();
   const now = new Date();

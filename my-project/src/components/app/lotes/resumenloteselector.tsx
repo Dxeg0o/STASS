@@ -11,12 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import React from "react";
-
-export interface Lote {
-  id: string;
-  nombre: string;
-  fechaCreacion?: string;
-}
+import { Lote } from "./loteselector";
 
 interface ResumenLoteSelectorProps {
   lotes: Lote[];
