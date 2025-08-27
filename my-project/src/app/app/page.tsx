@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Lote } from "@/components/app/lotes/loteselector";
 import { ResumenLoteSelector } from "@/components/app/lotes/resumenloteselector";
+import { ServicioSelector, Servicio } from "@/components/app/servicios/servicioselector";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoteDataTabs } from "@/components/app/lotes/lotedatatabs";
@@ -41,6 +42,11 @@ export default function Dashboard() {
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
 
+  // Servicios
+  const [servicios, setServicios] = useState<Servicio[]>([]);
+  const [loadingServicios, setLoadingServicios] = useState(false);
+  const [selectedServicio, setSelectedServicio] = useState<Servicio | null>(null);
+
   // Datos totales de la empresa
   const [totalRecords, setTotalRecords] = useState<ConteoRecord[]>([]);
   const [loadingTotal, setLoadingTotal] = useState(false);
@@ -64,6 +70,17 @@ export default function Dashboard() {
       .finally(() => setLoadingLotes(false));
   }, [data]);
 
+  // Servicios disponibles para la empresa
+  useEffect(() => {
+    if (!data) return;
+    setLoadingServicios(true);
+    fetch(`/api/servicios?empresaId=${data.empresaId}`)
+      .then((res) => res.json())
+      .then((arr: Servicio[]) => setServicios(arr))
+      .catch((err) => console.error(err))
+      .finally(() => setLoadingServicios(false));
+  }, [data]);
+
   // Lote activo actual de la empresa
   useEffect(() => {
     if (!data) return;
@@ -77,7 +94,9 @@ export default function Dashboard() {
   useEffect(() => {
     if (!data) return;
     setLoadingTotal(true);
-    fetch(`/api/conteos?empresaId=${data.empresaId}`)
+    const params = new URLSearchParams({ empresaId: data.empresaId });
+    if (selectedServicio) params.append("servicioId", selectedServicio.id);
+    fetch(`/api/conteos?${params.toString()}`)
       .then((res) => {
         if (!res.ok) throw new Error("Error al cargar datos totales");
         return res.json();
@@ -85,7 +104,7 @@ export default function Dashboard() {
       .then((arr: ConteoRecord[]) => setTotalRecords(arr))
       .catch((err) => setErrorTotal(err.message))
       .finally(() => setLoadingTotal(false));
-  }, [data]);
+  }, [data, selectedServicio]);
 
   // Calcular suma total de conteos
   useEffect(() => {
@@ -222,6 +241,15 @@ export default function Dashboard() {
         {/* ------------------------------------------------------ */}
         {/* DATOS TOTALES */}
         <TabsContent value="datosTotales">
+          <div className="mb-6">
+            <ServicioSelector
+              servicios={servicios}
+              selectedServicio={selectedServicio}
+              loading={loadingServicios}
+              onSelect={(s) => setSelectedServicio(s)}
+              onSelectNone={() => setSelectedServicio(null)}
+            />
+          </div>
           {loadingTotal ? (
             <p className="text-center text-gray-500">Cargando datos totales…</p>
           ) : errorTotal ? (
