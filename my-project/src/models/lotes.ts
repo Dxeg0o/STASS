@@ -4,6 +4,7 @@ export interface LoteDocument extends Document {
   nombre: string;
   fechaCreacion: Date;
   empresaId: string;
+  servicioId: string;
 }
 
 const LoteSchema = new mongoose.Schema<LoteDocument>({
@@ -20,6 +21,11 @@ const LoteSchema = new mongoose.Schema<LoteDocument>({
   empresaId: {
     type: String,
     ref: "Empresa",
+    required: true,
+  },
+  servicioId: {
+    type: String,
+    ref: "Servicio",
     required: true,
   },
 });

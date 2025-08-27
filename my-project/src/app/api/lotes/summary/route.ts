@@ -15,6 +15,7 @@ interface DeviceGroup {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const loteId = searchParams.get("loteId");
+  const servicioId = searchParams.get("servicioId");
   if (!loteId) {
     return NextResponse.json({ error: "loteId is required" }, { status: 400 });
   }
@@ -37,8 +38,10 @@ export async function GET(request: Request) {
   }));
 
   // 4) Agrupo resultados por dispositivo, especificando el tipo genérico <DeviceGroup>
+  const match: Record<string, unknown> = { $or: orConds };
+  if (servicioId) match.servicioId = servicioId;
   const groups = await Conteo.aggregate<DeviceGroup>([
-    { $match: { $or: orConds } },
+    { $match: match },
     {
       $group: {
         _id: "$dispositivo",

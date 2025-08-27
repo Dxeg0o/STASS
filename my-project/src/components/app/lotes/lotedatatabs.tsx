@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useContext } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SummaryLote } from "@/components/app/lotes/summarylote";
 import * as XLSX from "xlsx";
+import { ServicioContext } from "@/app/context/ServicioContext";
 
 export interface Lote {
   id: string;
@@ -30,6 +31,7 @@ export function LoteDataTabs({ empresaId, lote }: LoteDataTabsProps) {
   const [dataLoading, setDataLoading] = useState(false);
   const [errorRecords, setErrorRecords] = useState<string | null>(null);
   const [refreshSummary, setRefreshSummary] = useState(0);
+  const { selectedServicio } = useContext(ServicioContext);
 
   const fetchRecordsData = useCallback(() => {
     if (!lote) {
@@ -38,7 +40,9 @@ export function LoteDataTabs({ empresaId, lote }: LoteDataTabsProps) {
     }
     setDataLoading(true);
     setErrorRecords(null);
-    fetch(`/api/conteos?empresaId=${empresaId}&loteId=${lote.id}`)
+    const params = new URLSearchParams({ empresaId, loteId: lote.id });
+    if (selectedServicio) params.append("servicioId", selectedServicio.id);
+    fetch(`/api/conteos?${params.toString()}`)
       .then((res) => {
         if (!res.ok) throw new Error("Error al cargar los registros");
         return res.json();
@@ -52,7 +56,7 @@ export function LoteDataTabs({ empresaId, lote }: LoteDataTabsProps) {
       })
       .catch((err) => setErrorRecords(err.message))
       .finally(() => setDataLoading(false));
-  }, [empresaId, lote]);
+  }, [empresaId, lote, selectedServicio]);
 
   useEffect(() => {
     if (lote) {

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"; // Importante para cerrar sidebar
 import { AppSidebar } from "@/components/app/AppSidebar"; // Ajusta la ruta
 import { AppNavbar } from "@/components/app/AppNavbar"; // Ajusta la ruta
 import AuthContext from "../context/AuthContext"; // Ajusta la ruta
+import { ServicioProvider } from "../context/ServicioContext";
 import ProtectedRoute from "./ProtectedRoute"; // Ajusta laruta
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -26,12 +27,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext>
-      {" "}
-      {/* AuthContext envuelve todo */}
-      <ProtectedRoute>
+      <ServicioProvider>
         {" "}
-        {/* ProtectedRoute después de AuthContext */}
-        <div className="flex min-h-screen flex-col bg-gray-100">
+        {/* AuthContext envuelve todo */}
+        <ProtectedRoute>
+          {" "}
+          {/* ProtectedRoute después de AuthContext */}
+          <div className="flex min-h-screen flex-col bg-gray-100">
           {" "}
           {/* Fondo claro para el contenido */}
           {/* Navbar Fijo */}
@@ -59,7 +61,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </main>
           </div>
         </div>
-      </ProtectedRoute>
+        </ProtectedRoute>
+      </ServicioProvider>
     </AuthContext>
   );
 }

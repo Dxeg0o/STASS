@@ -3,11 +3,19 @@
 import axios from "axios";
 import { deleteCookie } from "cookies-next/client";
 import { useRouter, usePathname } from "next/navigation";
-import { useContext, type ComponentType, type SVGProps } from "react";
+import { useContext, useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { Home, Settings, Archive, LogOut, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { AuthenticationContext } from "../../app/context/AuthContext"; // Ajusta la ruta si es necesario
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { ServicioContext, type Servicio } from "../../app/context/ServicioContext";
 
 // Definimos un tipo más específico para los iconos
 type MenuItem = {
@@ -33,7 +41,17 @@ interface AppSidebarProps {
 export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { setAuthState } = useContext(AuthenticationContext);
+  const { data, setAuthState } = useContext(AuthenticationContext);
+  const { selectedServicio, setSelectedServicio } = useContext(ServicioContext);
+  const [servicios, setServicios] = useState<Servicio[]>([]);
+
+  useEffect(() => {
+    if (!data) return;
+    fetch(`/api/servicios?empresaId=${data.empresaId}`)
+      .then((res) => res.json())
+      .then((arr: Servicio[]) => setServicios(arr))
+      .catch(console.error);
+  }, [data]);
 
   const handleLogout = async () => {
     try {
@@ -82,6 +100,39 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
 
       {/* Contenido del Sidebar */}
       <nav className="flex flex-1 flex-col space-y-6 overflow-y-auto p-4">
+        {/* Selector de Servicio */}
+        <div>
+          <span className="px-4 text-xs font-semibold uppercase text-emerald-300">
+            Servicio
+          </span>
+          <div className="mt-2 px-4">
+            <Select
+              value={selectedServicio?.id || "all"}
+              onValueChange={(val) => {
+                if (val === "all") {
+                  setSelectedServicio(null);
+                } else {
+                  const svc = servicios.find((s) => s.id === val) || null;
+                  setSelectedServicio(svc);
+                }
+                if (toggleSidebar) toggleSidebar();
+              }}
+            >
+              <SelectTrigger className="w-full bg-emerald-700 border-emerald-600 text-white">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {servicios.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         {/* Navegación Principal */}
         <div>
           <span className="px-4 text-xs font-semibold uppercase text-emerald-300">
