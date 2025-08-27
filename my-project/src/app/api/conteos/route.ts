@@ -10,6 +10,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const loteId = searchParams.get("loteId");
   const empresaId = searchParams.get("empresaId");
+  const servicioId = searchParams.get("servicioId");
 
   if (!loteId && !empresaId) {
     return NextResponse.json(
@@ -46,7 +47,12 @@ export async function GET(request: Request) {
     timestamp: { $gte: startTime, $lte: endTime ?? now },
   }));
 
-  const conteos = await Conteo.find({ $or: orConds })
+  const query: Record<string, unknown> = { $or: orConds };
+  if (servicioId) {
+    query.servicioId = servicioId;
+  }
+
+  const conteos = await Conteo.find(query)
     .sort({ timestamp: 1 })
     .select("timestamp direction dispositivo id perimeter servicioId")
     .lean();
