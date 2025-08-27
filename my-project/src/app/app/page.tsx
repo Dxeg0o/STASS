@@ -27,9 +27,10 @@ import { motion } from "framer-motion";
 interface ConteoRecord {
   _id: string;
   timestamp: string;
-  count_in: number;
-  count_out: number;
+  direction: "in" | "out";
   dispositivo: string;
+  id: number;
+  perimeter: number;
 }
 
 export default function Dashboard() {
@@ -88,11 +89,7 @@ export default function Dashboard() {
 
   // Calcular suma total de conteos
   useEffect(() => {
-    const sum = totalRecords.reduce(
-      (acc, r) => acc + r.count_in + r.count_out,
-      0
-    );
-    setTotalSum(sum);
+    setTotalSum(totalRecords.length);
   }, [totalRecords]);
 
   const filteredRecords = useMemo(() => {
@@ -106,10 +103,7 @@ export default function Dashboard() {
   }, [totalRecords, dateRange]);
 
   const totalRangeCount = useMemo(() => {
-    return filteredRecords.reduce(
-      (acc, r) => acc + r.count_in + r.count_out,
-      0
-    );
+    return filteredRecords.length;
   }, [filteredRecords]);
 
   const startInfo = useMemo(() => {
@@ -145,7 +139,7 @@ export default function Dashboard() {
       const d = new Date(r.timestamp);
       d.setMinutes(0, 0, 0);
       const key = d.getTime();
-      map.set(key, (map.get(key) ?? 0) + r.count_in + r.count_out);
+      map.set(key, (map.get(key) ?? 0) + 1);
     });
     return Array.from(map.entries())
       .sort((a, b) => a[0] - b[0])

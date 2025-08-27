@@ -7,8 +7,8 @@ import { Conteo } from "@/models/conteo";
 // 1) Definimos aquí la interfaz que describe cada resultado del $group:
 interface DeviceGroup {
   _id: string; // equivale a "dispositivo"
-  countIn: number; // suma de count_in
-  countOut: number; // suma de count_out
+  countIn: number; // cantidad de registros con direction 'in'
+  countOut: number; // cantidad de registros con direction 'out'
   lastTimestamp: Date; // máximo timestamp encontrado
 }
 
@@ -42,8 +42,12 @@ export async function GET(request: Request) {
     {
       $group: {
         _id: "$dispositivo",
-        countIn: { $sum: "$count_in" },
-        countOut: { $sum: "$count_out" },
+        countIn: {
+          $sum: { $cond: [{ $eq: ["$direction", "in"] }, 1, 0] },
+        },
+        countOut: {
+          $sum: { $cond: [{ $eq: ["$direction", "out"] }, 1, 0] },
+        },
         lastTimestamp: { $max: "$timestamp" },
       },
     },

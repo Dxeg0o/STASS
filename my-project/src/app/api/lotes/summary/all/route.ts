@@ -54,8 +54,12 @@ export async function GET(request: Request) {
         {
           $group: {
             _id: null,
-            totalIn: { $sum: "$count_in" },
-            totalOut: { $sum: "$count_out" },
+            totalIn: {
+              $sum: { $cond: [{ $eq: ["$direction", "in"] }, 1, 0] },
+            },
+            totalOut: {
+              $sum: { $cond: [{ $eq: ["$direction", "out"] }, 1, 0] },
+            },
           },
         },
       ]);
