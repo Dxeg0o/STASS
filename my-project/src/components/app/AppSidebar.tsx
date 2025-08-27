@@ -8,6 +8,14 @@ import { Home, Settings, Archive, LogOut, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { AuthenticationContext } from "../../app/context/AuthContext"; // Ajusta la ruta si es necesario
+import { useServicio } from "@/app/context/ServicioContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 // Definimos un tipo más específico para los iconos
 type MenuItem = {
@@ -34,6 +42,8 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { setAuthState } = useContext(AuthenticationContext);
+  const { servicios, selectedServicio, setSelectedServicio, loading } =
+    useServicio();
 
   const handleLogout = async () => {
     try {
@@ -82,6 +92,33 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
 
       {/* Contenido del Sidebar */}
       <nav className="flex flex-1 flex-col space-y-6 overflow-y-auto p-4">
+        {/* Selector de Servicio */}
+        <div>
+          <span className="px-4 text-xs font-semibold uppercase text-emerald-300">
+            Servicio
+          </span>
+          <Select
+            value={selectedServicio?.id ?? "all"}
+            onValueChange={(v) => {
+              const svc = servicios.find((s) => s.id === v);
+              setSelectedServicio(v === "all" ? null : svc || null);
+            }}
+            disabled={loading}
+          >
+            <SelectTrigger className="mt-2">
+              <SelectValue placeholder={loading ? "Cargando..." : "Todos"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {servicios.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Navegación Principal */}
         <div>
           <span className="px-4 text-xs font-semibold uppercase text-emerald-300">

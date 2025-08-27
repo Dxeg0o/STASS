@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"; // Importante para cerrar sidebar
 import { AppSidebar } from "@/components/app/AppSidebar"; // Ajusta la ruta
 import { AppNavbar } from "@/components/app/AppNavbar"; // Ajusta la ruta
 import AuthContext from "../context/AuthContext"; // Ajusta la ruta
+import { ServicioProvider } from "../context/ServicioContext";
 import ProtectedRoute from "./ProtectedRoute"; // Ajusta laruta
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -26,40 +27,42 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext>
-      {" "}
-      {/* AuthContext envuelve todo */}
-      <ProtectedRoute>
+      <ServicioProvider>
         {" "}
-        {/* ProtectedRoute después de AuthContext */}
-        <div className="flex min-h-screen flex-col bg-gray-100">
+        {/* AuthContext envuelve todo */}
+        <ProtectedRoute>
           {" "}
-          {/* Fondo claro para el contenido */}
-          {/* Navbar Fijo */}
-          <AppNavbar
-            isSidebarOpen={isSidebarOpen}
-            toggleSidebar={toggleSidebar}
-          />
-          <div className="flex flex-1 pt-16">
+          {/* ProtectedRoute después de AuthContext */}
+          <div className="flex min-h-screen flex-col bg-gray-100">
             {" "}
-            {/* pt-16 para compensar altura del navbar */}
-            {/* Sidebar */}
-            <AppSidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-            {/* Overlay para el contenido cuando el sidebar está abierto en móviles */}
-            {isSidebarOpen && (
-              <div
-                onClick={toggleSidebar}
-                className="fixed inset-0 z-20 bg-black/50 backdrop-blur-sm md:hidden"
-                aria-hidden="true"
-              />
-            )}
-            {/* Contenido Principal */}
-            <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-              {/* El div que tenías para centrar ya no es necesario aquí, se maneja por página */}
-              {children}
-            </main>
+            {/* Fondo claro para el contenido */}
+            {/* Navbar Fijo */}
+            <AppNavbar
+              isSidebarOpen={isSidebarOpen}
+              toggleSidebar={toggleSidebar}
+            />
+            <div className="flex flex-1 pt-16">
+              {" "}
+              {/* pt-16 para compensar altura del navbar */}
+              {/* Sidebar */}
+              <AppSidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+              {/* Overlay para el contenido cuando el sidebar está abierto en móviles */}
+              {isSidebarOpen && (
+                <div
+                  onClick={toggleSidebar}
+                  className="fixed inset-0 z-20 bg-black/50 backdrop-blur-sm md:hidden"
+                  aria-hidden="true"
+                />
+              )}
+              {/* Contenido Principal */}
+              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+                {/* El div que tenías para centrar ya no es necesario aquí, se maneja por página */}
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
-      </ProtectedRoute>
+        </ProtectedRoute>
+      </ServicioProvider>
     </AuthContext>
   );
 }
