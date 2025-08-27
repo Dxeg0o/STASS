@@ -6,7 +6,7 @@ import * as XLSX from "xlsx";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Lote } from "@/components/app/lotes/loteselector";
 import { ResumenLoteSelector } from "@/components/app/lotes/resumenloteselector";
-import { ServicioSelector, Servicio } from "@/components/app/servicios/servicioselector";
+import { useServicio } from "@/app/context/ServicioContext";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoteDataTabs } from "@/components/app/lotes/lotedatatabs";
@@ -42,10 +42,8 @@ export default function Dashboard() {
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
 
-  // Servicios
-  const [servicios, setServicios] = useState<Servicio[]>([]);
-  const [loadingServicios, setLoadingServicios] = useState(false);
-  const [selectedServicio, setSelectedServicio] = useState<Servicio | null>(null);
+  // Servicio seleccionado (global)
+  const { selectedServicio } = useServicio();
 
   // Datos totales de la empresa
   const [totalRecords, setTotalRecords] = useState<ConteoRecord[]>([]);
@@ -69,18 +67,6 @@ export default function Dashboard() {
       .catch((err) => console.error(err))
       .finally(() => setLoadingLotes(false));
   }, [data]);
-
-  // Servicios disponibles para la empresa
-  useEffect(() => {
-    if (!data) return;
-    setLoadingServicios(true);
-    fetch(`/api/servicios?empresaId=${data.empresaId}`)
-      .then((res) => res.json())
-      .then((arr: Servicio[]) => setServicios(arr))
-      .catch((err) => console.error(err))
-      .finally(() => setLoadingServicios(false));
-  }, [data]);
-
   // Lote activo actual de la empresa
   useEffect(() => {
     if (!data) return;
@@ -186,8 +172,11 @@ export default function Dashboard() {
   const downloadSummaryExcel = async () => {
     if (!data) return;
     try {
+      const params = new URLSearchParams({ empresaId: data.empresaId });
+      if (selectedServicio)
+        params.append("servicioId", selectedServicio.id);
       const res = await fetch(
-        `/api/lotes/summary/all?empresaId=${data.empresaId}`
+        `/api/lotes/summary/all?${params.toString()}`
       );
       if (!res.ok) throw new Error("Error al obtener resumen");
       const arr: {
@@ -241,15 +230,6 @@ export default function Dashboard() {
         {/* ------------------------------------------------------ */}
         {/* DATOS TOTALES */}
         <TabsContent value="datosTotales">
-          <div className="mb-6">
-            <ServicioSelector
-              servicios={servicios}
-              selectedServicio={selectedServicio}
-              loading={loadingServicios}
-              onSelect={(s) => setSelectedServicio(s)}
-              onSelectNone={() => setSelectedServicio(null)}
-            />
-          </div>
           {loadingTotal ? (
             <p className="text-center text-gray-500">Cargando datos totales…</p>
           ) : errorTotal ? (

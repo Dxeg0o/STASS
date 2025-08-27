@@ -15,6 +15,7 @@ interface LoteCount {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const empresaId = searchParams.get("empresaId");
+  const servicioId = searchParams.get("servicioId");
   if (!empresaId) {
     return NextResponse.json(
       { error: "empresaId is required" },
@@ -46,11 +47,13 @@ export async function GET(request: Request) {
       const orConds = acts.map(({ startTime, endTime }) => ({
         timestamp: { $gte: startTime, $lte: endTime ?? now },
       }));
+      const matchStage: Record<string, unknown> = { $or: orConds };
+      if (servicioId) matchStage.servicioId = servicioId;
       const agg = await Conteo.aggregate<{
         totalIn: number;
         totalOut: number;
       }>([
-        { $match: { $or: orConds } },
+        { $match: matchStage },
         {
           $group: {
             _id: null,
@@ -65,10 +68,10 @@ export async function GET(request: Request) {
       ]);
       const total = agg[0] ? agg[0].totalIn + agg[0].totalOut : 0;
 
-      const last = await Conteo.findOne({ $or: orConds })
+      const last = await Conteo.findOne({ $or: orConds, ...(servicioId ? { servicioId } : {}) })
         .sort({ timestamp: -1 })
         .lean();
-      const first = await Conteo.findOne({ $or: orConds })
+      const first = await Conteo.findOne({ $or: orConds, ...(servicioId ? { servicioId } : {}) })
         .sort({ timestamp: 1 })
         .lean();
 
