@@ -48,6 +48,7 @@ export async function GET(request: Request) {
 
   const conteos = await Conteo.find({ $or: orConds })
     .sort({ timestamp: 1 })
+    .select("timestamp direction dispositivo id perimeter servicioId")
     .lean();
 
   return NextResponse.json(conteos);

@@ -1,22 +1,26 @@
 import { Schema, Document, models, model } from "mongoose";
 
 export interface ConteoDoc extends Document {
+  id: number;
+  perimeter: number;
+  direction: "in" | "out";
   timestamp: Date;
-  countIn: number;
-  countOut: number;
   dispositivo: string;
   servicioId: string;
 }
 
 const ConteoSchema = new Schema<ConteoDoc>({
+  id: { type: Number, required: true },
+  perimeter: { type: Number, required: true },
+  direction: { type: String, enum: ["in", "out"], required: true },
   timestamp: { type: Date, required: true, default: () => new Date() },
-  countIn: { type: Number, required: true },
-  countOut: { type: Number, required: true },
   dispositivo: { type: String, required: true },
   servicioId: { type: String, required: true },
 });
 
-// Índice para mejorar rendimiento en consultas por fecha
+// Índices para mejorar rendimiento en consultas frecuentes
 ConteoSchema.index({ timestamp: -1 });
+ConteoSchema.index({ direction: 1 });
+ConteoSchema.index({ dispositivo: 1 });
 
 export const Conteo = models.Conteo || model<ConteoDoc>("Conteo", ConteoSchema);

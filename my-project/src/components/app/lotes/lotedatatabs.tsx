@@ -14,9 +14,10 @@ export interface Lote {
 interface ConteoRecord {
   _id: string;
   timestamp: string;
-  count_in: number;
-  count_out: number;
+  direction: "in" | "out";
   dispositivo: string;
+  id: number;
+  perimeter: number;
 }
 
 interface LoteDataTabsProps {
@@ -69,7 +70,7 @@ export function LoteDataTabs({ empresaId, lote }: LoteDataTabsProps) {
     }
     const sheetData = records.map((r) => ({
       Hora: new Date(r.timestamp).toLocaleString("es-CL"),
-      Conteo: r.count_in + r.count_out,
+      Direccion: r.direction,
       Dispositivo: r.dispositivo,
     }));
     const ws = XLSX.utils.json_to_sheet(sheetData);
@@ -153,7 +154,7 @@ export function LoteDataTabs({ empresaId, lote }: LoteDataTabsProps) {
                           Hora
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium uppercase">
-                          Conteo
+                          Dirección
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium uppercase">
                           Dispositivo
@@ -166,7 +167,7 @@ export function LoteDataTabs({ empresaId, lote }: LoteDataTabsProps) {
                           <td className="px-4 py-2">
                             {new Date(r.timestamp).toLocaleString("es-CL")}
                           </td>
-                          <td className="px-4 py-2">{r.count_in + r.count_out}</td>
+                          <td className="px-4 py-2">{r.direction}</td>
                           <td className="px-4 py-2">{r.dispositivo}</td>
                         </tr>
                       ))}
