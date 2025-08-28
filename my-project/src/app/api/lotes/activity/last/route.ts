@@ -3,21 +3,31 @@ import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import { LoteActivity } from "@/models/loteactivity";
 import { Lote, type LoteDocument } from "@/models/lotes";
+import { Servicio } from "@/models/servicio";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const servicioId = searchParams.get("servicioId");
   const empresaId = searchParams.get("empresaId");
-  if (!empresaId) {
+  if (!servicioId && !empresaId) {
     return NextResponse.json(
-      { error: "empresaId is required" },
+      { error: "servicioId or empresaId is required" },
       { status: 400 }
     );
   }
 
   await connectDb();
 
-  // 1) Obtener solo los _id de los lotes de esta empresa
-  const loteDocs = await Lote.find({ empresaId: empresaId }, { _id: 1 });
+  // 1) Obtener solo los _id de los lotes del servicio (o empresa)
+  let query: Record<string, unknown> = {};
+  if (servicioId) {
+    query = { servicioId };
+  } else if (empresaId) {
+    const servicios = await Servicio.find({ empresaId }, { _id: 1 });
+    const servicioIds = servicios.map((s) => s._id);
+    query = { servicioId: { $in: servicioIds } };
+  }
+  const loteDocs = await Lote.find(query, { _id: 1 });
   const loteIds = loteDocs.map((l) => l._id);
 
   // 2) Buscar la última actividad de esos lotes y poblar el documento completo

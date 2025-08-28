@@ -22,11 +22,10 @@ interface ConteoRecord {
 }
 
 interface LoteDataTabsProps {
-  empresaId: string;
   lote: Lote | null;
 }
 
-export function LoteDataTabs({ empresaId, lote }: LoteDataTabsProps) {
+export function LoteDataTabs({ lote }: LoteDataTabsProps) {
   const [records, setRecords] = useState<ConteoRecord[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [errorRecords, setErrorRecords] = useState<string | null>(null);
@@ -40,7 +39,7 @@ export function LoteDataTabs({ empresaId, lote }: LoteDataTabsProps) {
     }
     setDataLoading(true);
     setErrorRecords(null);
-    const params = new URLSearchParams({ empresaId, loteId: lote.id });
+    const params = new URLSearchParams({ loteId: lote.id });
     if (selectedServicio) params.append("servicioId", selectedServicio.id);
     fetch(`/api/conteos?${params.toString()}`)
       .then((res) => {
@@ -56,7 +55,7 @@ export function LoteDataTabs({ empresaId, lote }: LoteDataTabsProps) {
       })
       .catch((err) => setErrorRecords(err.message))
       .finally(() => setDataLoading(false));
-  }, [empresaId, lote, selectedServicio]);
+  }, [lote, selectedServicio]);
 
   useEffect(() => {
     if (lote) {

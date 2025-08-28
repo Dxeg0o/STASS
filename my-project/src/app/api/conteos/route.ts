@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { Conteo } from "@/models/conteo";
 import { LoteActivity } from "@/models/loteactivity";
 import { Lote } from "@/models/lotes";
+import { Servicio } from "@/models/servicio";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,9 +13,9 @@ export async function GET(request: Request) {
   const empresaId = searchParams.get("empresaId");
   const servicioId = searchParams.get("servicioId");
 
-  if (!loteId && !empresaId) {
+  if (!loteId && !empresaId && !servicioId) {
     return NextResponse.json(
-      { error: "loteId o empresaId son requeridos" },
+      { error: "loteId, servicioId o empresaId son requeridos" },
       { status: 400 }
     );
   }
@@ -27,14 +28,26 @@ export async function GET(request: Request) {
     activities = await LoteActivity.find({
       loteId: new mongoose.Types.ObjectId(loteId),
     }).lean();
-  } else if (empresaId) {
-    // Buscar todos los lotes de la empresa
-    const loteDocs = await Lote.find({ empresaId }, { _id: 1 });
+  } else if (servicioId) {
+    // Buscar lotes de un servicio
+    const loteDocs = await Lote.find({ servicioId }, { _id: 1 });
     const loteIds = loteDocs.map((l) => l._id);
     if (loteIds.length === 0) {
       return NextResponse.json([]);
     }
-    // Sesiones de todos esos lotes
+    activities = await LoteActivity.find({ loteId: { $in: loteIds } }).lean();
+  } else if (empresaId) {
+    // Buscar todos los servicios de la empresa y sus lotes
+    const servicios = await Servicio.find({ empresaId }, { _id: 1 });
+    const servicioIds = servicios.map((s) => s._id);
+    const loteDocs = await Lote.find(
+      { servicioId: { $in: servicioIds } },
+      { _id: 1 }
+    );
+    const loteIds = loteDocs.map((l) => l._id);
+    if (loteIds.length === 0) {
+      return NextResponse.json([]);
+    }
     activities = await LoteActivity.find({ loteId: { $in: loteIds } }).lean();
   }
 
