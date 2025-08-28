@@ -6,37 +6,39 @@ import { AuthenticationContext } from "@/app/context/AuthContext";
 import { LoteSelector, Lote } from "@/components/app/lotes/loteselector";
 import { LoteDataTabs } from "@/components/app/lotes/lotedatatabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useServicio } from "@/app/context/ServicioContext";
 
 export default function Dashboard() {
   const { data, loading: authLoading } = useContext(AuthenticationContext);
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
   const [loading, setLoading] = useState(true);
+  const { selectedServicio } = useServicio();
 
-  // Carga inicial: 1) lista de lotes 2) lote activo
-  useEffect(() => {
-    if (!data) return;
-    const empresaId = data.empresaId;
-    setLoading(true);
+    // Carga inicial: 1) lista de lotes 2) lote activo
+    useEffect(() => {
+      if (!data || !selectedServicio) return;
+      const servicioId = selectedServicio.id;
+      setLoading(true);
 
-    Promise.all([
-      // 1) Obtener todos los lotes de la empresa
-      fetch(`/api/lotes?empresaId=${empresaId}`),
-      // 2) Obtener el lote activo (última sesión) de la empresa
-      fetch(`/api/lotes/activity/last?empresaId=${empresaId}`),
-    ])
-      .then(async ([lRes, aRes]) => {
-        if (!lRes.ok || !aRes.ok) throw new Error("Error al cargar datos");
-        // 1) Listado completo de lotes
-        const lotesData: Lote[] = await lRes.json();
-        // 2) El lote activo (o null si no hay ninguno abierto)
-        const activeLote: Lote | null = await aRes.json();
-        setLotes(lotesData);
-        setSelectedLote(activeLote);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [data]);
+      Promise.all([
+        // 1) Obtener todos los lotes del servicio
+        fetch(`/api/lotes?servicioId=${servicioId}`),
+        // 2) Obtener el lote activo (última sesión) del servicio
+        fetch(`/api/lotes/activity/last?servicioId=${servicioId}`),
+      ])
+        .then(async ([lRes, aRes]) => {
+          if (!lRes.ok || !aRes.ok) throw new Error("Error al cargar datos");
+          // 1) Listado completo de lotes
+          const lotesData: Lote[] = await lRes.json();
+          // 2) El lote activo (o null si no hay ninguno abierto)
+          const activeLote: Lote | null = await aRes.json();
+          setLotes(lotesData);
+          setSelectedLote(activeLote);
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }, [data, selectedServicio]);
 
   // Handler para seleccionar / cerrar lote
   const handleSelect = async (lote: Lote | null) => {
@@ -70,27 +72,27 @@ export default function Dashboard() {
     }
   };
 
-  // Handler para crear un lote nuevo
-  const handleCreate = async (nombre: string) => {
-    if (!data) return;
-    const res = await fetch("/api/lotes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre, empresaId: data.empresaId }),
-    });
-    if (res.ok) {
-      const nuevo: Lote = await res.json();
-      // Lo agregamos al principio de la lista y lo marcamos como seleccionado
-      setLotes((prev) => [nuevo, ...prev]);
-      setSelectedLote(nuevo);
-      // Abrimos sesión para ese nuevo lote
-      await fetch("/api/lotes/activity", {
+    // Handler para crear un lote nuevo
+    const handleCreate = async (nombre: string) => {
+      if (!data || !selectedServicio) return;
+      const res = await fetch("/api/lotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loteId: nuevo.id }),
+        body: JSON.stringify({ nombre, servicioId: selectedServicio.id }),
       });
-    }
-  };
+      if (res.ok) {
+        const nuevo: Lote = await res.json();
+        // Lo agregamos al principio de la lista y lo marcamos como seleccionado
+        setLotes((prev) => [nuevo, ...prev]);
+        setSelectedLote(nuevo);
+        // Abrimos sesión para ese nuevo lote
+        await fetch("/api/lotes/activity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ loteId: nuevo.id }),
+        });
+      }
+    };
 
   if (authLoading) {
     return (
@@ -124,7 +126,7 @@ export default function Dashboard() {
             />
           </CardContent>
         </Card>
-        <LoteDataTabs empresaId={data.empresaId} lote={selectedLote} />
+          <LoteDataTabs lote={selectedLote} />
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { connectDb } from "@/lib/mongodb";
 import { Lote } from "@/models/lotes";
 import { LoteActivity } from "@/models/loteactivity";
 import { Conteo } from "@/models/conteo";
+import { Servicio } from "@/models/servicio";
 
 interface LoteCount {
   id: string;
@@ -16,17 +17,25 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const empresaId = searchParams.get("empresaId");
   const servicioId = searchParams.get("servicioId");
-  if (!empresaId) {
+  if (!empresaId && !servicioId) {
     return NextResponse.json(
-      { error: "empresaId is required" },
+      { error: "empresaId or servicioId is required" },
       { status: 400 }
     );
   }
 
   await connectDb();
 
-  // Obtener todos los lotes de la empresa
-  const lotes = await Lote.find({ empresaId })
+  // Obtener todos los lotes del servicio o empresa
+  let loteQuery: Record<string, unknown> = {};
+  if (servicioId) {
+    loteQuery = { servicioId };
+  } else if (empresaId) {
+    const servicios = await Servicio.find({ empresaId }, { _id: 1 });
+    const servicioIds = servicios.map((s) => s._id);
+    loteQuery = { servicioId: { $in: servicioIds } };
+  }
+  const lotes = await Lote.find(loteQuery)
     .sort({ fechaCreacion: -1 })
     .lean();
   const now = new Date();

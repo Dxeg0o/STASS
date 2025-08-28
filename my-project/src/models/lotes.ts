@@ -3,7 +3,7 @@ import mongoose, { Document, Model } from "mongoose";
 export interface LoteDocument extends Document {
   nombre: string;
   fechaCreacion: Date;
-  empresaId: string;
+  servicioId: string;
 }
 
 const LoteSchema = new mongoose.Schema<LoteDocument>({
@@ -16,10 +16,10 @@ const LoteSchema = new mongoose.Schema<LoteDocument>({
     required: true,
     default: (): Date => new Date(),
   },
-  // empresaId es un string que referencia a Empresa._id
-  empresaId: {
+  // servicioId es un string que referencia a Servicio._id
+  servicioId: {
     type: String,
-    ref: "Empresa",
+    ref: "Servicio",
     required: true,
   },
 });

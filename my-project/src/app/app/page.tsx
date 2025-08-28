@@ -59,22 +59,22 @@ export default function Dashboard() {
 
   // ============== Funciones de carga (fetch) ==============
   useEffect(() => {
-    if (!data) return;
+    if (!data || !selectedServicio) return;
     setLoadingLotes(true);
-    fetch(`/api/lotes?empresaId=${data.empresaId}`)
+    fetch(`/api/lotes?servicioId=${selectedServicio.id}`)
       .then((res) => res.json())
       .then((arr: Lote[]) => setLotes(arr))
       .catch((err) => console.error(err))
       .finally(() => setLoadingLotes(false));
-  }, [data]);
-  // Lote activo actual de la empresa
+  }, [data, selectedServicio]);
+  // Lote activo actual del servicio
   useEffect(() => {
-    if (!data) return;
-    fetch(`/api/lotes/activity/last?empresaId=${data.empresaId}`)
+    if (!data || !selectedServicio) return;
+    fetch(`/api/lotes/activity/last?servicioId=${selectedServicio.id}`)
       .then((res) => res.json())
       .then((l: Lote | null) => setActiveLote(l))
       .catch(() => setActiveLote(null));
-  }, [data]);
+  }, [data, selectedServicio]);
 
   //  Carga datos totales de la empresa
   useEffect(() => {
@@ -370,7 +370,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <LoteDataTabs empresaId={data.empresaId} lote={selectedLote} />
+          <LoteDataTabs lote={selectedLote} />
         </TabsContent>
       </Tabs>
     </div>

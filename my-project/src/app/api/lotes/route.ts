@@ -1,19 +1,31 @@
 import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import { Lote } from "@/models/lotes";
+import { Servicio } from "@/models/servicio";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const servicioId = searchParams.get("servicioId");
   const empresaId = searchParams.get("empresaId");
-  if (!empresaId) {
+  if (!servicioId && !empresaId) {
     return NextResponse.json(
-      { error: "empresaId is required" },
+      { error: "servicioId or empresaId is required" },
       { status: 400 }
     );
   }
 
   await connectDb();
-  const docs = await Lote.find({ empresaId }).sort({ fechaCreacion: -1 });
+
+  let query: Record<string, unknown> = {};
+  if (servicioId) {
+    query = { servicioId };
+  } else if (empresaId) {
+    const servicios = await Servicio.find({ empresaId }, { _id: 1 });
+    const servicioIds = servicios.map((s) => s._id);
+    query = { servicioId: { $in: servicioIds } };
+  }
+
+  const docs = await Lote.find(query).sort({ fechaCreacion: -1 });
   const lotes = docs.map((lote) => ({
     id: lote.id.toString(),
     nombre: lote.nombre,
@@ -23,10 +35,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { nombre, empresaId } = await request.json();
-  if (!nombre || !empresaId) {
+  const { nombre, servicioId } = await request.json();
+  if (!nombre || !servicioId) {
     return NextResponse.json(
-      { error: "nombre and empresaId are required" },
+      { error: "nombre and servicioId are required" },
       { status: 400 }
     );
   }
@@ -34,7 +46,7 @@ export async function POST(request: Request) {
   await connectDb();
   const lote = await Lote.create({
     nombre,
-    empresaId,
+    servicioId,
     fechaCreacion: new Date(),
   });
 
