@@ -4,7 +4,6 @@ import { connectDb } from "@/lib/mongodb";
 import mongoose from "mongoose";
 import { Conteo } from "@/models/conteo";
 import { LoteActivity } from "@/models/loteactivity";
-import { Lote } from "@/models/lotes";
 import { Servicio } from "@/models/servicio";
 
 export async function GET(request: Request) {
@@ -22,53 +21,57 @@ export async function GET(request: Request) {
 
   await connectDb();
 
-  let activities;
+  // Cuando se solicita por lote, usamos las actividades para obtener rangos de tiempo
   if (loteId) {
-    // Obtener sesiones asociadas a un lote específico
-    activities = await LoteActivity.find({
+    const activities = await LoteActivity.find({
       loteId: new mongoose.Types.ObjectId(loteId),
     }).lean();
-  } else if (servicioId) {
-    // Buscar lotes de un servicio
-    const loteDocs = await Lote.find({ servicioId }, { _id: 1 });
-    const loteIds = loteDocs.map((l) => l._id);
-    if (loteIds.length === 0) {
+
+    if (!activities.length) {
       return NextResponse.json([]);
     }
-    activities = await LoteActivity.find({ loteId: { $in: loteIds } }).lean();
-  } else if (empresaId) {
-    // Buscar todos los servicios de la empresa y sus lotes
-    const servicios = await Servicio.find({ empresaId }, { _id: 1 });
-    const servicioIds = servicios.map((s) => s._id);
-    const loteDocs = await Lote.find(
-      { servicioId: { $in: servicioIds } },
-      { _id: 1 }
-    );
-    const loteIds = loteDocs.map((l) => l._id);
-    if (loteIds.length === 0) {
-      return NextResponse.json([]);
+
+    const now = new Date();
+    const orConds = activities.map(({ startTime, endTime }) => ({
+      timestamp: { $gte: startTime, $lte: endTime ?? now },
+    }));
+
+    const query: Record<string, unknown> = { $or: orConds };
+    if (servicioId) {
+      query.servicioId = servicioId;
     }
-    activities = await LoteActivity.find({ loteId: { $in: loteIds } }).lean();
+
+    const conteos = await Conteo.find(query)
+      .sort({ timestamp: 1 })
+      .select("timestamp direction dispositivo id perimeter servicioId")
+      .lean();
+
+    return NextResponse.json(conteos);
   }
 
-  if (!activities || activities.length === 0) {
-    return NextResponse.json([]);
-  }
-
-  const now = new Date();
-  const orConds = activities.map(({ startTime, endTime }) => ({
-    timestamp: { $gte: startTime, $lte: endTime ?? now },
-  }));
-
-  const query: Record<string, unknown> = { $or: orConds };
+  // Si se proporciona servicio, obtenemos todos los conteos asociados
   if (servicioId) {
-    query.servicioId = servicioId;
+    const conteos = await Conteo.find({ servicioId })
+      .sort({ timestamp: 1 })
+      .select("timestamp direction dispositivo id perimeter servicioId")
+      .lean();
+    return NextResponse.json(conteos);
   }
 
-  const conteos = await Conteo.find(query)
-    .sort({ timestamp: 1 })
-    .select("timestamp direction dispositivo id perimeter servicioId")
-    .lean();
+  // Finalmente, podemos filtrar por empresa obteniendo todos sus servicios
+  if (empresaId) {
+    const servicios = await Servicio.find({ empresaId }, { _id: 1 });
+    const servicioIds = servicios.map((s) => s._id.toString());
+    if (!servicioIds.length) {
+      return NextResponse.json([]);
+    }
+    const conteos = await Conteo.find({
+      servicioId: { $in: servicioIds },
+    })
+      .sort({ timestamp: 1 })
+      .select("timestamp direction dispositivo id perimeter servicioId")
+      .lean();
 
-  return NextResponse.json(conteos);
+    return NextResponse.json(conteos);
+  }
 }
