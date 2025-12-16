@@ -14,7 +14,7 @@ const cards = [
     },
     {
         title: "Edge Computing",
-        description: "Procesamiento local en hardware Nvidia Jetson. Latencia cero. Sin dependencia de la nube.",
+        description: "Procesamiento local en hardware. Latencia cero. Sin dependencia de la nube.",
         icon: Cpu,
         colSpan: "lg:col-span-1",
         bgGradient: "from-purple-900/20 to-slate-900/20",
@@ -22,7 +22,7 @@ const cards = [
     },
     {
         title: "High-Density Ready",
-        description: "Soporte para flujos de >14 objetos/segundo sin pérdida de datos. Escalabilidad nativa.",
+        description: "Soporte para flujos de >20 objetos/segundo sin pérdida de datos. Escalabilidad nativa.",
         icon: Layers,
         colSpan: "lg:col-span-1",
         bgGradient: "from-emerald-900/20 to-slate-900/20",
@@ -30,7 +30,7 @@ const cards = [
     },
     {
         title: "Integración Total",
-        description: "API directa a tu ERP/WMS actual.",
+        description: "API directa a tu ERP/WMS actual. ",
         icon: Zap,
         colSpan: "lg:col-span-2",
         bgGradient: "from-blue-900/20 to-slate-900/20",
@@ -51,9 +51,9 @@ export default function CoreTech() {
             viewport={{ once: true }}
             className="mb-16"
         >
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Tecnología Core</h2>
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Arquitectura del Sistema</h2>
             <p className="text-slate-400 text-lg max-w-2xl">
-                Arquitectura diseñada para la realidad sucia, rápida y caótica de la planta.
+                Diseñada para la realidad sucia, rápida y caótica de la planta.
             </p>
         </motion.div>
 

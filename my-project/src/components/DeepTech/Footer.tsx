@@ -26,7 +26,7 @@ export default function Footer() {
                     <ul className="space-y-3 text-sm text-slate-400">
                         <li>
                             <Link href="#technology" className="hover:text-cyan-400 transition-colors">
-                                Tecnología Core
+                                Arquitectura
                             </Link>
                         </li>
                         <li>

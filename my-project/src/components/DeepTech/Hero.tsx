@@ -61,8 +61,8 @@ export default function Hero() {
                 </div>
                 <div className="h-10 w-px bg-gradient-to-b from-transparent via-slate-700 to-transparent"></div>
                  <div>
-                   <span className="block text-2xl font-bold text-white">Edge AI</span>
-                   <span className="text-slate-400">Nvidia Jetson Included</span>
+                   <span className="block text-2xl font-bold text-white">Procesamiento Local</span>
+                   <span className="text-slate-400">Sin Dependencia de Nube</span>
                 </div>
             </div>
           </motion.div>
