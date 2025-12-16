@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ScanFace, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
+import { ScanFace } from "lucide-react";
 
 export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden bg-slate-950">
-      {/* Background Grid */}
+      {/* Background Effects */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+      {/* Top Spotlight */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-cyan-500/20 rounded-[100%] blur-[100px] opacity-50 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -20,14 +23,14 @@ export default function Hero() {
             transition={{ duration: 0.8 }}
           >
             <div className="flex items-center space-x-2 mb-6">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-cyan-400/10 text-cyan-400 border border-cyan-400/20">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-cyan-950/50 text-cyan-400 border border-cyan-400/20 shadow-[0_0_10px_rgba(34,211,238,0.2)]">
                     <Zap className="w-3 h-3 mr-1" /> Tecnología Validada Industrialmente
                 </span>
             </div>
             
             <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-white mb-6 leading-tight">
               Digitaliza tu <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 animate-gradient-x">
                 Producción Real.
               </span> <br />
               Sin Estimaciones.
@@ -38,33 +41,37 @@ export default function Hero() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/login" className="bg-cyan-400 text-slate-950 font-bold py-3 px-8 rounded hover:bg-cyan-300 transition-colors shadow-[0_0_20px_rgba(34,211,238,0.3)] text-center">
-                Iniciar Sesión
+              <Link href="/audit" className="bg-cyan-400 text-slate-950 font-bold py-3 px-8 rounded hover:bg-cyan-300 transition-all shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] text-center relative overflow-hidden group">
+                <span className="relative z-10">Agendar Demo</span>
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 transform-gpu" />
               </Link>
-              <button className="bg-transparent border border-slate-700 text-slate-300 font-medium py-3 px-8 rounded hover:border-slate-500 hover:text-white transition-colors">
-                Ver Tecnología
+              <button className="relative bg-transparent group text-slate-300 font-medium py-3 px-8 rounded transition-colors overflow-hidden">
+                <div className="absolute inset-0 border border-slate-700 rounded group-hover:border-slate-500 transition-colors" />
+                 {/* Button Glow Effect */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-20 bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 transition-opacity" />
+                <span className="relative z-10 group-hover:text-white transition-colors">Ver Tecnología</span>
               </button>
             </div>
 
             <div className="mt-12 flex items-center space-x-8 text-slate-500 text-sm">
                 <div>
-                   <span className="block text-2xl font-bold text-white">97.54%</span>
-                   <span>Precisión en Conteo</span>
+                   <span className="block text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">97.54%</span>
+                   <span className="text-slate-400">Precisión en Conteo</span>
                 </div>
-                <div className="h-8 w-px bg-slate-800"></div>
+                <div className="h-10 w-px bg-gradient-to-b from-transparent via-slate-700 to-transparent"></div>
                  <div>
                    <span className="block text-2xl font-bold text-white">Edge AI</span>
-                   <span>Nvidia Jetson Included</span>
+                   <span className="text-slate-400">Nvidia Jetson Included</span>
                 </div>
             </div>
           </motion.div>
 
-          {/* Visual Simulation */}
+          {/* Visual Simulation (Fake UI) */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative"
+            className="relative h-[500px] w-full flex items-center justify-center select-none pointer-events-none"
           >
             <div className="relative w-full aspect-square max-w-md mx-auto">
                 {/* Simulated 3D Scanner Container */}

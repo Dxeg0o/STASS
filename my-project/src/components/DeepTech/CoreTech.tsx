@@ -9,35 +9,42 @@ const cards = [
         description: "Algoritmos que entienden rotación, calibre y movimiento. No solo píxeles. Entrenados en entornos industriales reales.",
         icon: BrainCircuit,
         colSpan: "lg:col-span-2",
-        bgGradient: "from-cyan-900/20 to-slate-900/20"
+        bgGradient: "from-cyan-900/20 to-slate-900/20",
+        shadowColor: "shadow-cyan-500/10"
     },
     {
         title: "Edge Computing",
         description: "Procesamiento local en hardware Nvidia Jetson. Latencia cero. Sin dependencia de la nube.",
         icon: Cpu,
         colSpan: "lg:col-span-1",
-        bgGradient: "from-purple-900/20 to-slate-900/20"
+        bgGradient: "from-purple-900/20 to-slate-900/20",
+        shadowColor: "shadow-purple-500/10"
     },
     {
         title: "High-Density Ready",
         description: "Soporte para flujos de >14 objetos/segundo sin pérdida de datos. Escalabilidad nativa.",
         icon: Layers,
         colSpan: "lg:col-span-1",
-        bgGradient: "from-emerald-900/20 to-slate-900/20"
+        bgGradient: "from-emerald-900/20 to-slate-900/20",
+        shadowColor: "shadow-emerald-500/10"
     },
     {
         title: "Integración Total",
         description: "API directa a tu ERP/WMS actual.",
         icon: Zap,
         colSpan: "lg:col-span-2",
-        bgGradient: "from-blue-900/20 to-slate-900/20"
+        bgGradient: "from-blue-900/20 to-slate-900/20",
+        shadowColor: "shadow-blue-500/10"
     }
 ];
 
 export default function CoreTech() {
   return (
-    <section id="technology" className="py-24 bg-slate-950 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <section id="technology" className="py-24 bg-slate-950 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Subtle Background Glow */}
+        <div className="absolute center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto relative z-10">
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -59,8 +66,9 @@ export default function CoreTech() {
                     viewport={{ once: true }}
                     transition={{ delay: index * 0.1 }}
                     className={`
-                        relative group overflow-hidden rounded-2xl border border-white/10 
-                        bg-white/5 backdrop-blur-sm p-8 hover:border-cyan-400/50 transition-colors duration-500
+                        relative group overflow-hidden rounded-2xl border border-white/5 
+                        bg-white/5 backdrop-blur-md p-8 transition-all duration-500
+                        hover:border-white/10 hover:shadow-2xl ${card.shadowColor} hover:-translate-y-1
                         ${card.colSpan}
                     `}
                 >
@@ -69,10 +77,10 @@ export default function CoreTech() {
                     
                     <div className="relative z-10 flex flex-col h-full justify-between">
                         <div>
-                            <div className="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center mb-6 group-hover:bg-cyan-400/20 transition-colors duration-500">
+                            <div className="w-12 h-12 rounded-lg bg-slate-800/50 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
                                 <card.icon className="w-6 h-6 text-cyan-400" />
                             </div>
-                            <h3 className="text-2xl font-bold text-white mb-4">{card.title}</h3>
+                            <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-cyan-100 transition-colors">{card.title}</h3>
                             <p className="text-slate-400 group-hover:text-slate-300 transition-colors duration-300">
                                 {card.description}
                             </p>
