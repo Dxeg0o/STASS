@@ -40,7 +40,7 @@ const cards = [
 
 export default function CoreTech() {
   return (
-    <section id="technology" className="py-24 bg-slate-950 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <section id="technology" className="py-12 bg-slate-950 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         {/* Subtle Background Glow */}
         <div className="absolute center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none" />
 
