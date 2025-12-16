@@ -1,24 +1,22 @@
 "use client";
-import Link from "next/link"; // asegúrate de importarlo
 
+import Link from "next/link";
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
-  ChevronDown,
-  Target,
   BarChart3,
-  Lightbulb,
-  ShieldCheck,
-  TrendingUp,
-  Phone,
-  Mail,
-  Zap,
-  Leaf,
+  ChevronDown,
   Cpu,
-  DollarSign,
   Gauge,
+  Lightbulb,
+  Mail,
   Menu,
+  Phone,
+  ShieldCheck,
+  Target,
+  TrendingUp,
   X,
+  Zap,
 } from "lucide-react";
 
 interface SectionProps {
@@ -28,86 +26,91 @@ interface SectionProps {
 const companyData = {
   name: "Qualiblick",
   phone: "+56 9 6229 6916",
-  email: "dsoler.olguin@gmail.com",
+  email: "contacto@qualiblick.com",
   hero: {
-    title: "La Revolución de la IA en el Agro.",
-    subtitle: "Optimiza tus procesos hoy.",
+    eyebrow: "Tecnología validada industrialmente",
+    title: "Digitaliza tu Producción Real.",
+    subtitle: "Sin Estimaciones.",
     description:
-      "Aseguramos la competitividad de tus productos agroindustriales con IA de vanguardia, permitiendo un control total, reduciendo costos, acelerando tus procesos y mejorando la calidad.",
-    cta: "Descubre Nuestras Soluciones",
+      "Transforma tus flujos físicos en datos financieros exactos. Un sistema de visión autónomo que opera donde lo necesites: desde la cosecha en campo hasta la línea de proceso.",
+    cta: "Agendar una Demostración",
   },
-  mission: {
-    title: "Nuestra Misión: Calidad Accesible",
-    text: "Impulsar el crecimiento de las empresas agroindustriales con herramientas accesibles basadas en IA, democratizando el acceso a tecnología de punta para optimizar la calidad y eficiencia.",
-  },
-  solutions: {
-    title: "Soluciones: Innovación y Creación",
-    intro:
-      "Desarrollamos soluciones de IA a medida que ofrecen control total de tus productos, minimizan riesgos y optimizan tu producción de manera inteligente y sostenible.",
-    items: [
-      {
-        icon: Cpu,
-        name: "Control Total con IA",
-        description:
-          "Sistemas inteligentes para el monitoreo y gestión integral de la calidad y producción en tiempo real.",
-      },
+  painPoints: [
+    {
+      title: "Estimaciones",
+      description: "Asumir rendimientos que no son reales.",
+    },
+    {
+      title: "Datos Tardíos",
+      description: "Saber cuánto produjiste cuando ya no puedes corregir errores.",
+    },
+    {
+      title: "Puntos Ciegos",
+      description: "No saber qué está pasando realmente en tu línea ahora mismo.",
+    },
+  ],
+  technology: {
+    title: "Diseñado para la realidad hostil de tu operación.",
+    description:
+      "Tecnología robusta que se adapta a tu entorno, no al revés. Entrenada para identificar productos orgánicos complejos e irregulares, sin depender de conectividad inestable.",
+    features: [
       {
         icon: ShieldCheck,
-        name: "Minimización de Riesgos",
+        title: "Detecta lo que otros ignoran",
         description:
-          "Modelos predictivos y análisis avanzados para anticipar problemas y asegurar la inocuidad y consistencia.",
+          "Entrenado para formas irregulares y complejas. Valida rotación, calibres y descarta ruido como tierra o suciedad.",
+      },
+      {
+        icon: Cpu,
+        title: "Funciona donde está el problema",
+        description:
+          "Hardware que procesa localmente en campo, recepción o línea de salida. No depende de cables de red ni internet estable.",
       },
       {
         icon: Zap,
-        name: "Optimización de Procesos",
+        title: "Listo para temporada alta",
         description:
-          "Algoritmos de IA para eficientar la cadena productiva, desde la cosecha hasta el empaque, reduciendo mermas.",
+          "Probado en flujos de alta velocidad (>20 objetos/segundo) manteniendo precisión sin saturarse cuando la presión sube.",
       },
       {
-        icon: Leaf,
-        name: "Agricultura de Precisión",
+        icon: BarChart3,
+        title: "Datos financieros inmediatos",
         description:
-          "Tecnología para la toma de decisiones basada en datos, mejorando el rendimiento y la sostenibilidad de los cultivos.",
+          "Convierte el flujo físico en números para tu ERP o Excel. Control en tiempo real, sin esperar el cierre del turno.",
       },
     ],
   },
-  results: {
-    title: "Resultados Preliminares: Impacto Medible",
-    intro:
-      "Nuestras pruebas piloto demuestran consistentemente una significativa reducción de costos y una mayor agilidad operativa en diversos procesos agroindustriales.",
+  caseStudy: {
+    title: "Caso de Éxito Valdivia Lilies",
+    quote:
+      "Nuestra tecnología ha superado uno de los desafíos más difíciles de visión artificial: el Bulbo de Lilium (formas irregulares, suciedad y superposición). Si podemos contar esto con precisión, podemos medir tu producción.",
     stats: [
       {
         icon: Gauge,
-        value: "89%",
-        label: "Optimización de Eficiencia",
-        description:
-          "Mejora promedio en la eficiencia de los procesos clave intervenidos.",
+        value: "97.54%",
+        label: "Precisión en conteo de bulbos",
       },
       {
-        icon: DollarSign,
-        value: "7.3X",
-        label: "Retorno de Inversión",
-        description:
-          "Potencial de retorno sobre la inversión en tecnología IA implementada.",
+        icon: Lightbulb,
+        value: "24/7",
+        label: "Operación continua",
       },
       {
         icon: TrendingUp,
-        value: "72%",
-        label: "Reducción de Mermas",
-        description:
-          "Disminución en pérdidas de producto gracias a la detección temprana y control mejorado.",
+        value: "0",
+        label: "Dependencia de nube",
       },
     ],
+    footer: "Tecnología probada bajo estándares de Holanda y Chile.",
   },
-  contact: {
-    title: "Hablemos de tu Proyecto",
-    text: "Estamos listos para ayudarte a integrar la inteligencia artificial en tus operaciones. Conversemos sobre cómo Qualiblick puede potenciar tu negocio.",
+  locations: {
+    city: "Santiago, Chile",
   },
 };
 
 const Logo: React.FC = () => (
   <div className="flex items-center space-x-2">
-    <img src="images/qb.png" alt="Qualiblick" className="w-124 h-12" />
+    <img src="images/qb.png" alt="Qualiblick" className="h-12 w-32 object-contain" />
   </div>
 );
 
@@ -115,10 +118,10 @@ const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navLinks = [
-    { href: "#home", label: "Inicio" },
-    { href: "#mision", label: "Misión" },
-    { href: "#soluciones", label: "Soluciones" },
-    { href: "#resultados", label: "Resultados" },
+    { href: "#home", label: "Tecnología" },
+    { href: "#problema", label: "Desafío" },
+    { href: "#tecnologia", label: "Solución" },
+    { href: "#caso-exito", label: "Casos de Éxito" },
     { href: "#contacto", label: "Contacto" },
     { href: "/login", label: "Iniciar sesión" },
     { href: "/register", label: "Registrarse" },
@@ -134,37 +137,33 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="bg-emerald-800/95 backdrop-blur-md text-white p-4 fixed w-full z-50 shadow-lg">
-      <div className="container mx-auto flex justify-between items-center">
+    <nav className="fixed z-50 w-full bg-emerald-900/90 backdrop-blur-md text-white shadow-lg">
+      <div className="container mx-auto flex items-center justify-between p-4">
         <a href="#home" onClick={(e) => scrollToSection(e, "#home")}>
           <Logo />
         </a>
-        {/* menú desktop */}
-        <div className="hidden md:flex space-x-6">
+        <div className="hidden items-center space-x-6 md:flex">
           {navLinks.map(({ href, label }) =>
             href.startsWith("#") ? (
-              // enlace ancla: desplazamiento suave
               <a
                 key={href}
                 href={href}
                 onClick={(e) => scrollToSection(e, href)}
-                className="hover:text-amber-300 transition-colors duration-300 font-medium"
+                className="font-medium transition-colors duration-300 hover:text-amber-300"
               >
                 {label}
               </a>
             ) : (
-              // enlace de ruta: usa Next.js Link
               <Link
                 key={href}
                 href={href}
-                className="hover:text-amber-300 transition-colors duration-300 font-medium"
+                className="font-medium transition-colors duration-300 hover:text-amber-300"
               >
                 {label}
               </Link>
             )
           )}
         </div>
-        {/* botón móvil */}
         <div className="md:hidden">
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -174,16 +173,15 @@ const Navbar: React.FC = () => {
           </button>
         </div>
       </div>
-      {/* menú desplegable móvil */}
       {isOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-emerald-700 shadow-xl py-2">
+        <div className="absolute left-0 right-0 top-full bg-emerald-800 shadow-xl md:hidden">
           {navLinks.map(({ href, label }) =>
             href.startsWith("#") ? (
               <a
                 key={href}
                 href={href}
                 onClick={(e) => scrollToSection(e, href)}
-                className="block px-4 py-3 text-center hover:bg-emerald-600 hover:text-amber-300 transition-colors duration-300"
+                className="block px-6 py-3 text-center text-white transition-colors duration-300 hover:bg-emerald-700 hover:text-amber-300"
               >
                 {label}
               </a>
@@ -191,7 +189,7 @@ const Navbar: React.FC = () => {
               <Link
                 key={href}
                 href={href}
-                className="block px-4 py-3 text-center hover:bg-emerald-600 hover:text-amber-300 transition-colors duration-300"
+                className="block px-6 py-3 text-center text-white transition-colors duration-300 hover:bg-emerald-700 hover:text-amber-300"
               >
                 {label}
               </Link>
@@ -204,85 +202,86 @@ const Navbar: React.FC = () => {
 };
 
 const Hero: React.FC<SectionProps> = ({ id }) => {
-  const scrollToSolutions = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const scrollToContact = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    document
-      .querySelector("#soluciones")
-      ?.scrollIntoView({ behavior: "smooth" });
+    document.querySelector("#contacto")?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <section
       id={id}
-      className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-amber-500 text-white flex items-center justify-center pt-20 relative overflow-hidden"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-700 pt-24 text-white"
     >
-      <div className="absolute inset-0 opacity-10">
+      <div className="absolute inset-0 opacity-20">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern
               id="heroPattern"
               patternUnits="userSpaceOnUse"
-              width="100"
-              height="100"
-              patternTransform="scale(1) rotate(45)"
+              width="120"
+              height="120"
+              patternTransform="scale(1) rotate(20)"
             >
-              <path
-                d="M0 50 L50 0 L100 50 L50 100 Z"
-                fill="rgba(163,230,53,0.1)"
-              />
-              <circle cx="50" cy="50" r="2" fill="rgba(245,158,11,0.2)" />
+              <path d="M0 60 L60 0 L120 60 L60 120 Z" fill="rgba(249, 115, 22, 0.08)" />
+              <circle cx="60" cy="60" r="3" fill="rgba(190, 242, 100, 0.3)" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#heroPattern)" />
         </svg>
       </div>
 
-      <div className="container mx-auto px-6 z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="container relative z-10 mx-auto px-6">
+        <div className="grid items-center gap-12 lg:grid-cols-2">
           <div className="text-center lg:text-left">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight animate-fade-in-down">
-              {companyData.hero.title}{" "}
-              <span className="text-amber-300">
-                {companyData.hero.subtitle}
-              </span>
+            <p className="mb-4 inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-amber-200">
+              {companyData.hero.eyebrow}
+            </p>
+            <h1 className="mb-4 text-4xl font-extrabold leading-tight md:text-6xl lg:text-7xl">
+              {companyData.hero.title} {" "}
+              <span className="text-amber-300">{companyData.hero.subtitle}</span>
             </h1>
-            <p className="text-lg md:text-xl text-emerald-100 mb-10 max-w-2xl animate-fade-in-up animation-delay-300">
+            <p className="mb-10 text-lg leading-relaxed text-emerald-100 md:text-xl">
               {companyData.hero.description}
             </p>
-            <button
-              onClick={scrollToSolutions}
-              className="bg-amber-400 hover:bg-amber-500 text-emerald-900 font-bold py-4 px-10 rounded-lg text-lg transition-all duration-300 ease-in-out transform hover:scale-105 shadow-xl hover:shadow-amber-400/50 animate-fade-in-up animation-delay-600"
-            >
-              {companyData.hero.cta} <ChevronDown className="inline ml-2" />
-            </button>
+            <div className="flex flex-col items-center space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 lg:items-start">
+              <button
+                onClick={scrollToContact}
+                className="flex items-center justify-center rounded-lg bg-amber-400 px-8 py-4 text-lg font-semibold text-emerald-950 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-amber-300 hover:shadow-amber-400/50"
+              >
+                {companyData.hero.cta}
+                <ChevronDown className="ml-3" />
+              </button>
+              <div className="flex items-center space-x-3 rounded-lg bg-white/5 px-4 py-3 text-sm text-emerald-100">
+                <ShieldCheck className="text-amber-300" />
+                <span>Precisión validada en formas complejas (Bulbos de Lilium).</span>
+              </div>
+            </div>
           </div>
 
-          <div className="relative lg:block hidden">
-            {/* Main center image */}
-            <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500 z-10">
-              <img
-                src="images/ChatGPT Image 25 may 2025, 14_02_47.png"
-                alt="Visualización de IA en Agroindustria"
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Top right image */}
-            <div className="absolute -top-8 -right-12 w-60 h-40 rounded-xl overflow-hidden shadow-xl transform rotate-12 hover:rotate-6 transition-transform duration-500 z-20">
-              <img
-                src="images/WhatsApp Image 2025-05-24 at 23.20.29.jpeg"
-                alt="Agricultura de Precisión"
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Bottom left image */}
-            <div className="absolute -bottom-16 -left-16 w-52 h-52 rounded-xl overflow-hidden shadow-xl transform -rotate-8 hover:-rotate-3 transition-transform duration-500 z-20">
-              <img
-                src="images/WhatsApp Image 2025-05-24 at 23.20.29 (1).jpeg"
-                alt="Control de Calidad IA"
-                className="w-full h-full object-cover"
-              />
+          <div className="hidden lg:block">
+            <div className="relative mx-auto max-w-xl">
+              <div className="relative overflow-hidden rounded-3xl shadow-2xl ring-1 ring-emerald-400/30">
+                <img
+                  src="images/ChatGPT Image 25 may 2025, 14_02_47.png"
+                  alt="Sistema de visión Qualiblick"
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/70 via-transparent" />
+              </div>
+              <div className="absolute -right-10 -top-10 w-48 overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/20">
+                <img
+                  src="images/WhatsApp Image 2025-05-24 at 23.20.29.jpeg"
+                  alt="Operación en terreno"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="absolute -bottom-12 -left-12 w-56 overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/20">
+                <img
+                  src="images/WhatsApp Image 2025-05-24 at 23.20.29 (1).jpeg"
+                  alt="Visión artificial en proceso"
+                  className="h-full w-full object-cover"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -291,41 +290,30 @@ const Hero: React.FC<SectionProps> = ({ id }) => {
   );
 };
 
-const Mission: React.FC<SectionProps> = ({ id }) => (
-  <section id={id} className="py-20 bg-emerald-50">
-    <div className="container mx-auto px-6 text-center">
-      <Target size={60} className="mx-auto mb-6 text-emerald-600" />
-      <h2 className="text-4xl font-bold text-emerald-900 mb-4">
-        {companyData.mission.title}
-      </h2>
-      <p className="text-lg text-emerald-700 max-w-3xl mx-auto leading-relaxed">
-        {companyData.mission.text}
-      </p>
-    </div>
-  </section>
-);
-
-const Solutions: React.FC<SectionProps> = ({ id }) => (
-  <section id={id} className="py-20 bg-emerald-900 text-white">
+const PainSection: React.FC<SectionProps> = ({ id }) => (
+  <section id={id} className="bg-emerald-50 py-20">
     <div className="container mx-auto px-6">
-      <Lightbulb size={60} className="mx-auto mb-6 text-amber-300" />
-      <h2 className="text-4xl font-bold text-center mb-4">
-        {companyData.solutions.title}
-      </h2>
-      <p className="text-lg text-emerald-100 text-center max-w-3xl mx-auto mb-16 leading-relaxed">
-        {companyData.solutions.intro}
-      </p>
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {companyData.solutions.items.map((item, index) => (
+      <div className="mx-auto max-w-4xl text-center">
+        <h2 className="mb-4 text-4xl font-bold text-emerald-900">
+          La incertidumbre operativa te está costando dinero.
+        </h2>
+        <p className="text-lg text-emerald-700">
+          En la agroindustria, muchas veces se opera basándose en estimaciones al ojo o se obtienen los datos reales cuando el proceso ya terminó.
+        </p>
+      </div>
+      <div className="mt-12 grid gap-8 md:grid-cols-3">
+        {companyData.painPoints.map((item) => (
           <div
-            key={index}
-            className="bg-emerald-800 p-8 rounded-xl shadow-2xl hover:shadow-amber-300/30 transition-all duration-300 transform hover:-translate-y-2 flex flex-col items-center text-center"
+            key={item.title}
+            className="rounded-2xl bg-white p-8 shadow-lg ring-1 ring-emerald-100 transition-all duration-300 hover:-translate-y-2 hover:shadow-emerald-200"
           >
-            <item.icon size={48} className="mb-6 text-amber-300" />
-            <h3 className="text-2xl font-semibold mb-3">{item.name}</h3>
-            <p className="text-emerald-100 leading-relaxed">
-              {item.description}
-            </p>
+            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+              <Target />
+            </div>
+            <h3 className="mb-3 text-2xl font-semibold text-emerald-900">
+              {item.title}
+            </h3>
+            <p className="text-emerald-700">{item.description}</p>
           </div>
         ))}
       </div>
@@ -333,86 +321,106 @@ const Solutions: React.FC<SectionProps> = ({ id }) => (
   </section>
 );
 
-const Results: React.FC<SectionProps> = ({ id }) => (
-  <section id={id} className="py-20 bg-emerald-50">
+const Technology: React.FC<SectionProps> = ({ id }) => (
+  <section id={id} className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 py-20 text-white">
     <div className="container mx-auto px-6">
-      <BarChart3 size={60} className="mx-auto mb-6 text-emerald-600" />
-      <h2 className="text-4xl font-bold text-emerald-900 text-center mb-4">
-        {companyData.results.title}
-      </h2>
-      <p className="text-lg text-emerald-700 text-center max-w-3xl mx-auto mb-16 leading-relaxed">
-        {companyData.results.intro}
-      </p>
-      <div className="grid md:grid-cols-3 gap-8">
-        {companyData.results.stats.map((stat, index) => (
+      <div className="mx-auto max-w-4xl text-center">
+        <h2 className="mb-4 text-4xl font-bold">
+          {companyData.technology.title}
+        </h2>
+        <p className="text-lg text-emerald-100">
+          {companyData.technology.description}
+        </p>
+      </div>
+      <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        {companyData.technology.features.map((feature) => (
           <div
-            key={index}
-            className="bg-white p-8 rounded-xl shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 transform hover:scale-105 flex flex-col items-center text-center"
+            key={feature.title}
+            className="rounded-2xl bg-white/5 p-6 shadow-lg ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-2 hover:ring-amber-300/40"
           >
-            <stat.icon size={48} className="mb-4 text-emerald-600" />
-            <div className="text-5xl font-extrabold text-emerald-700 mb-2">
-              {stat.value}
-            </div>
-            <h3 className="text-xl font-semibold text-emerald-900 mb-2">
-              {stat.label}
-            </h3>
-            <p className="text-emerald-600 text-sm">{stat.description}</p>
+            <feature.icon className="mb-4 text-amber-300" size={42} />
+            <h3 className="mb-3 text-xl font-semibold text-white">{feature.title}</h3>
+            <p className="text-emerald-100">{feature.description}</p>
           </div>
         ))}
+      </div>
+    </div>
+  </section>
+);
+
+const CaseStudy: React.FC<SectionProps> = ({ id }) => (
+  <section id={id} className="bg-white py-20">
+    <div className="container mx-auto px-6">
+      <div className="grid items-center gap-12 lg:grid-cols-2">
+        <div>
+          <p className="mb-3 inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800">
+            Validación Industrial
+          </p>
+          <h2 className="mb-4 text-4xl font-bold text-emerald-900">
+            {companyData.caseStudy.title}
+          </h2>
+          <p className="text-lg leading-relaxed text-emerald-800">
+            {companyData.caseStudy.quote}
+          </p>
+          <div className="mt-6 rounded-xl bg-emerald-50 p-5 text-emerald-700 ring-1 ring-emerald-100">
+            <p className="font-semibold">{companyData.caseStudy.footer}</p>
+          </div>
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          {companyData.caseStudy.stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="flex flex-col items-center rounded-2xl bg-emerald-900 p-6 text-center text-white shadow-lg"
+            >
+              <stat.icon size={36} className="mb-3 text-amber-300" />
+              <div className="text-4xl font-extrabold text-amber-300">{stat.value}</div>
+              <p className="mt-2 text-sm text-emerald-100">{stat.label}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   </section>
 );
 
 const Contact: React.FC<SectionProps> = ({ id }) => (
-  <section
-    id={id}
-    className="py-20 bg-gradient-to-br from-emerald-900 to-emerald-800 text-white"
-  >
+  <section id={id} className="bg-gradient-to-br from-amber-100 via-white to-emerald-50 py-20">
     <div className="container mx-auto px-6 text-center">
-      <Mail size={60} className="mx-auto mb-6 text-amber-300" />
-      <h2 className="text-4xl font-bold mb-4">{companyData.contact.title}</h2>
-      <p className="text-lg text-emerald-100 max-w-2xl mx-auto mb-10 leading-relaxed">
-        {companyData.contact.text}
+      <Mail size={52} className="mx-auto mb-6 text-emerald-700" />
+      <h2 className="mb-4 text-4xl font-bold text-emerald-900">
+        Haz que tu operación tenga datos precisos a tiempo.
+      </h2>
+      <p className="mx-auto max-w-2xl text-lg leading-relaxed text-emerald-800">
+        Agendar una demostración es el primer paso para eliminar la suposición y tomar decisiones con datos reales, al instante.
       </p>
-      <div className="space-y-6 md:space-y-0 md:space-x-12 md:flex md:justify-center items-center">
+      <div className="mt-10 flex flex-col items-center justify-center space-y-4 text-lg text-emerald-900 md:flex-row md:space-x-10 md:space-y-0">
         <a
           href={`tel:${companyData.phone.replace(/\s/g, "")}`}
-          className="flex items-center justify-center text-xl hover:text-amber-300 transition-colors duration-300 group"
+          className="flex items-center rounded-full bg-white px-5 py-3 font-semibold shadow-md ring-1 ring-emerald-100 transition-transform duration-300 hover:-translate-y-1 hover:shadow-emerald-200"
         >
-          <Phone
-            size={28}
-            className="mr-3 text-amber-300 group-hover:animate-pulse"
-          />
-          {companyData.phone}
+          <Phone size={24} className="mr-3 text-emerald-700" /> {companyData.phone}
         </a>
         <a
           href={`mailto:${companyData.email}`}
-          className="flex items-center justify-center text-xl hover:text-amber-300 transition-colors duration-300 group"
+          className="flex items-center rounded-full bg-emerald-900 px-5 py-3 font-semibold text-white shadow-md ring-1 ring-emerald-700 transition-transform duration-300 hover:-translate-y-1 hover:bg-emerald-800"
         >
-          <Mail
-            size={28}
-            className="mr-3 text-amber-300 group-hover:animate-pulse"
-          />
-          {companyData.email}
+          <Mail size={24} className="mr-3 text-amber-300" /> {companyData.email}
         </a>
       </div>
+      <p className="mt-6 text-sm text-emerald-600">{companyData.locations.city}</p>
     </div>
   </section>
 );
 
 const Footer: React.FC = () => (
-  <footer className="bg-emerald-900 text-emerald-100 py-10 text-center">
+  <footer className="bg-emerald-950 py-10 text-center text-emerald-100">
     <div className="container mx-auto px-6">
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-center">
         <Logo />
       </div>
-      <p>
-        &copy; {new Date().getFullYear()} {companyData.name}. Todos los derechos
-        reservados.
-      </p>
-      <p className="text-sm mt-1 text-emerald-300">
-        Transformando la Agroindustria con Inteligencia Artificial.
+      <p>&copy; {new Date().getFullYear()} {companyData.name}. Todos los derechos reservados.</p>
+      <p className="mt-1 text-sm text-emerald-300">
+        Qualiblick: Transformando la agroindustria mediante visión artificial y datos financieros de alta precisión.
       </p>
     </div>
   </footer>
@@ -433,9 +441,7 @@ const App: React.FC = () => {
 
     document
       .querySelectorAll("section > div > *:not(h2):not(p:first-of-type)")
-      .forEach((el) => {
-        observer.observe(el);
-      });
+      .forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
   }, []);
@@ -445,9 +451,9 @@ const App: React.FC = () => {
       <Navbar />
       <main>
         <Hero id="home" />
-        <Mission id="mision" />
-        <Solutions id="soluciones" />
-        <Results id="resultados" />
+        <PainSection id="problema" />
+        <Technology id="tecnologia" />
+        <CaseStudy id="caso-exito" />
         <Contact id="contacto" />
       </main>
       <Footer />
