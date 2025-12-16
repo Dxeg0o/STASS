@@ -7,28 +7,29 @@ import { ScanFace } from "lucide-react";
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden bg-slate-950">
+    <section className="relative min-h-screen flex items-center justify-center pt-28 lg:pt-0 overflow-hidden bg-slate-950">
       {/* Background Effects */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
       {/* Top Spotlight */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-cyan-500/20 rounded-[100%] blur-[100px] opacity-50 pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full mb-12 lg:mb-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           
           {/* Text Content */}
           <motion.div 
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
+            className="text-center lg:text-left"
           >
-            <div className="flex items-center space-x-2 mb-6">
+            <div className="flex items-center justify-center lg:justify-start space-x-2 mb-6">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-cyan-950/50 text-cyan-400 border border-cyan-400/20 shadow-[0_0_10px_rgba(34,211,238,0.2)]">
                     <Zap className="w-3 h-3 mr-1" /> Tecnología Validada Industrialmente
                 </span>
             </div>
             
-            <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-white mb-6 leading-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight text-white mb-6 leading-tight">
               Digitaliza tu <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 animate-gradient-x">
                 Producción Real.
@@ -36,11 +37,11 @@ export default function Hero() {
               Sin Estimaciones.
             </h1>
             
-            <p className="text-lg lg:text-xl text-slate-400 mb-8 max-w-lg leading-relaxed">
+            <p className="text-lg lg:text-xl text-slate-400 mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed">
               Sistema de visión artificial autónomo que transforma flujos físicos en datos financieros exactos.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link href="/audit" className="bg-cyan-400 text-slate-950 font-bold py-3 px-8 rounded hover:bg-cyan-300 transition-all shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] text-center relative overflow-hidden group">
                 <span className="relative z-10">Agendar Demo</span>
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 transform-gpu" />
@@ -53,7 +54,7 @@ export default function Hero() {
               </button>
             </div>
 
-            <div className="mt-12 flex items-center space-x-8 text-slate-500 text-sm">
+            <div className="mt-12 flex items-center justify-center lg:justify-start space-x-8 text-slate-500 text-sm">
                 <div>
                    <span className="block text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">97.54%</span>
                    <span className="text-slate-400">Precisión en Conteo</span>
@@ -71,11 +72,24 @@ export default function Hero() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative h-[500px] w-full flex items-center justify-center select-none pointer-events-none"
+            className="relative h-[300px] sm:h-[400px] lg:h-[500px] w-full flex items-center justify-center select-none pointer-events-none mt-8 lg:mt-0"
           >
             <div className="relative w-full aspect-square max-w-md mx-auto">
                 {/* Simulated 3D Scanner Container */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/10 to-emerald-500/10 rounded-2xl border border-white/5 backdrop-blur-sm overflow-hidden">
+                <div className="absolute inset-0 bg-black rounded-2xl border border-white/5 overflow-hidden">
+                    <video
+                        className="absolute inset-0 w-full h-full object-cover opacity-60"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                    >
+                        <source src="/videos/example2.mp4" type="video/mp4" />
+                    </video>
+                    
+                    {/* Overlay Gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/10 to-emerald-500/10 backdrop-blur-[2px]" />
+
                     {/* Grid Pattern inside */}
                     <div className="absolute inset-0 opacity-20 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]" />
                     
