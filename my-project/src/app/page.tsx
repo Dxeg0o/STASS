@@ -1,23 +1,20 @@
 "use client";
-import Link from "next/link"; // asegúrate de importarlo
 
+import Link from "next/link";
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+
 import {
-  ChevronDown,
-  Target,
+  BadgeCheck,
   BarChart3,
-  Lightbulb,
-  ShieldCheck,
-  TrendingUp,
-  Phone,
-  Mail,
-  Zap,
-  Leaf,
-  Cpu,
-  DollarSign,
+  CircuitBoard,
   Gauge,
   Menu,
+  Phone,
+  ShieldCheck,
+  Signal,
+  Sparkles,
+  TrendingUp,
   X,
 } from "lucide-react";
 
@@ -25,307 +22,252 @@ interface SectionProps {
   id: string;
 }
 
-const companyData = {
-  name: "Qualiblick",
-  phone: "+56 9 6229 6916",
-  email: "dsoler.olguin@gmail.com",
+const content = {
+  brand: {
+    name: "Qualiblick",
+    tagline: "Visión artificial para operaciones reales.",
+    phone: "+56 9 6229 6916",
+    email: "contacto@qualiblick.com",
+  },
   hero: {
-    title: "La Revolución de la IA en el Agro.",
-    subtitle: "Optimiza tus procesos hoy.",
+    badge: "Tecnología validada industrialmente",
+    title: "Digitaliza tu producción real. Sin estimaciones.",
     description:
-      "Aseguramos la competitividad de tus productos agroindustriales con IA de vanguardia, permitiendo un control total, reduciendo costos, acelerando tus procesos y mejorando la calidad.",
-    cta: "Descubre Nuestras Soluciones",
+      "Transforma tus flujos físicos en datos financieros exactos con un sistema de visión autónomo que opera donde lo necesites: desde la cosecha en campo hasta la línea de proceso.",
+    ctaPrimary: "Ver tecnología en acción",
+    ctaSecondary: "Agendar una demostración",
+    highlight: "Precisión validada en formas complejas (Bulbos de Lilium).",
   },
-  mission: {
-    title: "Nuestra Misión: Calidad Accesible",
-    text: "Impulsar el crecimiento de las empresas agroindustriales con herramientas accesibles basadas en IA, democratizando el acceso a tecnología de punta para optimizar la calidad y eficiencia.",
-  },
-  solutions: {
-    title: "Soluciones: Innovación y Creación",
-    intro:
-      "Desarrollamos soluciones de IA a medida que ofrecen control total de tus productos, minimizan riesgos y optimizan tu producción de manera inteligente y sostenible.",
+  friction: {
+    heading: "La incertidumbre operativa te está costando dinero.",
+    subheading:
+      "En la agroindustria, muchas veces se opera basándose en estimaciones al ojo o se obtienen los datos reales cuando el proceso ya terminó.",
     items: [
       {
-        icon: Cpu,
-        name: "Control Total con IA",
-        description:
-          "Sistemas inteligentes para el monitoreo y gestión integral de la calidad y producción en tiempo real.",
+        title: "Estimaciones",
+        description: "Asumir rendimientos que no son reales.",
       },
       {
-        icon: ShieldCheck,
-        name: "Minimización de Riesgos",
-        description:
-          "Modelos predictivos y análisis avanzados para anticipar problemas y asegurar la inocuidad y consistencia.",
+        title: "Datos tardíos",
+        description: "Saber cuánto produjiste cuando ya no puedes corregir errores.",
       },
       {
-        icon: Zap,
-        name: "Optimización de Procesos",
-        description:
-          "Algoritmos de IA para eficientar la cadena productiva, desde la cosecha hasta el empaque, reduciendo mermas.",
-      },
-      {
-        icon: Leaf,
-        name: "Agricultura de Precisión",
-        description:
-          "Tecnología para la toma de decisiones basada en datos, mejorando el rendimiento y la sostenibilidad de los cultivos.",
+        title: "Puntos ciegos",
+        description: "No saber qué está pasando realmente en tu línea ahora mismo.",
       },
     ],
+    quote: "Elimina la suposición. Toma decisiones con datos reales, al instante.",
   },
-  results: {
-    title: "Resultados Preliminares: Impacto Medible",
-    intro:
-      "Nuestras pruebas piloto demuestran consistentemente una significativa reducción de costos y una mayor agilidad operativa en diversos procesos agroindustriales.",
-    stats: [
+  capabilities: {
+    heading: "Diseñado para la realidad hostil de tu operación.",
+    subheading:
+      "Tecnología robusta que se adapta a tu entorno, no al revés.",
+    features: [
+      {
+        icon: Sparkles,
+        title: "Detecta lo que otros ignoran.",
+        description:
+          "Entrenado para identificar productos orgánicos complejos e irregulares. Validado detectando bulbos, entiende rotación y calibres, ignorando tierra y suciedad.",
+      },
+      {
+        icon: Signal,
+        title: "Funciona donde está el problema.",
+        description:
+          "Ya sea en medio del campo, en la recepción o en la salida del proceso. Nuestro hardware procesa localmente y no depende de cables de red ni internet estable.",
+      },
       {
         icon: Gauge,
-        value: "89%",
-        label: "Optimización de Eficiencia",
+        title: "Listo para temporada alta.",
         description:
-          "Mejora promedio en la eficiencia de los procesos clave intervenidos.",
+          "Probado en flujos de alta velocidad (>20 objetos/segundo). Cuando la presión sube, el sistema mantiene la precisión sin saturarse.",
       },
       {
-        icon: DollarSign,
-        value: "7.3X",
-        label: "Retorno de Inversión",
+        icon: BarChart3,
+        title: "Datos financieros inmediatos.",
         description:
-          "Potencial de retorno sobre la inversión en tecnología IA implementada.",
-      },
-      {
-        icon: TrendingUp,
-        value: "72%",
-        label: "Reducción de Mermas",
-        description:
-          "Disminución en pérdidas de producto gracias a la detección temprana y control mejorado.",
+          "Convierte el flujo físico en números para tu ERP o Excel. Deja de esperar al informe de cierre de turno; ten el control en tiempo real.",
       },
     ],
   },
-  contact: {
-    title: "Hablemos de tu Proyecto",
-    text: "Estamos listos para ayudarte a integrar la inteligencia artificial en tus operaciones. Conversemos sobre cómo Qualiblick puede potenciar tu negocio.",
+  caseStudy: {
+    heading: "Caso de Éxito Valdivia Lilies",
+    description:
+      "Nuestra tecnología ha superado uno de los desafíos más difíciles de visión artificial: el bulbo de Lilium. Si podemos contar esto con precisión, podemos medir tu producción.",
+    stats: [
+      { label: "Precisión en Conteo de Bulbos", value: "97.54%" },
+      { label: "Operación Continua", value: "24/7" },
+      { label: "Dependencia de Nube", value: "0" },
+    ],
+    note: "Tecnología probada bajo estándares de Holanda y Chile.",
+  },
+  closing: {
+    heading: "Haz que tu operación tenga datos precisos a tiempo.",
+    cta: "Agendar una demostración",
+  },
+  footer: {
+    legal: "Qualiblick: Transformando la agroindustria mediante visión artificial y datos financieros de alta precisión.",
+    links: [
+      { label: "Plataforma", href: "#tecnologia" },
+      { label: "Validación Industrial", href: "#caso" },
+      { label: "Casos de Estudio", href: "#caso" },
+      { label: "Contacto", href: "#contacto" },
+    ],
   },
 };
 
 const Logo: React.FC = () => (
-  <div className="flex items-center space-x-2">
-    <img src="images/qb.png" alt="Qualiblick" className="w-124 h-12" />
+  <div className="flex items-center space-x-3">
+    <div className="h-12 w-12 rounded-full bg-emerald-900 text-amber-200 flex items-center justify-center font-black text-lg shadow-lg">
+      QB
+    </div>
+    <div className="text-left">
+      <p className="text-lg font-bold text-emerald-50">{content.brand.name}</p>
+      <p className="text-sm text-emerald-200">{content.brand.tagline}</p>
+    </div>
   </div>
 );
 
 const Navbar: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const navLinks = [
-    { href: "#home", label: "Inicio" },
-    { href: "#mision", label: "Misión" },
-    { href: "#soluciones", label: "Soluciones" },
-    { href: "#resultados", label: "Resultados" },
+    { href: "#home", label: "Tecnología" },
+    { href: "#problema", label: "Dolores" },
+    { href: "#tecnologia", label: "Solución" },
+    { href: "#caso", label: "Casos de Éxito" },
     { href: "#contacto", label: "Contacto" },
-    { href: "/login", label: "Iniciar sesión" },
-    { href: "/register", label: "Registrarse" },
   ];
 
-  const scrollToSection = (
-    e: React.MouseEvent<HTMLAnchorElement>,
+  const scrollTo = (
+    e: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
     href: string
   ) => {
     e.preventDefault();
     document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
-    setIsOpen(false);
+    setOpen(false);
   };
 
   return (
-    <nav className="bg-emerald-800/95 backdrop-blur-md text-white p-4 fixed w-full z-50 shadow-lg">
-      <div className="container mx-auto flex justify-between items-center">
-        <a href="#home" onClick={(e) => scrollToSection(e, "#home")}>
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-emerald-900/30 bg-emerald-950/80 backdrop-blur-lg">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 text-white">
+        <a href="#home" onClick={(e) => scrollTo(e, "#home")}> 
           <Logo />
         </a>
-        {/* menú desktop */}
-        <div className="hidden md:flex space-x-6">
-          {navLinks.map(({ href, label }) =>
-            href.startsWith("#") ? (
-              // enlace ancla: desplazamiento suave
-              <a
-                key={href}
-                href={href}
-                onClick={(e) => scrollToSection(e, href)}
-                className="hover:text-amber-300 transition-colors duration-300 font-medium"
-              >
-                {label}
-              </a>
-            ) : (
-              // enlace de ruta: usa Next.js Link
-              <Link
-                key={href}
-                href={href}
-                className="hover:text-amber-300 transition-colors duration-300 font-medium"
-              >
-                {label}
-              </Link>
-            )
-          )}
-        </div>
-        {/* botón móvil */}
-        <div className="md:hidden">
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="text-white focus:outline-none"
+        <nav className="hidden items-center gap-8 md:flex">
+          {navLinks.map(({ href, label }) => (
+            <a
+              key={href}
+              href={href}
+              onClick={(e) => scrollTo(e, href)}
+              className="text-sm font-semibold text-emerald-50 transition hover:text-amber-200"
+            >
+              {label}
+            </a>
+          ))}
+          <Link
+            href="/login"
+            className="rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-emerald-950 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
           >
-            {isOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
-        </div>
+            Agendar Demo
+          </Link>
+        </nav>
+        <button
+          className="flex items-center justify-center rounded-md border border-emerald-800 p-2 md:hidden"
+          onClick={() => setOpen((prev) => !prev)}
+          aria-label="Abrir menú"
+        >
+          {open ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
-      {/* menú desplegable móvil */}
-      {isOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-emerald-700 shadow-xl py-2">
-          {navLinks.map(({ href, label }) =>
-            href.startsWith("#") ? (
+      {open && (
+        <div className="border-t border-emerald-900/30 bg-emerald-950/95 px-6 py-4 md:hidden">
+          <div className="flex flex-col gap-3">
+            {navLinks.map(({ href, label }) => (
               <a
                 key={href}
                 href={href}
-                onClick={(e) => scrollToSection(e, href)}
-                className="block px-4 py-3 text-center hover:bg-emerald-600 hover:text-amber-300 transition-colors duration-300"
+                onClick={(e) => scrollTo(e, href)}
+                className="rounded-md px-3 py-2 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-900"
               >
                 {label}
               </a>
-            ) : (
-              <Link
-                key={href}
-                href={href}
-                className="block px-4 py-3 text-center hover:bg-emerald-600 hover:text-amber-300 transition-colors duration-300"
-              >
-                {label}
-              </Link>
-            )
-          )}
+            ))}
+            <Link
+              href="/login"
+              className="rounded-lg bg-amber-300 px-4 py-3 text-center text-sm font-semibold text-emerald-950 shadow-md transition hover:shadow-lg"
+            >
+              Agendar Demo
+            </Link>
+          </div>
         </div>
       )}
-    </nav>
+    </header>
   );
 };
 
-const Hero: React.FC<SectionProps> = ({ id }) => {
-  const scrollToSolutions = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    document
-      .querySelector("#soluciones")
-      ?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  return (
-    <section
-      id={id}
-      className="min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-amber-500 text-white flex items-center justify-center pt-20 relative overflow-hidden"
-    >
-      <div className="absolute inset-0 opacity-10">
-        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern
-              id="heroPattern"
-              patternUnits="userSpaceOnUse"
-              width="100"
-              height="100"
-              patternTransform="scale(1) rotate(45)"
-            >
-              <path
-                d="M0 50 L50 0 L100 50 L50 100 Z"
-                fill="rgba(163,230,53,0.1)"
-              />
-              <circle cx="50" cy="50" r="2" fill="rgba(245,158,11,0.2)" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#heroPattern)" />
-        </svg>
-      </div>
-
-      <div className="container mx-auto px-6 z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="text-center lg:text-left">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight animate-fade-in-down">
-              {companyData.hero.title}{" "}
-              <span className="text-amber-300">
-                {companyData.hero.subtitle}
-              </span>
-            </h1>
-            <p className="text-lg md:text-xl text-emerald-100 mb-10 max-w-2xl animate-fade-in-up animation-delay-300">
-              {companyData.hero.description}
-            </p>
-            <button
-              onClick={scrollToSolutions}
-              className="bg-amber-400 hover:bg-amber-500 text-emerald-900 font-bold py-4 px-10 rounded-lg text-lg transition-all duration-300 ease-in-out transform hover:scale-105 shadow-xl hover:shadow-amber-400/50 animate-fade-in-up animation-delay-600"
-            >
-              {companyData.hero.cta} <ChevronDown className="inline ml-2" />
-            </button>
-          </div>
-
-          <div className="relative lg:block hidden">
-            {/* Main center image */}
-            <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500 z-10">
-              <img
-                src="images/ChatGPT Image 25 may 2025, 14_02_47.png"
-                alt="Visualización de IA en Agroindustria"
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Top right image */}
-            <div className="absolute -top-8 -right-12 w-60 h-40 rounded-xl overflow-hidden shadow-xl transform rotate-12 hover:rotate-6 transition-transform duration-500 z-20">
-              <img
-                src="images/WhatsApp Image 2025-05-24 at 23.20.29.jpeg"
-                alt="Agricultura de Precisión"
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Bottom left image */}
-            <div className="absolute -bottom-16 -left-16 w-52 h-52 rounded-xl overflow-hidden shadow-xl transform -rotate-8 hover:-rotate-3 transition-transform duration-500 z-20">
-              <img
-                src="images/WhatsApp Image 2025-05-24 at 23.20.29 (1).jpeg"
-                alt="Control de Calidad IA"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
+const Hero: React.FC<SectionProps> = ({ id }) => (
+  <section
+    id={id}
+    className="relative isolate overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 text-white"
+  >
+    <div className="absolute inset-0 opacity-30">
+      <div className="absolute -left-16 top-0 h-64 w-64 rounded-full bg-amber-400 blur-3xl" />
+      <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-emerald-500 blur-3xl" />
+    </div>
+    <div className="mx-auto flex min-h-screen max-w-6xl flex-col justify-center gap-12 px-6 pb-24 pt-32">
+      <div className="flex flex-col gap-6 lg:max-w-3xl">
+        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-amber-200 shadow-lg">
+          <BadgeCheck size={16} /> {content.hero.badge}
+        </div>
+        <h1 className="text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
+          {content.hero.title}
+        </h1>
+        <p className="text-lg text-emerald-100 md:text-xl">
+          {content.hero.description}
+        </p>
+        <div className="flex flex-wrap items-center gap-4">
+          <a
+            href="#tecnologia"
+            onClick={(e) => {
+              e.preventDefault();
+              document
+                .querySelector("#tecnologia")
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="rounded-full bg-amber-300 px-6 py-3 text-sm font-bold text-emerald-950 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+          >
+            {content.hero.ctaPrimary}
+          </a>
+          <a
+            href="#contacto"
+            onClick={(e) => {
+              e.preventDefault();
+              document
+                .querySelector("#contacto")
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="rounded-full border border-emerald-600 px-6 py-3 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-800"
+          >
+            {content.hero.ctaSecondary}
+          </a>
+        </div>
+        <div className="flex items-center gap-3 rounded-xl border border-emerald-700 bg-emerald-900/70 p-4 text-sm text-emerald-100 shadow-lg lg:w-fit">
+          <ShieldCheck className="text-amber-300" size={20} /> {content.hero.highlight}
         </div>
       </div>
-    </section>
-  );
-};
-
-const Mission: React.FC<SectionProps> = ({ id }) => (
-  <section id={id} className="py-20 bg-emerald-50">
-    <div className="container mx-auto px-6 text-center">
-      <Target size={60} className="mx-auto mb-6 text-emerald-600" />
-      <h2 className="text-4xl font-bold text-emerald-900 mb-4">
-        {companyData.mission.title}
-      </h2>
-      <p className="text-lg text-emerald-700 max-w-3xl mx-auto leading-relaxed">
-        {companyData.mission.text}
-      </p>
-    </div>
-  </section>
-);
-
-const Solutions: React.FC<SectionProps> = ({ id }) => (
-  <section id={id} className="py-20 bg-emerald-900 text-white">
-    <div className="container mx-auto px-6">
-      <Lightbulb size={60} className="mx-auto mb-6 text-amber-300" />
-      <h2 className="text-4xl font-bold text-center mb-4">
-        {companyData.solutions.title}
-      </h2>
-      <p className="text-lg text-emerald-100 text-center max-w-3xl mx-auto mb-16 leading-relaxed">
-        {companyData.solutions.intro}
-      </p>
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {companyData.solutions.items.map((item, index) => (
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "Cobertura", value: "Campo a planta" },
+          { label: "Hardware", value: "Proceso local" },
+          { label: "Velocidad", value: ">20 obj/seg" },
+          { label: "Integración", value: "ERP / Excel" },
+        ].map((item) => (
           <div
-            key={index}
-            className="bg-emerald-800 p-8 rounded-xl shadow-2xl hover:shadow-amber-300/30 transition-all duration-300 transform hover:-translate-y-2 flex flex-col items-center text-center"
+            key={item.label}
+            className="rounded-2xl border border-emerald-700/60 bg-emerald-900/60 p-5 shadow-lg"
           >
-            <item.icon size={48} className="mb-6 text-amber-300" />
-            <h3 className="text-2xl font-semibold mb-3">{item.name}</h3>
-            <p className="text-emerald-100 leading-relaxed">
-              {item.description}
-            </p>
+            <p className="text-sm text-emerald-200">{item.label}</p>
+            <p className="mt-2 text-2xl font-bold text-amber-200">{item.value}</p>
           </div>
         ))}
       </div>
@@ -333,30 +275,116 @@ const Solutions: React.FC<SectionProps> = ({ id }) => (
   </section>
 );
 
-const Results: React.FC<SectionProps> = ({ id }) => (
-  <section id={id} className="py-20 bg-emerald-50">
-    <div className="container mx-auto px-6">
-      <BarChart3 size={60} className="mx-auto mb-6 text-emerald-600" />
-      <h2 className="text-4xl font-bold text-emerald-900 text-center mb-4">
-        {companyData.results.title}
-      </h2>
-      <p className="text-lg text-emerald-700 text-center max-w-3xl mx-auto mb-16 leading-relaxed">
-        {companyData.results.intro}
-      </p>
-      <div className="grid md:grid-cols-3 gap-8">
-        {companyData.results.stats.map((stat, index) => (
+const Friction: React.FC<SectionProps> = ({ id }) => (
+  <section id={id} className="bg-emerald-50 py-20">
+    <div className="mx-auto grid max-w-6xl gap-12 px-6 lg:grid-cols-2 lg:items-start">
+      <div className="space-y-5">
+        <p className="text-sm font-semibold uppercase tracking-[0.12em] text-emerald-700">
+          Operación sin datos
+        </p>
+        <h2 className="text-3xl font-bold text-emerald-950 md:text-4xl">
+          {content.friction.heading}
+        </h2>
+        <p className="text-lg text-emerald-800">
+          {content.friction.subheading}
+        </p>
+        <div className="rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm">
+          <p className="text-xl font-semibold text-emerald-900">
+            “{content.friction.quote}”
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-5 md:grid-cols-2">
+        {content.friction.items.map((item) => (
           <div
-            key={index}
-            className="bg-white p-8 rounded-xl shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 transform hover:scale-105 flex flex-col items-center text-center"
+            key={item.title}
+            className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm"
           >
-            <stat.icon size={48} className="mb-4 text-emerald-600" />
-            <div className="text-5xl font-extrabold text-emerald-700 mb-2">
-              {stat.value}
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-emerald-600">
+              {item.title}
+            </p>
+            <p className="mt-3 text-base text-emerald-900">{item.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+const Capabilities: React.FC<SectionProps> = ({ id }) => (
+  <section
+    id={id}
+    className="bg-gradient-to-br from-white via-emerald-50 to-white py-20"
+  >
+    <div className="mx-auto max-w-6xl px-6">
+      <div className="mb-12 space-y-4 text-center">
+        <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700 shadow-sm">
+          <CircuitBoard size={16} /> Tecnología robusta
+        </div>
+        <h2 className="text-3xl font-bold text-emerald-950 md:text-4xl">
+          {content.capabilities.heading}
+        </h2>
+        <p className="text-lg text-emerald-800">
+          {content.capabilities.subheading}
+        </p>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        {content.capabilities.features.map((feature) => (
+          <div
+            key={feature.title}
+            className="flex h-full flex-col gap-3 rounded-2xl border border-emerald-100 bg-white/70 p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+          >
+            <div className="flex items-center gap-3 text-emerald-900">
+              <feature.icon className="text-amber-400" size={24} />
+              <h3 className="text-xl font-semibold">{feature.title}</h3>
             </div>
-            <h3 className="text-xl font-semibold text-emerald-900 mb-2">
-              {stat.label}
-            </h3>
-            <p className="text-emerald-600 text-sm">{stat.description}</p>
+            <p className="text-base text-emerald-800">{feature.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+const CaseStudy: React.FC<SectionProps> = ({ id }) => (
+  <section id={id} className="bg-emerald-950 py-20 text-white">
+    <div className="mx-auto max-w-6xl px-6">
+      <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+        <div className="space-y-5">
+          <p className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900/60 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-amber-200">
+            Caso de éxito
+          </p>
+          <h2 className="text-3xl font-bold md:text-4xl">{content.caseStudy.heading}</h2>
+          <p className="text-lg text-emerald-100">{content.caseStudy.description}</p>
+          <div className="rounded-xl border border-emerald-700/70 bg-emerald-900/60 p-5 text-sm text-emerald-100">
+            {content.caseStudy.note}
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {content.caseStudy.stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-2xl border border-emerald-700/80 bg-emerald-900/60 p-5 text-center shadow-lg"
+            >
+              <p className="text-3xl font-extrabold text-amber-200">{stat.value}</p>
+              <p className="mt-2 text-sm text-emerald-100">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-12 grid gap-6 sm:grid-cols-3">
+        {[
+          { label: "Validación industrial", value: "Holanda / Chile" },
+          { label: "Rotación y calibre", value: "Control en tiempo real" },
+          { label: "Autonomía", value: "Cero nube" },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="flex items-center justify-between rounded-2xl border border-emerald-800 bg-emerald-900/50 px-4 py-3 text-sm text-emerald-50"
+          >
+            <span>{item.label}</span>
+            <TrendingUp className="text-amber-300" size={18} />
+            <span className="font-semibold text-amber-200">{item.value}</span>
           </div>
         ))}
       </div>
@@ -365,94 +393,103 @@ const Results: React.FC<SectionProps> = ({ id }) => (
 );
 
 const Contact: React.FC<SectionProps> = ({ id }) => (
-  <section
-    id={id}
-    className="py-20 bg-gradient-to-br from-emerald-900 to-emerald-800 text-white"
-  >
-    <div className="container mx-auto px-6 text-center">
-      <Mail size={60} className="mx-auto mb-6 text-amber-300" />
-      <h2 className="text-4xl font-bold mb-4">{companyData.contact.title}</h2>
-      <p className="text-lg text-emerald-100 max-w-2xl mx-auto mb-10 leading-relaxed">
-        {companyData.contact.text}
-      </p>
-      <div className="space-y-6 md:space-y-0 md:space-x-12 md:flex md:justify-center items-center">
-        <a
-          href={`tel:${companyData.phone.replace(/\s/g, "")}`}
-          className="flex items-center justify-center text-xl hover:text-amber-300 transition-colors duration-300 group"
-        >
-          <Phone
-            size={28}
-            className="mr-3 text-amber-300 group-hover:animate-pulse"
-          />
-          {companyData.phone}
-        </a>
-        <a
-          href={`mailto:${companyData.email}`}
-          className="flex items-center justify-center text-xl hover:text-amber-300 transition-colors duration-300 group"
-        >
-          <Mail
-            size={28}
-            className="mr-3 text-amber-300 group-hover:animate-pulse"
-          />
-          {companyData.email}
-        </a>
+  <section id={id} className="bg-emerald-50 py-20">
+    <div className="mx-auto max-w-6xl px-6">
+      <div className="rounded-3xl border border-emerald-200 bg-white p-10 shadow-lg lg:p-14">
+        <div className="grid gap-8 lg:grid-cols-[2fr,1fr] lg:items-center">
+          <div className="space-y-4">
+            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-emerald-700">
+              Siguiente paso
+            </p>
+            <h2 className="text-3xl font-bold text-emerald-950 md:text-4xl">
+              {content.closing.heading}
+            </h2>
+            <p className="text-lg text-emerald-800">
+              {content.hero.description}
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <a
+                href="mailto:contacto@qualiblick.com"
+                className="flex items-center gap-2 rounded-full bg-amber-300 px-5 py-3 text-sm font-semibold text-emerald-950 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                {content.closing.cta}
+              </a>
+              <a
+                href={`tel:${content.brand.phone.replace(/\s/g, "")}`}
+                className="flex items-center gap-2 rounded-full border border-emerald-200 px-5 py-3 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
+              >
+                <Phone size={18} /> {content.brand.phone}
+              </a>
+            </div>
+          </div>
+          <div className="space-y-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-6 text-emerald-900">
+            <div className="flex items-center gap-3">
+              <Sparkles className="text-emerald-600" size={20} />
+              <div>
+                <p className="text-sm font-semibold">Correo</p>
+                <a
+                  href={`mailto:${content.brand.email}`}
+                  className="text-base font-medium text-emerald-950"
+                >
+                  {content.brand.email}
+                </a>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Signal className="text-emerald-600" size={20} />
+              <div>
+                <p className="text-sm font-semibold">Ubicación</p>
+                <p className="text-base font-medium text-emerald-950">Santiago, Chile</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 );
 
 const Footer: React.FC = () => (
-  <footer className="bg-emerald-900 text-emerald-100 py-10 text-center">
-    <div className="container mx-auto px-6">
-      <div className="mb-4">
+  <footer className="border-t border-emerald-900/20 bg-emerald-950 py-10 text-emerald-100">
+    <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 md:flex-row md:items-start md:justify-between">
+      <div className="space-y-3">
         <Logo />
+        <p className="max-w-xl text-sm text-emerald-200">{content.footer.legal}</p>
+        <p className="text-xs text-emerald-400">© 2025 {content.brand.name} Inc.</p>
       </div>
-      <p>
-        &copy; {new Date().getFullYear()} {companyData.name}. Todos los derechos
-        reservados.
-      </p>
-      <p className="text-sm mt-1 text-emerald-300">
-        Transformando la Agroindustria con Inteligencia Artificial.
-      </p>
+      <div className="grid gap-3 sm:grid-cols-2 sm:gap-6">
+        {content.footer.links.map((link) => (
+          <a
+            key={link.label}
+            href={link.href}
+            className="text-sm font-semibold text-emerald-100 transition hover:text-amber-200"
+          >
+            {link.label}
+          </a>
+        ))}
+        <a
+          href={`mailto:${content.brand.email}`}
+          className="text-sm font-semibold text-emerald-100 transition hover:text-amber-200"
+        >
+          contacto@qualiblick.com
+        </a>
+      </div>
     </div>
   </footer>
 );
 
-const App: React.FC = () => {
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("animate-fade-in-up-scroll");
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
+const HomePage: React.FC = () => (
+  <div className="bg-white font-sans text-emerald-950">
+    <Navbar />
+    <main>
+      <Hero id="home" />
+      <Friction id="problema" />
+      <Capabilities id="tecnologia" />
+      <CaseStudy id="caso" />
+      <Contact id="contacto" />
+    </main>
+    <Footer />
+  </div>
+);
 
-    document
-      .querySelectorAll("section > div > *:not(h2):not(p:first-of-type)")
-      .forEach((el) => {
-        observer.observe(el);
-      });
-
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div className="font-sans antialiased bg-emerald-50">
-      <Navbar />
-      <main>
-        <Hero id="home" />
-        <Mission id="mision" />
-        <Solutions id="soluciones" />
-        <Results id="resultados" />
-        <Contact id="contacto" />
-      </main>
-      <Footer />
-    </div>
-  );
-};
-
-export default App;
+export default HomePage;
