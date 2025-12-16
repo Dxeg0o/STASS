@@ -37,7 +37,7 @@ export default function Hero() {
               Sin Estimaciones.
             </h1>
             
-            <p className="text-lg lg:text-xl text-slate-400 mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed">
+            <p className="text-lg lg:text-xl text-slate-300 mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed">
               Sistema de visión artificial autónomo que transforma flujos físicos en datos financieros exactos.
             </p>
 

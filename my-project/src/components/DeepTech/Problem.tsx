@@ -17,7 +17,7 @@ export default function Problem() {
             >
                 <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-8">
                     La incertidumbre cuesta millones. <br />
-                    <span className="text-slate-500">
+                    <span className="text-slate-400">
                         Los sistemas actuales se saturan cuando tu línea acelera.
                     </span>
                 </h2>
