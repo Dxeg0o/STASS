@@ -20,7 +20,7 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <Image src="/images/qb.png" alt="Qualiblick" width={120} height={48} className="h-12 w-auto" />
+              <Image src="/images/qb.png" alt="Qualiblick" width={120} height={48} className="h-12 w-auto py-1.5" />
             </Link>
           </div>
 
