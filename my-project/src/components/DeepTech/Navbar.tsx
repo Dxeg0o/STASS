@@ -30,8 +30,8 @@ export default function Navbar() {
               <Link href="#technology" className="text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">
                 Tecnología
               </Link>
-              <Link href="#validation" className="text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">
-                Validación
+              <Link href="#cases" className="text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">
+                Casos de Éxito
               </Link>
               <Link href="#contact" className="text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">
                 Contacto
@@ -41,8 +41,8 @@ export default function Navbar() {
 
           {/* CTA Button */}
           <div className="hidden md:block">
-            <Link href="/login" className="inline-block bg-transparent hover:bg-cyan-400/10 text-cyan-400 font-semibold hover:text-cyan-300 py-2 px-4 border border-cyan-400 hover:border-cyan-300 rounded transition-all shadow-[0_0_10px_rgba(34,211,238,0.2)] hover:shadow-[0_0_20px_rgba(34,211,238,0.4)]">
-              Iniciar Sesión
+            <Link href="#contact" className="inline-block bg-transparent hover:bg-cyan-400/10 text-cyan-400 font-semibold hover:text-cyan-300 py-2 px-4 border border-cyan-400 hover:border-cyan-300 rounded transition-all shadow-[0_0_10px_rgba(34,211,238,0.2)] hover:shadow-[0_0_20px_rgba(34,211,238,0.4)]">
+              Agendar Demo
             </Link>
           </div>
 
@@ -65,14 +65,14 @@ export default function Navbar() {
             <Link href="#technology" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
               Tecnología
             </Link>
-            <Link href="#validation" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
-              Validación
+            <Link href="#cases" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+              Casos de Éxito
             </Link>
             <Link href="#contact" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
               Contacto
             </Link>
-            <Link href="/login" className="block w-full mt-4 bg-transparent hover:bg-cyan-400/10 text-cyan-400 font-semibold py-2 px-4 border border-cyan-400 rounded transition-all text-center">
-              Iniciar Sesión
+            <Link href="#contact" className="block w-full mt-4 bg-transparent hover:bg-cyan-400/10 text-cyan-400 font-semibold py-2 px-4 border border-cyan-400 rounded transition-all text-center">
+              Agendar Demo
             </Link>
           </div>
         </div>

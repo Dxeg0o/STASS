@@ -25,7 +25,7 @@ export default function Hero() {
           >
             <div className="flex items-center justify-center lg:justify-start space-x-2 mb-6">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-cyan-950/50 text-cyan-400 border border-cyan-400/20 shadow-[0_0_10px_rgba(34,211,238,0.2)]">
-                    <Zap className="w-3 h-3 mr-1" /> Tecnología Validada Industrialmente
+                    <Zap className="w-3 h-3 mr-1" /> TECNOLOGÍA VALIDADA INDUSTRIALMENTE
                 </span>
             </div>
             
@@ -38,33 +38,18 @@ export default function Hero() {
             </h1>
             
             <p className="text-lg lg:text-xl text-slate-300 mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed">
-              Sistema de visión artificial autónomo que transforma flujos físicos en datos financieros exactos.
+              Transforma tus flujos físicos en datos financieros exactos. Un sistema de visión autónomo que opera donde lo necesites: desde la cosecha en campo hasta la línea de proceso.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Link href="/audit" className="bg-cyan-400 text-slate-950 font-bold py-3 px-8 rounded hover:bg-cyan-300 transition-all shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] text-center relative overflow-hidden group">
-                <span className="relative z-10">Agendar Demo</span>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center">
+              <Link href="#technology" className="bg-cyan-400 text-slate-950 font-bold py-3 px-8 rounded hover:bg-cyan-300 transition-all shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] text-center relative overflow-hidden group">
+                <span className="relative z-10">Ver Tecnología en Acción</span>
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 transform-gpu" />
               </Link>
-              <button className="relative bg-transparent group text-slate-300 font-medium py-3 px-8 rounded transition-colors overflow-hidden">
-                <div className="absolute inset-0 border border-slate-700 rounded group-hover:border-slate-500 transition-colors" />
-                 {/* Button Glow Effect */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-20 bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 transition-opacity" />
-                <span className="relative z-10 group-hover:text-white transition-colors">Ver Tecnología</span>
-              </button>
             </div>
-
-            <div className="mt-12 flex items-center justify-center lg:justify-start space-x-8 text-slate-500 text-sm">
-                <div>
-                   <span className="block text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">97.54%</span>
-                   <span className="text-slate-400">Precisión en Conteo</span>
-                </div>
-                <div className="h-10 w-px bg-gradient-to-b from-transparent via-slate-700 to-transparent"></div>
-                 <div>
-                   <span className="block text-2xl font-bold text-white">Procesamiento Local</span>
-                   <span className="text-slate-400">Sin Dependencia de Nube</span>
-                </div>
-            </div>
+             <p className="mt-4 text-slate-500 text-sm">
+                Precisión validada en formas complejas (Bulbos de Lilium).
+             </p>
           </motion.div>
 
           {/* Visual Simulation (Fake UI) */}

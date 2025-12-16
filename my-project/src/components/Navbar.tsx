@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X } from "lucide-react";
 
 const navLinks = [
@@ -25,7 +26,7 @@ const Navbar: React.FC = () => {
       <div className="container mx-auto flex justify-between items-center">
         <Link href="#home" onClick={(e) => scrollToSection(e, "#home")}>
           <div className="flex items-center space-x-2">
-            <img src="images/qb.png" alt="Qualiblick" className="w-124 h-12" />
+            <Image src="/images/qb.png" alt="Qualiblick" width={124} height={48} className="w-auto h-12" />
           </div>{" "}
         </Link>
 
