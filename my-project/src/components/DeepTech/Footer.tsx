@@ -47,11 +47,11 @@ export default function Footer() {
                     <h4 className="text-white font-medium mb-4">Contacto</h4>
                     <ul className="space-y-4 text-sm text-slate-400">
                         <li>
-                            <a href="mailto:dsoler.olguin@gmail.com" className="flex items-center space-x-3 hover:text-cyan-400 transition-colors group">
+                            <a href="mailto:qualiblick@gmail.com" className="flex items-center space-x-3 hover:text-cyan-400 transition-colors group">
                                 <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-cyan-400/30 transition-colors">
                                     <Mail className="w-4 h-4" />
                                 </div>
-                                <span>dsoler.olguin@gmail.com</span>
+                                <span>qualiblick@gmail.com</span>
                             </a>
                         </li>
                         <li>

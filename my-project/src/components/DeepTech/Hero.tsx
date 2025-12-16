@@ -37,7 +37,7 @@ export default function Hero() {
             </h1>
             
             <p className="text-lg lg:text-xl text-slate-400 mb-8 max-w-lg leading-relaxed">
-              Plataforma de visión artificial autónoma que transforma flujos físicos en datos financieros exactos.
+              Sistema de visión artificial autónomo que transforma flujos físicos en datos financieros exactos.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
