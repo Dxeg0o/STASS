@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ScanFace, Zap } from "lucide-react";
 
@@ -37,9 +38,9 @@ export default function Hero() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="bg-cyan-400 text-slate-950 font-bold py-3 px-8 rounded hover:bg-cyan-300 transition-colors shadow-[0_0_20px_rgba(34,211,238,0.3)]">
-                Agendar Demo
-              </button>
+              <Link href="/login" className="bg-cyan-400 text-slate-950 font-bold py-3 px-8 rounded hover:bg-cyan-300 transition-colors shadow-[0_0_20px_rgba(34,211,238,0.3)] text-center">
+                Iniciar Sesión
+              </Link>
               <button className="bg-transparent border border-slate-700 text-slate-300 font-medium py-3 px-8 rounded hover:border-slate-500 hover:text-white transition-colors">
                 Ver Tecnología
               </button>

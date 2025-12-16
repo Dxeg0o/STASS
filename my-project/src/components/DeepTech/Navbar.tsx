@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -18,8 +19,8 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href="/" className="text-2xl font-bold tracking-tighter text-white">
-              Qualiblick
+            <Link href="/" className="flex items-center">
+              <Image src="/images/qb.png" alt="Qualiblick" width={120} height={48} className="h-12 w-auto" />
             </Link>
           </div>
 
@@ -40,9 +41,9 @@ export default function Navbar() {
 
           {/* CTA Button */}
           <div className="hidden md:block">
-            <button className="bg-transparent hover:bg-cyan-400/10 text-cyan-400 font-semibold hover:text-cyan-300 py-2 px-4 border border-cyan-400 hover:border-cyan-300 rounded transition-all shadow-[0_0_10px_rgba(34,211,238,0.2)] hover:shadow-[0_0_20px_rgba(34,211,238,0.4)]">
-              Agendar Demo
-            </button>
+            <Link href="/login" className="inline-block bg-transparent hover:bg-cyan-400/10 text-cyan-400 font-semibold hover:text-cyan-300 py-2 px-4 border border-cyan-400 hover:border-cyan-300 rounded transition-all shadow-[0_0_10px_rgba(34,211,238,0.2)] hover:shadow-[0_0_20px_rgba(34,211,238,0.4)]">
+              Iniciar Sesión
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -70,9 +71,9 @@ export default function Navbar() {
             <Link href="#contact" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
               Contacto
             </Link>
-            <button className="w-full mt-4 bg-transparent hover:bg-cyan-400/10 text-cyan-400 font-semibold py-2 px-4 border border-cyan-400 rounded transition-all">
-              Agendar Demo
-            </button>
+            <Link href="/login" className="block w-full mt-4 bg-transparent hover:bg-cyan-400/10 text-cyan-400 font-semibold py-2 px-4 border border-cyan-400 rounded transition-all text-center">
+              Iniciar Sesión
+            </Link>
           </div>
         </div>
       )}
