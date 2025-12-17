@@ -16,7 +16,7 @@ export default function CoreTech() {
             viewport={{ once: true }}
             className="mb-16 text-center lg:text-left"
         >
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Diseñado para la realidad hostil de tu operación.</h2>
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Diseñado para la realidad de tu operación.</h2>
             <p className="text-slate-400 text-lg max-w-2xl mx-auto lg:mx-0">
                 Tecnología robusta que se adapta a tu entorno, no al revés.
             </p>
@@ -69,7 +69,7 @@ export default function CoreTech() {
                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 to-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                  <div className="relative z-10">
                     <Zap className="w-10 h-10 text-emerald-400 mb-6" />
-                    <h3 className="text-2xl font-bold text-white mb-4">Listo para Temporada Alta.</h3>
+                    <h3 className="text-2xl font-bold text-white mb-4">Listo para Alto Flujo.</h3>
                     <p className="text-slate-400 leading-relaxed">
                         Probado en flujos de alta velocidad (&gt;20 objetos/segundo). Cuando la presión sube, el sistema mantiene la precisión sin saturarse.
                     </p>
@@ -87,7 +87,7 @@ export default function CoreTech() {
                  <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                  <div className="relative z-10">
                     <Layers className="w-10 h-10 text-blue-400 mb-6" />
-                    <h3 className="text-2xl font-bold text-white mb-4">Datos Financieros Inmediatos.</h3>
+                    <h3 className="text-2xl font-bold text-white mb-4">Datos Claves Inmediatos.</h3>
                     <p className="text-slate-400 leading-relaxed">
                         Convierte el flujo físico en números para tu ERP o Excel. Deja de esperar al informe de cierre de turno; ten el control en tiempo real.
                     </p>

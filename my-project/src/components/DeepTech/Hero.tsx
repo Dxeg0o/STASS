@@ -38,7 +38,7 @@ export default function Hero() {
             </h1>
             
             <p className="text-lg lg:text-xl text-slate-300 mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed">
-              Transforma tus flujos físicos en datos financieros exactos. Un sistema de visión autónomo que opera donde lo necesites: desde la cosecha en campo hasta la línea de proceso.
+              Transforma tus flujos físicos en datos claves exactos. Un sistema de visión autónomo que opera donde lo necesites: desde la cosecha en campo hasta la línea de proceso.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center">

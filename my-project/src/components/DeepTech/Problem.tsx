@@ -83,7 +83,7 @@ export default function Problem() {
                 <div className="h-1 w-24 bg-gradient-to-r from-cyan-400 to-transparent mx-auto rounded-full mb-8" />
                 
                 <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-16 leading-relaxed">
-                    En la agroindustria, muchas veces se opera basándose en estimaciones al ojo o se obtienen los datos reales cuando el proceso ya terminó.
+                    En la agroindustria, muchas veces se opera basándose en estimaciones imprecisas o se obtienen los datos reales cuando el proceso ya terminó.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
@@ -134,7 +134,7 @@ export default function Problem() {
                     className="mt-16"
                 >
                     <p className="text-2xl font-medium text-white italic">
-                        &quot;Elimina la suposición. Toma decisiones con datos reales, al instante.&quot;
+                        &quot;Elimina la suposición. Con Qualiblick toma decisiones con datos reales, al instante.&quot;
                     </p>
                 </motion.div>
 

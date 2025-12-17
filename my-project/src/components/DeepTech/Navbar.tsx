@@ -27,14 +27,17 @@ export default function Navbar() {
           {/* Desktop Menu */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
-              <Link href="#technology" className="text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">
+              <Link href="/#technology" className="text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">
                 Tecnología
               </Link>
-              <Link href="#cases" className="text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">
+              <Link href="/#cases" className="text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">
                 Casos de Éxito
               </Link>
-              <Link href="#contact" className="text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">
-                Contacto
+              <Link href="/login" className="text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">
+                Ingresar
+              </Link>
+              <Link href="/register" className="text-slate-300 hover:text-cyan-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">
+                Registrarse
               </Link>
             </div>
           </div>
@@ -62,14 +65,17 @@ export default function Navbar() {
       {isOpen && (
         <div className="md:hidden bg-slate-950 border-b border-white/10">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link href="#technology" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+            <Link href="/#technology" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
               Tecnología
             </Link>
-            <Link href="#cases" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+            <Link href="/#cases" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
               Casos de Éxito
             </Link>
-            <Link href="#contact" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
-              Contacto
+            <Link href="/login" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+              Ingresar
+            </Link>
+            <Link href="/register" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+              Registrarse
             </Link>
             <Link href="#contact" className="block w-full mt-4 bg-transparent hover:bg-cyan-400/10 text-cyan-400 font-semibold py-2 px-4 border border-cyan-400 rounded transition-all text-center">
               Agendar Demo

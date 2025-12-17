@@ -13,7 +13,7 @@ export default function Footer() {
                 <div className="col-span-1">
                     <h3 className="text-2xl font-bold text-white mb-4">Qualiblick</h3>
                     <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                        Transformando la agroindustria mediante visión artificial y datos financieros de alta precisión.
+                        Transformando la agroindustria mediante visión artificial y datos claves de alta precisión.
                     </p>
                     <div className="text-slate-500 text-xs">
                         © 2025 Qualiblick Inc.
@@ -31,17 +31,17 @@ export default function Footer() {
                         </li>
                         <li>
                             <Link href="#cases" className="hover:text-cyan-400 transition-colors">
-                                Validación Industrial
+                                Casos de Éxito
                             </Link>
                         </li>
                         <li>
-                            <Link href="#cases" className="hover:text-cyan-400 transition-colors">
-                                Casos de Estudio
+                            <Link href="/login" className="hover:text-cyan-400 transition-colors">
+                                Ingresar
                             </Link>
                         </li>
-                         <li>
-                            <Link href="#contact" className="hover:text-cyan-400 transition-colors">
-                                Contacto
+                        <li>
+                            <Link href="/register" className="hover:text-cyan-400 transition-colors">
+                                Registrarse
                             </Link>
                         </li>
                     </ul>
