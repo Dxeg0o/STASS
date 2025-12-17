@@ -76,7 +76,7 @@ export default function Footer() {
             
             <div className="border-t border-white/5 pt-8 text-center md:text-left">
                  <p className="text-slate-600 text-xs">
-                    Designed for High-Throughput Environments.
+                    Democratizar la IA en la agroindustria.
                 </p>
             </div>
         </div>
