@@ -63,9 +63,10 @@ const cardVariants = {
 
 export default function Problem() {
   return (
-    <section className="py-24 bg-slate-950 relative overflow-hidden">
-        {/* Subtle background glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-slate-900/50 rounded-full blur-[120px] pointer-events-none" />
+    <section className="py-24 relative">
+        {/* Ambient background lighting */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-900/20 rounded-full blur-[128px] pointer-events-none -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[128px] pointer-events-none translate-y-1/3 -translate-x-1/3" />
         
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
             <motion.div

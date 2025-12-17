@@ -7,7 +7,10 @@ import Link from "next/link";
 
 export default function Validation() {
   return (
-    <section id="cases" className="py-24 bg-slate-950 border-t border-white/5 relative bg-[linear-gradient(to_bottom,#020617,#0f172a)]">
+    <section id="cases" className="py-24 relative">
+        {/* Ambient background lighting */}
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[128px] pointer-events-none -translate-y-1/2" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[128px] pointer-events-none translate-y-1/2" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-16 text-center">
                  <span className="text-cyan-400 font-bold uppercase tracking-widest text-sm mb-2 block">Caso de Éxito</span>
@@ -61,7 +64,7 @@ export default function Validation() {
                         0
                     </h3>
                     <p className="text-sm md:text-base font-medium text-slate-400 uppercase tracking-widest">
-                        Dependencia de Nube
+                        Dependencia de Operario
                     </p>
                 </motion.div>
             </div>

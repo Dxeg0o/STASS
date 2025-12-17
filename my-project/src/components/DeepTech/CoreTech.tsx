@@ -5,9 +5,10 @@ import { BrainCircuit, Cpu, Zap, Layers } from "lucide-react";
 
 export default function CoreTech() {
   return (
-    <section id="technology" className="py-12 bg-slate-950 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        {/* Subtle Background Glow */}
-        <div className="absolute center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none" />
+    <section id="technology" className="py-12 px-4 sm:px-6 lg:px-8 relative">
+        {/* Ambient background lighting */}
+        <div className="absolute top-1/4 left-0 w-[600px] h-[600px] bg-purple-900/10 rounded-full blur-[128px] pointer-events-none -translate-x-1/2" />
+        <div className="absolute bottom-1/4 right-0 w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[128px] pointer-events-none translate-x-1/2" />
 
    <div className="max-w-7xl mx-auto relative z-10">
         <motion.div 

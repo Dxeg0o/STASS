@@ -9,7 +9,7 @@ import Footer from "../components/DeepTech/Footer";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-950 text-white selection:bg-cyan-400/30 font-sans">
+    <main className="min-h-screen bg-slate-950 text-white selection:bg-cyan-400/30 font-sans overflow-x-hidden">
       <Navbar />
       <Hero />
       <Problem />

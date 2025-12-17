@@ -5,8 +5,10 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer id="contact" className="bg-slate-950 border-t border-white/5 pt-16 pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer id="contact" className="pt-16 pb-8 text-center md:text-left relative overflow-hidden">
+        {/* Ambient background lighting for footer */}
+         <div className="absolute bottom-0 left-1/2 w-[500px] h-[300px] bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none -translate-x-1/2 translate-y-1/2" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
                 
                 {/* Column 1: Brand */}
