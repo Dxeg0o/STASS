@@ -67,7 +67,7 @@ export default function Validation() {
             </div>
             
             {/* Final CTA */}
-            <div className="text-center bg-gradient-to-r from-cyan-900/20 to-blue-900/20 border border-white/5 rounded-3xl p-12 max-w-4xl mx-auto">
+            <div className="text-center bg-gradient-to-r from-cyan-900/20 to-blue-900/20 border border-white/5 rounded-3xl p-12 max-w-4xl mx-auto mt-32">
                 <h3 className="text-2xl md:text-3xl font-bold text-white mb-6">Haz que tu operación tenga datos precisos a tiempo.</h3>
                 <Link href="#contact" className="inline-block bg-white text-slate-950 font-bold py-3 px-8 rounded hover:bg-slate-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]">
                     Agendar una Demostración
