@@ -3,41 +3,6 @@
 import { motion } from "framer-motion";
 import { BrainCircuit, Cpu, Zap, Layers } from "lucide-react";
 
-const cards = [
-    {
-        title: "Deep Learning Físico",
-        description: "Algoritmos que entienden rotación, calibre y movimiento. No solo píxeles. Entrenados en entornos industriales reales.",
-        icon: BrainCircuit,
-        colSpan: "lg:col-span-2",
-        bgGradient: "from-cyan-900/20 to-slate-900/20",
-        shadowColor: "shadow-cyan-500/10"
-    },
-    {
-        title: "Edge Computing",
-        description: "Procesamiento local en hardware. Latencia cero. Sin dependencia de la nube.",
-        icon: Cpu,
-        colSpan: "lg:col-span-1",
-        bgGradient: "from-purple-900/20 to-slate-900/20",
-        shadowColor: "shadow-purple-500/10"
-    },
-    {
-        title: "High-Density Ready",
-        description: "Soporte para flujos de >20 objetos/segundo sin pérdida de datos. Escalabilidad nativa.",
-        icon: Layers,
-        colSpan: "lg:col-span-1",
-        bgGradient: "from-emerald-900/20 to-slate-900/20",
-        shadowColor: "shadow-emerald-500/10"
-    },
-    {
-        title: "Integración Total",
-        description: "API directa a tu ERP/WMS actual. ",
-        icon: Zap,
-        colSpan: "lg:col-span-2",
-        bgGradient: "from-blue-900/20 to-slate-900/20",
-        shadowColor: "shadow-blue-500/10"
-    }
-];
-
 export default function CoreTech() {
   return (
     <section id="technology" className="py-12 bg-slate-950 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
