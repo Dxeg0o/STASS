@@ -36,7 +36,7 @@ export default function CoreTech() {
                     <BrainCircuit className="w-10 h-10 text-cyan-400 mb-6" />
                     <h3 className="text-2xl font-bold text-white mb-4">Detecta lo que otros ignoran.</h3>
                     <p className="text-slate-400 leading-relaxed">
-                        Entrenado para identificar productos orgánicos complejos e irregulares. Validado detectando bulbos, entiende rotación y calibres, ignorando tierra y suciedad.
+                        Entrenado para identificar productos orgánicos complejos e irregulares. Validado detectando bulbos, entiende variedades y calibres, ignorando tierra y suciedad.
                     </p>
                  </div>
             </motion.div>

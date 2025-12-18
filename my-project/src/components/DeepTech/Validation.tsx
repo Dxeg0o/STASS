@@ -61,7 +61,7 @@ export default function Validation() {
                     className="py-8 md:py-0 px-4"
                 >
                     <h3 className="text-5xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-4">
-                        0
+                        0%
                     </h3>
                     <p className="text-sm md:text-base font-medium text-slate-400 uppercase tracking-widest">
                         Dependencia de Operario

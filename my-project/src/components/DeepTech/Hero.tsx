@@ -63,7 +63,7 @@ export default function Hero() {
                 {/* Simulated 3D Scanner Container */}
                 <div className="absolute inset-0 bg-black rounded-2xl border border-white/5 overflow-hidden">
                     <video
-                        className="absolute inset-0 w-full h-full object-cover opacity-60"
+                        className="absolute inset-0 w-full h-full object-cover opacity-70"
                         autoPlay
                         loop
                         muted
