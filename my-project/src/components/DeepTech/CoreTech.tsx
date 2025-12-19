@@ -36,7 +36,7 @@ export default function CoreTech() {
                     <BrainCircuit className="w-10 h-10 text-cyan-400 mb-6" />
                     <h3 className="text-2xl font-bold text-white mb-4">Detecta lo que otros ignoran.</h3>
                     <p className="text-slate-400 leading-relaxed">
-                        Entrenado para identificar productos orgánicos complejos e irregulares. Validado detectando bulbos, entiende variedades y calibres, ignorando tierra y suciedad.
+                        Entrenado para identificar productos orgánicos complejos e irregulares. Validado detectando bulbos, resistiendo a diversas variedades y calibres, ignorando tierra y suciedad.
                     </p>
                  </div>
             </motion.div>
@@ -54,7 +54,7 @@ export default function CoreTech() {
                     <Cpu className="w-10 h-10 text-purple-400 mb-6" />
                     <h3 className="text-2xl font-bold text-white mb-4">Funciona donde está el problema.</h3>
                     <p className="text-slate-400 leading-relaxed">
-                        Ya sea en medio del campo, en la recepción o en la salida del proceso. Nuestro hardware procesa localmente y no depende de cables de red ni internet estable.
+                        Ya sea en medio del campo, en la recepción o en la salida del proceso. Nuestro hardware procesa localmente, no depende de internet estable.
                     </p>
                  </div>
             </motion.div>
@@ -70,9 +70,9 @@ export default function CoreTech() {
                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 to-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                  <div className="relative z-10">
                     <Zap className="w-10 h-10 text-emerald-400 mb-6" />
-                    <h3 className="text-2xl font-bold text-white mb-4">Listo para Alto Flujo.</h3>
+                    <h3 className="text-2xl font-bold text-white mb-4">Robusto ante Alto Flujo.</h3>
                     <p className="text-slate-400 leading-relaxed">
-                        Probado en flujos de alta velocidad (&gt;20 objetos/segundo). Cuando la presión sube, el sistema mantiene la precisión sin saturarse.
+                        Probado en alto flujo (&gt;20 objetos/seg). Mantiene precisión y estabilidad cuando aumenta la velocidad de línea.
                     </p>
                  </div>
             </motion.div>
@@ -88,10 +88,10 @@ export default function CoreTech() {
                  <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                  <div className="relative z-10">
                     <Layers className="w-10 h-10 text-blue-400 mb-6" />
-                    <h3 className="text-2xl font-bold text-white mb-4">Datos Claves Inmediatos.</h3>
+                    <h3 className="text-2xl font-bold text-white mb-4">Datos de producción listos para decisión.</h3>
                     <p className="text-slate-400 leading-relaxed">
-                        Convierte el flujo físico en números para tu ERP o Excel. Deja de esperar al informe de cierre de turno; ten el control en tiempo real.
-                    </p>
+Accede a un dashboard con métricas clave, gráficos y segmentación por lote, turno o período.
+Controla el desempeño real de tu operación en tiempo real.                    </p>
                  </div>
             </motion.div>
         </div>

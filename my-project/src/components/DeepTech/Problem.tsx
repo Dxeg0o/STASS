@@ -135,7 +135,7 @@ export default function Problem() {
                     className="mt-16"
                 >
                     <p className="text-2xl font-medium text-white italic">
-                        &quot;Elimina la suposición. Con Qualiblick toma decisiones con datos reales, al instante.&quot;
+                        Elimina la suposición. Con Qualiblick toma decisiones con datos reales, al instante.
                     </p>
                 </motion.div>
 
