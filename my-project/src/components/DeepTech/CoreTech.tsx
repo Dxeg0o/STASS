@@ -1,0 +1,101 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { BrainCircuit, Cpu, Zap, Layers } from "lucide-react";
+
+export default function CoreTech() {
+  return (
+    <section id="technology" className="py-12 px-4 sm:px-6 lg:px-8 relative">
+        {/* Ambient background lighting */}
+        <div className="absolute top-1/4 left-0 w-[600px] h-[600px] bg-purple-900/10 rounded-full blur-[128px] pointer-events-none -translate-x-1/2" />
+        <div className="absolute bottom-1/4 right-0 w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[128px] pointer-events-none translate-x-1/2" />
+
+   <div className="max-w-7xl mx-auto relative z-10">
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-16 text-center lg:text-left"
+        >
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Diseñado para la realidad de tu operación.</h2>
+            <p className="text-slate-400 text-lg max-w-2xl mx-auto lg:mx-0">
+                Tecnología robusta que se adapta a tu entorno, no al revés.
+            </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Card 1 */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="relative group overflow-hidden rounded-2xl border border-white/5 bg-white/5 backdrop-blur-md p-8 transition-all duration-500 hover:border-white/10 hover:shadow-2xl shadow-cyan-500/10 hover:-translate-y-1"
+            >
+                 <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/20 to-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                 <div className="relative z-10">
+                    <BrainCircuit className="w-10 h-10 text-cyan-400 mb-6" />
+                    <h3 className="text-2xl font-bold text-white mb-4">Detecta lo que otros ignoran.</h3>
+                    <p className="text-slate-400 leading-relaxed">
+                        Entrenado para identificar productos orgánicos complejos e irregulares. Validado detectando bulbos, resistiendo a diversas variedades y calibres, ignorando tierra y suciedad.
+                    </p>
+                 </div>
+            </motion.div>
+
+            {/* Card 2 */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="relative group overflow-hidden rounded-2xl border border-white/5 bg-white/5 backdrop-blur-md p-8 transition-all duration-500 hover:border-white/10 hover:shadow-2xl shadow-purple-500/10 hover:-translate-y-1"
+            >
+                 <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                 <div className="relative z-10">
+                    <Cpu className="w-10 h-10 text-purple-400 mb-6" />
+                    <h3 className="text-2xl font-bold text-white mb-4">Funciona donde está el problema.</h3>
+                    <p className="text-slate-400 leading-relaxed">
+                        Ya sea en medio del campo, en la recepción o en la salida del proceso. Nuestro hardware procesa localmente, no depende de internet estable.
+                    </p>
+                 </div>
+            </motion.div>
+
+             {/* Card 3 */}
+             <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="relative group overflow-hidden rounded-2xl border border-white/5 bg-white/5 backdrop-blur-md p-8 transition-all duration-500 hover:border-white/10 hover:shadow-2xl shadow-emerald-500/10 hover:-translate-y-1"
+            >
+                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 to-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                 <div className="relative z-10">
+                    <Zap className="w-10 h-10 text-emerald-400 mb-6" />
+                    <h3 className="text-2xl font-bold text-white mb-4">Robusto ante Alto Flujo.</h3>
+                    <p className="text-slate-400 leading-relaxed">
+                        Probado en alto flujo (&gt;20 objetos/seg). Mantiene precisión y estabilidad cuando aumenta la velocidad de línea.
+                    </p>
+                 </div>
+            </motion.div>
+
+            {/* Card 4 */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+                className="relative group overflow-hidden rounded-2xl border border-white/5 bg-white/5 backdrop-blur-md p-8 transition-all duration-500 hover:border-white/10 hover:shadow-2xl shadow-blue-500/10 hover:-translate-y-1"
+            >
+                 <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                 <div className="relative z-10">
+                    <Layers className="w-10 h-10 text-blue-400 mb-6" />
+                    <h3 className="text-2xl font-bold text-white mb-4">Datos de producción listos para decisión.</h3>
+                    <p className="text-slate-400 leading-relaxed">
+Accede a un dashboard con métricas clave, gráficos y segmentación por lote, turno o período.
+Controla el desempeño real de tu operación en tiempo real.                    </p>
+                 </div>
+            </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
