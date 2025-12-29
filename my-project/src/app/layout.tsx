@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.qualiblick.com"),
   title: "Qualiblick | Visión Artificial para la Agroindustria",
   description:
-    "Transformamos la producción agroindustrial con visión artificial validada. Datos precisos en tiempo real, sin estimaciones. Tecnología DeepTech escalable.",
+    "Transformamos la producción agroindustrial con visión artificial validada. Datos precisos en tiempo real, sin estimaciones.",
   openGraph: {
-    title: "Qualiblick | Tecnología DeepTech para el Agro",
+    title: "Qualiblick | Visión Artificial para la Agroindustria",
     description:
       "Digitaliza tu producción real. Visión artificial de alta precisión validada en entornos industriales complejos. Datos claves para la toma de decisiones.",
     url: "https://www.qualiblick.com",
