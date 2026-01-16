@@ -60,29 +60,29 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
 
   const commonLinkClasses =
     "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out text-sm font-medium tracking-wide";
-  const activeLinkClasses = "bg-amber-400 text-emerald-900 shadow-md";
+  const activeLinkClasses = "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.15)]";
   const inactiveLinkClasses =
-    "text-emerald-100 hover:bg-emerald-600 hover:text-white";
+    "text-slate-400 hover:bg-white/5 hover:text-white";
 
   return (
     <aside
       className={clsx(
-        "bg-emerald-800 text-white fixed inset-y-0 left-0 z-30 flex h-screen w-64 transform flex-col transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:shadow-lg",
+        "bg-slate-900/40 backdrop-blur-xl border-r border-white/10 text-white fixed inset-y-0 left-0 z-30 flex h-screen w-64 transform flex-col transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
         {
-          "translate-x-0 shadow-2xl": isOpen,
+          "translate-x-0 shadow-[0_0_40px_rgba(0,0,0,0.5)]": isOpen,
           "-translate-x-full": !isOpen,
         }
       )}
     >
       {/* Header del Sidebar con nombre de la empresa y botón de cerrar para móviles */}
-      <div className="flex h-16 items-center justify-between border-b border-emerald-600 px-4 md:px-6">
-        <Link href="/app" className="text-xl font-bold text-emerald-100">
+      <div className="flex h-16 items-center justify-between border-b border-white/10 px-4 md:px-6 bg-slate-950/20">
+        <Link href="/app" className="text-xl font-bold text-white tracking-tight">
           AgroBulbs
         </Link>
         {toggleSidebar && (
           <button
             onClick={toggleSidebar}
-            className="md:hidden text-amber-300 hover:text-amber-400 focus:outline-none"
+            className="md:hidden text-cyan-400 hover:text-cyan-300 focus:outline-none"
             aria-label="Cerrar menú"
           >
             <ChevronLeft size={24} />
@@ -94,7 +94,7 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
       <nav className="flex flex-1 flex-col space-y-6 overflow-y-auto p-4">
         {/* Selector de Servicio */}
         <div>
-          <span className="px-4 text-xs font-semibold uppercase text-emerald-300">
+          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
             Servicio
           </span>
           <Select
@@ -105,13 +105,13 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
             }}
             disabled={loading}
           >
-            <SelectTrigger className="mt-2">
+            <SelectTrigger className="mt-2 bg-slate-950/50 border-white/10 text-slate-200">
               <SelectValue placeholder={loading ? "Cargando..." : "Todos"} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-slate-900 border-white/10 text-slate-200">
               <SelectItem value="all">Todos</SelectItem>
               {servicios.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
+                <SelectItem key={s.id} value={s.id} className="hover:bg-cyan-950/30 hover:text-cyan-400 focus:bg-cyan-950/30 focus:text-cyan-400">
                   {s.nombre}
                 </SelectItem>
               ))}
@@ -121,7 +121,7 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
 
         {/* Navegación Principal */}
         <div>
-          <span className="px-4 text-xs font-semibold uppercase text-emerald-300">
+          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
             Principal
           </span>
           <ul className="mt-2 space-y-1">
@@ -150,7 +150,7 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
 
         {/* Navegación Secundaria */}
         <div className="mt-auto">
-          <span className="px-4 text-xs font-semibold uppercase text-emerald-300">
+          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
             Ajustes
           </span>
           <ul className="mt-2 space-y-1">

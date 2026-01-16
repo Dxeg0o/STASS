@@ -50,38 +50,42 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
+    --background: 222.2 84% 4.9%; /* slate-950 equivalent approx or use 0 0% 0% if pure black, but slate-950 is 222.2 47.4% 11.2% in HSL usually. Let's stick to what allows bg-slate-950 to work or override it here. 
+    Actually tailwind config has background: "var(--background)", so if we want bg-background to be slate-950 we should set it here.
+    Slate 950 hex is #020617. HSL: 222.2 84% 4.9% approx.
+    Let's align with the existing token or just use the hex directly if possible, but these are HSL values for some charts. 
+    However, the Landing page uses 'bg-slate-950' utility directly.
+    Let's set the base variables to match the landing page feel.
+    */
+    --background: 222.2 84% 4.9%; 
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%; /* card bg same as main bg or slightly lighter? Landing uses slate-900/60 for cards */
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --primary: 189 94% 43%; /* Cyan-400 equivalent #22d3ee -> 189 94% 43% approx */
+    --primary-foreground: 222.2 47.4% 11.2%; /* Slate-950 text on primary */
+ 
+    --secondary: 161 94% 30%; /* Emerald-600 approx or similar */
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+ 
+    --accent: 189 94% 43%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+ 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 189 94% 43%;
+ 
+    --radius: 0.75rem; 
   }
 }
 

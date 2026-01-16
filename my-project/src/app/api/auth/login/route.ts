@@ -5,10 +5,9 @@ import validator from "validator";
 import { connectDb } from "@/lib/mongodb";
 import User from "@/models/user";
 
-connectDb();
-
 export async function POST(req: NextRequest) {
   try {
+    await connectDb();
     const body = await req.json();
     const { email, password } = body;
 

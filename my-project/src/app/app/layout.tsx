@@ -33,19 +33,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <ProtectedRoute>
           {" "}
           {/* ProtectedRoute después de AuthContext */}
-          <div className="flex min-h-screen flex-col bg-gray-100">
-            {" "}
-            {/* Fondo claro para el contenido */}
+          <div className="flex min-h-screen flex-col bg-slate-950 text-white relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none z-0" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-cyan-500/20 rounded-[100%] blur-[100px] opacity-20 pointer-events-none z-0" />
+
             {/* Navbar Fijo */}
-            <AppNavbar
-              isSidebarOpen={isSidebarOpen}
-              toggleSidebar={toggleSidebar}
-            />
-            <div className="flex flex-1 pt-16">
+            <div className="relative z-20">
+              <AppNavbar
+                isSidebarOpen={isSidebarOpen}
+                toggleSidebar={toggleSidebar}
+              />
+            </div>
+            
+            <div className="flex flex-1 pt-16 relative z-10">
               {" "}
               {/* pt-16 para compensar altura del navbar */}
               {/* Sidebar */}
               <AppSidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+              
               {/* Overlay para el contenido cuando el sidebar está abierto en móviles */}
               {isSidebarOpen && (
                 <div
