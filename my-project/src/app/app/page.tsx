@@ -337,17 +337,25 @@ export default function Dashboard() {
                     >
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={volumeData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="hora" />
-                          <YAxis />
-                          <Tooltip />
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                          <XAxis dataKey="hora" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+                          <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+                          <Tooltip 
+                            contentStyle={{ 
+                                backgroundColor: "rgba(15, 23, 42, 0.9)", 
+                                borderColor: "rgba(255,255,255,0.1)", 
+                                borderRadius: "8px",
+                                color: "#f8fafc" 
+                            }} 
+                            itemStyle={{ color: "#22d3ee" }}
+                          />
                           <Line
                             type="monotone"
                             dataKey="volumen"
                             stroke="#22d3ee"
                             strokeWidth={3}
-                            dot={{ fill: "#22d3ee", r: 4 }}
-                            activeDot={{ r: 6, fill: "#fff", stroke: "#22d3ee" }}
+                            dot={{ fill: "#0f172a", stroke: "#22d3ee", strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, fill: "#22d3ee", stroke: "#fff", strokeWidth: 2 }}
                           />
                         </LineChart>
                       </ResponsiveContainer>
