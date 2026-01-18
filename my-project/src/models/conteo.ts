@@ -22,5 +22,6 @@ const ConteoSchema = new Schema<ConteoDoc>({
 ConteoSchema.index({ timestamp: -1 });
 ConteoSchema.index({ direction: 1 });
 ConteoSchema.index({ dispositivo: 1 });
+ConteoSchema.index({ servicioId: 1, timestamp: -1 });
 
 export const Conteo = models.Conteo || model<ConteoDoc>("Conteo", ConteoSchema);
