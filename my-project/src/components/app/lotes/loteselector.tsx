@@ -56,9 +56,10 @@ export function LoteSelector({
     <div className="w-full">
       <div className="flex flex-col space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Lote Activo</h2>
+          <h2 className="text-lg font-semibold text-white">Lote Activo</h2>
           <Button
             variant="outline"
+            className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
             onClick={() => {
               setShowNewForm(true);
               setOpen(true);
@@ -67,20 +68,25 @@ export function LoteSelector({
             Crear Nuevo Lote
           </Button>
         </div>
-        <div className="bg-white rounded-lg border p-4 flex justify-between items-center">
+        <div className="bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex justify-between items-center shadow-lg">
           <div>
-            <p className="text-sm text-gray-500">Trabajando en:</p>
-            <p className="text-xl font-medium">
+            <p className="text-sm text-slate-400">Trabajando en:</p>
+            <p className="text-xl font-medium text-white">
               {selectedLote?.nombre || "Ningún lote seleccionado"}
             </p>
             {selectedLote?.fechaCreacion && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-slate-500 mt-1">
                 Creado:{" "}
-                {new Date(selectedLote.fechaCreacion).toLocaleDateString()}
+                <span className="text-slate-300">{new Date(selectedLote.fechaCreacion).toLocaleDateString()}</span>
               </p>
             )}
           </div>
-          <Button onClick={() => setOpen(true)}>Cambiar</Button>
+          <Button 
+            onClick={() => setOpen(true)}
+            className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/20 hover:text-cyan-300 transition-all font-medium"
+          >
+            Cambiar
+          </Button>
         </div>
       </div>
 

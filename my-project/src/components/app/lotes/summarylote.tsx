@@ -86,51 +86,51 @@ export function SummaryLote({ loteId, refreshKey }: SummaryLoteProps) {
   }
 
   return (
-    <Card className="w-full bg-white shadow rounded-lg">
+    <Card className="w-full bg-transparent shadow-none">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">
+        <CardTitle className="text-lg font-semibold text-white">
           Resumen por Dispositivo
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <p className="text-xl font-bold">
+          <p className="text-xl font-bold text-white">
             Total Bulbos Lote:{" "}
             <span className="text-green-600">{totalBulbos}</span>
           </p>
         </div>
 
         <div className="w-full overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-800">
+            <thead className="bg-transparent">
               <tr>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
                 >
                   Dispositivo
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider"
                 >
                   Ingresos
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider"
                 >
                   Último Conteo
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider"
                 >
                   Servicio
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-transparent divide-y divide-gray-800">
               {summaries.map((row) => {
                 const fechaLocal = row.lastTimestamp
                   ? new Date(row.lastTimestamp).toLocaleString("es-CL", {
@@ -147,16 +147,16 @@ export function SummaryLote({ loteId, refreshKey }: SummaryLoteProps) {
 
                 return (
                   <tr key={row.dispositivo}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                       {row.dispositivo}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-white font-medium">
                       {ingresos}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-white">
                       {fechaLocal}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-white">
                       {row.servicioId || "—"}
                     </td>
                   </tr>

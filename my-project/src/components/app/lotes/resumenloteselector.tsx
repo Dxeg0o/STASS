@@ -52,26 +52,31 @@ export function ResumenLoteSelector({
     <div className="w-full">
       <div className="flex flex-col space-y-2">
         <div className=" items-center justify-between">
-          <h2 className="text-lg font-semibold">Lote seleccionado</h2>
-          <h3 className="text-sm font-bold text-red-600">
+          <h2 className="text-lg font-semibold text-white">Lote seleccionado</h2>
+          <h3 className="text-sm font-bold text-red-400">
             *Recuerda que acá solo estás viendo los datos, no cambiando el lote
             activo
           </h3>
         </div>
-        <div className="bg-white rounded-lg border p-4 flex justify-between items-center">
+        <div className="bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex justify-between items-center shadow-lg">
           <div>
-            <p className="text-sm text-gray-500">Datos de:</p>
-            <p className="text-xl font-medium">
+            <p className="text-sm text-slate-400">Datos de:</p>
+            <p className="text-xl font-medium text-white">
               {selectedLote?.nombre || "Ningún lote seleccionado"}
             </p>
             {selectedLote?.fechaCreacion && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-slate-500 mt-1">
                 Creado:{" "}
-                {new Date(selectedLote.fechaCreacion).toLocaleDateString()}
+                <span className="text-slate-300">{new Date(selectedLote.fechaCreacion).toLocaleDateString()}</span>
               </p>
             )}
           </div>
-          <Button onClick={() => setOpen(true)}>Ver otro lote</Button>
+          <Button 
+            onClick={() => setOpen(true)}
+            className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/20 hover:text-cyan-300 transition-all font-medium"
+          >
+            Ver otro lote
+          </Button>
         </div>
       </div>
 

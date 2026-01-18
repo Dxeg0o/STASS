@@ -121,9 +121,9 @@ export function LoteDataTabs({ lote }: LoteDataTabsProps) {
             Selecciona primero un lote para ver los datos.
           </p>
         ) : (
-          <Card>
+          <Card className= " ">
             <CardHeader>
-              <CardTitle>Datos de Conteos</CardTitle>
+              <CardTitle className="text-white">Datos de Conteos</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex justify-between mb-4">
@@ -150,28 +150,28 @@ export function LoteDataTabs({ lote }: LoteDataTabsProps) {
                 <p className="text-red-600">{errorRecords}</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full table-auto divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full table-auto divide-y divide-gray-800">
+                    <thead className="bg-transparent">
                       <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">
                           Hora
                         </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">
                           Dirección
                         </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase">
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">
                           Dispositivo
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-transparent divide-y divide-gray-800">
                       {records.map((r) => (
                         <tr key={r._id}>
-                          <td className="px-4 py-2">
+                          <td className="px-4 py-2 text-white">
                             {new Date(r.timestamp).toLocaleString("es-CL")}
                           </td>
-                          <td className="px-4 py-2">{r.direction}</td>
-                          <td className="px-4 py-2">{r.dispositivo}</td>
+                          <td className="px-4 py-2 text-white">{r.direction}</td>
+                          <td className="px-4 py-2 text-white">{r.dispositivo}</td>
                         </tr>
                       ))}
                     </tbody>
