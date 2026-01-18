@@ -216,8 +216,13 @@ export default function Dashboard() {
   if (!data) return <div>No estás autenticado.</div>;
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Hola {data.name}!</h1>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Hola, {data.name}</h1>
+          <p className="text-slate-400">Bienvenido a tu panel de control.</p>
+        </div>
+      </div>
 
       {/* ------------------------------------------------------ */}
       {/* Pestañas principales: “Datos Totales” y “Datos por Lote” */}
@@ -231,9 +236,9 @@ export default function Dashboard() {
         {/* DATOS TOTALES */}
         <TabsContent value="datosTotales">
           {loadingTotal ? (
-            <p className="text-center text-gray-500">Cargando datos totales…</p>
+            <p className="text-center text-slate-500 py-20">Cargando datos totales...</p>
           ) : errorTotal ? (
-            <p className="text-red-600">{errorTotal}</p>
+            <p className="text-red-400 bg-red-950/20 p-4 rounded border border-red-500/20">{errorTotal}</p>
           ) : (
             <Card>
               <CardHeader>
@@ -241,7 +246,7 @@ export default function Dashboard() {
                   <CardTitle className="text-xl font-semibold">Resumen</CardTitle>
                   <button
                     onClick={downloadSummaryExcel}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="px-4 py-2 bg-cyan-950/30 text-cyan-400 border border-cyan-500/20 rounded-lg hover:bg-cyan-950/60 transition-colors text-sm font-medium hover:shadow-[0_0_15px_rgba(34,211,238,0.15)]"
                   >
                     Descargar Excel
                   </button>
@@ -251,7 +256,7 @@ export default function Dashboard() {
                 {/* Conteo total */}
                 <div>
                   <h3 className="text-lg font-medium">Conteo total</h3>
-                  <p className="text-3xl font-bold text-green-600">
+                  <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
                     {totalSum}
                   </p>
                 </div>
@@ -262,33 +267,33 @@ export default function Dashboard() {
                     Lote activo actual
                   </h3>
                   {activeLote ? (
-                    <div className="p-4 rounded-md bg-gray-50">
-                      <p className="text-xl font-semibold">
+                    <div className="p-4 rounded-xl bg-slate-900 border border-white/5 shadow-inner">
+                      <p className="text-xl font-semibold text-white">
                         {activeLote.nombre}
                       </p>
                       {activeLote.fechaCreacion && (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-slate-400 mt-1">
                           Creado:{" "}
-                          {new Date(
+                          <span className="text-slate-300">{new Date(
                             activeLote.fechaCreacion
-                          ).toLocaleDateString()}
+                          ).toLocaleDateString()}</span>
                         </p>
                       )}
                     </div>
                   ) : (
-                    <p className="text-gray-500">Ningún lote activo</p>
+                    <p className="text-slate-500 italic">Ningún lote activo</p>
                   )}
                 </div>
 
                 {/* Último conteo */}
                 <div>
-                  <h3 className="text-lg font-medium mb-2">Último conteo</h3>
+                  <h3 className="text-lg font-medium mb-2 text-slate-200">Último conteo</h3>
                   {lastOverallTimestamp ? (
-                    <p className="text-xl font-semibold text-green-600">
+                    <p className="text-xl font-semibold text-emerald-400">
                       {lastOverallTimestamp.toLocaleString("es-CL")}
                     </p>
                   ) : (
-                    <p className="text-gray-500">—</p>
+                    <p className="text-slate-500">—</p>
                   )}
                 </div>
 
@@ -304,14 +309,14 @@ export default function Dashboard() {
                   {startInfo && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                       <div>
-                        <p className="text-sm text-gray-500">Conteo total en rango</p>
-                        <p className="text-xl font-semibold text-green-600">
+                        <p className="text-sm text-slate-400">Conteo total en rango</p>
+                        <p className="text-2xl font-semibold text-cyan-400">
                           {totalRangeCount}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">{startInfo.label}</p>
-                        <p className="text-xl font-semibold text-green-600">
+                        <p className="text-sm text-slate-400">{startInfo.label}</p>
+                        <p className="text-2xl font-semibold text-emerald-400">
                           {startInfo.value}
                         </p>
                       </div>
@@ -319,7 +324,7 @@ export default function Dashboard() {
                   )}
 
                   {volumeData.length === 0 ? (
-                    <p className="text-center text-gray-500">
+                    <p className="text-center text-slate-500 py-12">
                       No hay datos registrados para este periodo
                     </p>
                   ) : (
@@ -332,14 +337,25 @@ export default function Dashboard() {
                     >
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={volumeData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="hora" />
-                          <YAxis />
-                          <Tooltip />
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                          <XAxis dataKey="hora" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+                          <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+                          <Tooltip 
+                            contentStyle={{ 
+                                backgroundColor: "rgba(15, 23, 42, 0.9)", 
+                                borderColor: "rgba(255,255,255,0.1)", 
+                                borderRadius: "8px",
+                                color: "#f8fafc" 
+                            }} 
+                            itemStyle={{ color: "#22d3ee" }}
+                          />
                           <Line
                             type="monotone"
                             dataKey="volumen"
-                            stroke="#8884d8"
+                            stroke="#22d3ee"
+                            strokeWidth={3}
+                            dot={{ fill: "#0f172a", stroke: "#22d3ee", strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, fill: "#22d3ee", stroke: "#fff", strokeWidth: 2 }}
                           />
                         </LineChart>
                       </ResponsiveContainer>

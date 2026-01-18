@@ -42,39 +42,39 @@ export function ResumenLote({ summary, loading, error }: ResumenLoteProps) {
   }, 0);
 
   return (
-    <Card className="w-full bg-white shadow rounded-lg">
+    <Card className="w-full bg-slate-900/40 border border-white/10 shadow-lg rounded-xl overflow-hidden backdrop-blur-sm">
       <CardHeader>
-        <CardTitle>Resumen por Dispositivo</CardTitle>
+        <CardTitle className="text-white">Resumen por Dispositivo</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* 3.1) Mostrar total de bulbos en todo el lote */}
         <div>
-          <p className="text-xl font-bold">
+          <p className="text-xl font-bold text-slate-200">
             Total Bulbos Lote:{" "}
-            <span className="text-green-600">{totalBulbos}</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 animate-pulse">{totalBulbos}</span>
           </p>
         </div>
 
         {/* 3.2) Tabla con detalle por dispositivo */}
-        <div className="w-full overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="w-full overflow-x-auto rounded-lg border border-white/5">
+          <table className="min-w-full divide-y divide-white/10">
+            <thead className="bg-slate-950/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                   Dispositivo
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                   Ingresos
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                   Último Conteo
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
                   Servicio
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-transparent divide-y divide-white/5">
               {summary.map((item) => {
                 // Convertimos el lastTimestamp de ISO string a fecha local ("es-CL")
                 const fechaLocal = item.lastTimestamp
@@ -90,17 +90,17 @@ export function ResumenLote({ summary, loading, error }: ResumenLoteProps) {
                 const ingresos = item.countIn + item.countOut;
 
                 return (
-                  <tr key={item.dispositivo}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  <tr key={item.dispositivo} className="hover:bg-cyan-500/5 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                       {item.dispositivo}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-400 text-right font-medium">
                       {ingresos}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 text-center">
                       {fechaLocal}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">
                       {item.servicioId || "—"}
                     </td>
                   </tr>
