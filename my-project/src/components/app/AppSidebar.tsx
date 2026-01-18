@@ -4,7 +4,7 @@ import axios from "axios";
 import { deleteCookie } from "cookies-next/client";
 import { useRouter, usePathname } from "next/navigation";
 import { useContext, type ComponentType, type SVGProps } from "react";
-import { Home, Settings, Archive, LogOut, ChevronLeft } from "lucide-react";
+import { Home, Settings, Archive, LogOut, ChevronLeft, Ruler } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { AuthenticationContext } from "../../app/context/AuthContext"; // Ajusta la ruta si es necesario
@@ -27,6 +27,7 @@ type MenuItem = {
 const mainItems: MenuItem[] = [
   { title: "Inicio", url: "/app", icon: Home },
   { title: "Lotes", url: "/app/lotes", icon: Archive },
+  { title: "Calibres", url: "/app/calibres", icon: Ruler },
 ];
 
 const secondaryItems: MenuItem[] = [
