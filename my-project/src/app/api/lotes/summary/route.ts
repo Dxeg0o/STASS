@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   await connectDb();
 
   // 1) Todas las sesiones de actividad para este lote
-  const activities = await LoteActivity.find({ loteId });
+  const activities = await LoteActivity.find({ loteId }).lean();
 
   // 2) Si no hay sesiones, devuelvo arreglo vacío
   if (activities.length === 0) {
@@ -37,12 +37,15 @@ export async function GET(request: Request) {
     timestamp: { $gte: startTime, $lte: endTime ?? now },
   }));
 
-  // 4) Agrupo resultados por dispositivo, especificando el tipo genérico <DeviceGroup>
+  // 4) Agrupo resultados por dispositivo
   const matchStage: Record<string, unknown> = { $or: orConds };
   if (servicioId) matchStage.servicioId = servicioId;
 
-  const groups = await Conteo.aggregate<DeviceGroup>([
+  // Optimized aggregation: Match -> Sort (Desc) -> Group (First)
+  // This avoids N+1 queries by grabbing the 'latest' fields during grouping
+  const summaryArray = await Conteo.aggregate([
     { $match: matchStage },
+    { $sort: { timestamp: -1 } },
     {
       $group: {
         _id: "$dispositivo",
@@ -52,37 +55,21 @@ export async function GET(request: Request) {
         countOut: {
           $sum: { $cond: [{ $eq: ["$direction", "out"] }, 1, 0] },
         },
-        lastTimestamp: { $max: "$timestamp" },
+        lastTimestamp: { $first: "$timestamp" },
+        servicioId: { $first: "$servicioId" },
       },
     },
-  ]);
+    {
+      $project: {
+        _id: 0,
+        dispositivo: "$_id", // Map _id back to dispositivo
+        countIn: 1,
+        countOut: 1,
+        lastTimestamp: 1,
+        servicioId: 1,
+      },
+    },
+  ]).allowDiskUse(true);
 
-  // 5) Para cada grupo, obtengo el servicioId del último documento (por timestamp) de ese dispositivo
-  const summaryArray = await Promise.all(
-    groups.map(async (grp: DeviceGroup) => {
-      const dispositivo = grp._id;
-      const countIn = grp.countIn;
-      const countOut = grp.countOut;
-      const lastTimestamp = grp.lastTimestamp;
-
-      // Buscar el documento que corresponde a este dispositivo y timestamp
-      const lastQuery: Record<string, unknown> = {
-        dispositivo,
-        timestamp: lastTimestamp,
-      };
-      if (servicioId) lastQuery.servicioId = servicioId;
-      const lastEntry = await Conteo.findOne(lastQuery);
-
-      return {
-        dispositivo,
-        countIn,
-        countOut,
-        lastTimestamp,
-        servicioId: lastEntry?.servicioId || "",
-      };
-    })
-  );
-
-  // 6) Devuelvo un arreglo de objetos
   return NextResponse.json(summaryArray);
 }
