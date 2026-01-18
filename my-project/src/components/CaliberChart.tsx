@@ -55,9 +55,13 @@ export function CaliberChart({ data, series }: CaliberChartProps) {
         <ChartTooltip
           content={
             <ChartTooltipContent
-              labelFormatter={(value) =>
-                `Calibre: ${Number(value).toFixed(1)}`
-              }
+              labelFormatter={(_, payload) => {
+                const perimeter = payload?.[0]?.payload?.perimeter;
+                if (typeof perimeter === "number") {
+                  return `Calibre: ${perimeter.toFixed(1)}`;
+                }
+                return "Calibre: —";
+              }}
               formatter={(value) =>
                 Number(value).toLocaleString("es-CL")
               }
