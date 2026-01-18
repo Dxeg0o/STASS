@@ -12,6 +12,10 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+
+
 interface DistributionResponse {
   data: CaliberDataPoint[];
   series: { loteId: string }[];
@@ -40,7 +44,10 @@ export default function CalibresPage() {
   const [loadingChart, setLoadingChart] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [viewMode, setViewMode] = useState<"quantity" | "percentage">("quantity");
+
   useEffect(() => {
+    // ... set chartData logic remains same ...
     if (!data || !selectedServicio) return;
 
     setLoadingLotes(true);
@@ -109,6 +116,43 @@ export default function CalibresPage() {
       };
     });
   }, [selectedLoteIds, lotes]);
+
+  // Calculate totals for each lote to support percentage view
+  const loteTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    selectedLoteIds.forEach((id) => {
+      totals[id] = 0;
+    });
+
+    chartData.forEach((point) => {
+      selectedLoteIds.forEach((id) => {
+        if (typeof point[id] === "number") {
+          totals[id] += point[id];
+        }
+      });
+    });
+
+    return totals;
+  }, [chartData, selectedLoteIds]);
+
+  const displayData = useMemo(() => {
+    if (viewMode === "quantity") return chartData;
+
+    return chartData.map((point) => {
+      const newPoint: CaliberDataPoint = { perimeter: point.perimeter };
+      selectedLoteIds.forEach((id) => {
+        const val = point[id];
+        const total = loteTotals[id];
+        if (typeof val === "number" && total > 0) {
+          // Calculate percentage: (value / total) * 100
+          newPoint[id] = (val / total) * 100;
+        } else {
+          newPoint[id] = 0;
+        }
+      });
+      return newPoint;
+    });
+  }, [chartData, viewMode, selectedLoteIds, loteTotals]);
 
   const toggleLote = (loteId: string) => {
     setSelectedLoteIds((prev) =>
@@ -225,8 +269,18 @@ export default function CalibresPage() {
       </Card>
 
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle>Distribución por calibre</CardTitle>
+          <Tabs
+            value={viewMode}
+            onValueChange={(v) => setViewMode(v as "quantity" | "percentage")}
+            className="w-[200px]"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="quantity">Cantidad</TabsTrigger>
+              <TabsTrigger value="percentage">%</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
         <CardContent>
           {error && (
@@ -246,7 +300,20 @@ export default function CalibresPage() {
               No hay datos disponibles para los filtros seleccionados.
             </div>
           ) : (
-            <CaliberChart data={chartData} series={series} />
+            <CaliberChart
+              data={displayData}
+              series={series}
+              yAxisTickFormatter={(val) =>
+                viewMode === "percentage"
+                  ? `${val.toFixed(0)}%`
+                  : val.toLocaleString("es-CL")
+              }
+              tooltipValueFormatter={(val) =>
+                viewMode === "percentage"
+                  ? `${val.toFixed(2)}%`
+                  : val.toLocaleString("es-CL")
+              }
+            />
           )}
         </CardContent>
       </Card>

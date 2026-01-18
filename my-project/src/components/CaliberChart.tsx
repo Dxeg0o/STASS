@@ -29,15 +29,28 @@ export interface CaliberDataPoint {
 interface CaliberChartProps {
   data: CaliberDataPoint[];
   series: CaliberSeries[];
+  yAxisTickFormatter?: (value: number) => string;
+  tooltipValueFormatter?: (value: number) => string;
 }
 
-export function CaliberChart({ data, series }: CaliberChartProps) {
+export function CaliberChart({
+  data,
+  series,
+  yAxisTickFormatter,
+  tooltipValueFormatter,
+}: CaliberChartProps) {
   const config = React.useMemo(() => {
     return series.reduce<ChartConfig>((acc, item) => {
       acc[item.key] = { label: item.label, color: item.color };
       return acc;
     }, {});
   }, [series]);
+
+  const defaultFormatter = (value: number) =>
+    Number(value).toLocaleString("es-CL");
+
+  const yFormatter = yAxisTickFormatter || defaultFormatter;
+  const toolFormatter = tooltipValueFormatter || defaultFormatter;
 
   return (
     <ChartContainer config={config} className="h-[360px] w-full">
@@ -48,10 +61,7 @@ export function CaliberChart({ data, series }: CaliberChartProps) {
           tickFormatter={(value) => Number(value).toFixed(1)}
           tickMargin={8}
         />
-        <YAxis
-          tickFormatter={(value) => Number(value).toLocaleString("es-CL")}
-          tickMargin={8}
-        />
+        <YAxis tickFormatter={yFormatter} tickMargin={8} />
         <ChartTooltip
           content={
             <ChartTooltipContent
@@ -62,9 +72,7 @@ export function CaliberChart({ data, series }: CaliberChartProps) {
                 }
                 return "Calibre: —";
               }}
-              formatter={(value) =>
-                Number(value).toLocaleString("es-CL")
-              }
+              formatter={(value) => toolFormatter(Number(value))}
             />
           }
         />
