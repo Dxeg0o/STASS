@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
+import mongoose, { type PipelineStage } from "mongoose";
 import { connectDb } from "@/lib/mongodb";
 import { Conteo } from "@/models/conteo";
 import { LoteActivity } from "@/models/loteactivity";
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     rangesByLote.set(key, list);
   }
 
-  const facets: Record<string, any[]> = {};
+  const facets: Record<string, PipelineStage.FacetPipelineStage[]> = {};
 
   for (const loteId of loteIds) {
     const ranges = rangesByLote.get(loteId) ?? [];
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
       timestamp: { $gte: startTime, $lte: endTime ?? now },
     }));
 
-    const matchStage = orConditions.length
+    const matchStage: PipelineStage.Match = orConditions.length
       ? {
           $match: {
             servicioId,
