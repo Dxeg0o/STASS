@@ -121,11 +121,13 @@ export function LoteDataTabs({ lote }: LoteDataTabsProps) {
             Selecciona primero un lote para ver los datos.
           </p>
         ) : (
-          <Card className= " ">
+          <Card className="w-full bg-transparent shadow-none">
             <CardHeader>
-              <CardTitle className="text-white">Datos de Conteos</CardTitle>
+              <CardTitle className="text-lg font-semibold text-white">
+                Datos de Conteos
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="flex justify-between mb-4">
                 <div>Total registros: {records.length}</div>
                 <div className="flex space-x-2">
@@ -149,9 +151,10 @@ export function LoteDataTabs({ lote }: LoteDataTabsProps) {
               ) : errorRecords ? (
                 <p className="text-red-600">{errorRecords}</p>
               ) : (
-                <div className="overflow-x-auto">
+
+                <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
                   <table className="min-w-full table-auto divide-y divide-gray-800">
-                    <thead className="bg-transparent">
+                    <thead className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur-sm">
                       <tr>
                         <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">
                           Hora
