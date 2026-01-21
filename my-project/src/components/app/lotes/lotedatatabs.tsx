@@ -75,6 +75,7 @@ export function LoteDataTabs({ lote }: LoteDataTabsProps) {
       Hora: new Date(r.timestamp).toLocaleString("es-CL"),
       Direccion: r.direction,
       Dispositivo: r.dispositivo,
+      Perímetro: r.perimeter ?? "n/a",
     }));
     const ws = XLSX.utils.json_to_sheet(sheetData);
     const wb = XLSX.utils.book_new();
@@ -165,6 +166,9 @@ export function LoteDataTabs({ lote }: LoteDataTabsProps) {
                         <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">
                           Dispositivo
                         </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">
+                          Perímetro
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-transparent divide-y divide-gray-800">
@@ -175,6 +179,7 @@ export function LoteDataTabs({ lote }: LoteDataTabsProps) {
                           </td>
                           <td className="px-4 py-2 text-white">{r.direction}</td>
                           <td className="px-4 py-2 text-white">{r.dispositivo}</td>
+                          <td className="px-4 py-2 text-white">{r.perimeter ?? "n/a"}</td>
                         </tr>
                       ))}
                     </tbody>
