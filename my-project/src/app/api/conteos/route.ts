@@ -72,8 +72,8 @@ export async function GET(request: Request) {
 
   // Case 3: Filter by Empresa (via Servicios)
   if (empresaId) {
-    const servicios = await Servicio.find({ empresaId }, { _id: 1 }).lean();
-    const servicioIds = servicios.map((s: any) => s._id.toString());
+    const servicios = await Servicio.find({ empresaId }, { _id: 1 }).lean() as { _id: mongoose.Types.ObjectId }[];
+    const servicioIds = servicios.map(s => s._id.toString());
     
     if (!servicioIds.length) {
       return NextResponse.json([]);

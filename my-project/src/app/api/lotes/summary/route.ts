@@ -4,13 +4,7 @@ import { connectDb } from "@/lib/mongodb";
 import { LoteActivity } from "@/models/loteactivity";
 import { Conteo } from "@/models/conteo";
 
-// 1) Definimos aquí la interfaz que describe cada resultado del $group:
-interface DeviceGroup {
-  _id: string; // equivale a "dispositivo"
-  countIn: number; // cantidad de registros con direction 'in'
-  countOut: number; // cantidad de registros con direction 'out'
-  lastTimestamp: Date; // máximo timestamp encontrado
-}
+
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
