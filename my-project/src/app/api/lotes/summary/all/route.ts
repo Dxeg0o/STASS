@@ -1,22 +1,13 @@
 import { NextResponse } from "next/server";
-import { connectDb } from "@/lib/mongodb";
-import { Lote } from "@/models/lotes";
-import { LoteActivity } from "@/models/loteactivity";
-import { Conteo } from "@/models/conteo";
-import { Servicio } from "@/models/servicio";
-
-interface LoteCount {
-  id: string;
-  nombre: string;
-  conteo: number;
-  firstTimestamp: string | null;
-  lastTimestamp: string | null;
-}
+import { db } from "@/db";
+import { lote, conteo, servicio } from "@/db/schema";
+import { eq, inArray, desc, sql } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const empresaId = searchParams.get("empresaId");
   const servicioId = searchParams.get("servicioId");
+
   if (!empresaId && !servicioId) {
     return NextResponse.json(
       { error: "empresaId or servicioId is required" },
@@ -24,87 +15,43 @@ export async function GET(request: Request) {
     );
   }
 
-  await connectDb();
-
-  // Obtener todos los lotes del servicio o empresa
-  let loteQuery: Record<string, unknown> = {};
+  // Obtener servicioIds
+  let servicioIds: string[] = [];
   if (servicioId) {
-    loteQuery = { servicioId };
-  } else if (empresaId) {
-    const servicios = await Servicio.find({ empresaId }, { _id: 1 });
-    const servicioIds = servicios.map((s) => s._id);
-    loteQuery = { servicioId: { $in: servicioIds } };
+    servicioIds = [servicioId];
+  } else {
+    const servicios = await db
+      .select({ id: servicio.id })
+      .from(servicio)
+      .where(eq(servicio.empresaId, empresaId!));
+    servicioIds = servicios.map((s) => s.id);
   }
-  const lotes = await Lote.find(loteQuery)
-    .sort({ fechaCreacion: -1 })
-    .lean();
-  const now = new Date();
 
-  const summaries: LoteCount[] = await Promise.all(
-    lotes.map(async (lote) => {
-      // Sesiones de actividad para este lote
-      const acts = await LoteActivity.find({ loteId: lote._id }).lean();
-      if (acts.length === 0) {
-        return {
-          id: lote._id.toString(),
-          nombre: lote.nombre,
-          conteo: 0,
-          firstTimestamp: null,
-          lastTimestamp: null,
-        };
-      }
-      const orConds = acts.map(({ startTime, endTime }) => ({
-        timestamp: { $gte: startTime, $lte: endTime ?? now },
-      }));
-      const matchStage: Record<string, unknown> = { $or: orConds };
-      if (servicioId) matchStage.servicioId = servicioId;
-      const agg = await Conteo.aggregate<{
-        totalIn: number;
-        totalOut: number;
-      }>([
-        { $match: matchStage },
-        {
-          $group: {
-            _id: null,
-            totalIn: {
-              $sum: { $cond: [{ $eq: ["$direction", "in"] }, 1, 0] },
-            },
-            totalOut: {
-              $sum: { $cond: [{ $eq: ["$direction", "out"] }, 1, 0] },
-            },
-          },
-        },
-      ]);
-      const total = agg[0] ? agg[0].totalIn + agg[0].totalOut : 0;
+  if (servicioIds.length === 0) return NextResponse.json([]);
 
-      const last = await Conteo.findOne({ $or: orConds, ...(servicioId ? { servicioId } : {}) })
-        .sort({ timestamp: -1 })
-        .lean();
-      const first = await Conteo.findOne({ $or: orConds, ...(servicioId ? { servicioId } : {}) })
-        .sort({ timestamp: 1 })
-        .lean();
-
-      return {
-        id: lote._id.toString(),
-        nombre: lote.nombre,
-        conteo: total,
-        firstTimestamp:
-          first &&
-          typeof first === "object" &&
-          "timestamp" in first &&
-          first.timestamp instanceof Date
-            ? first.timestamp.toISOString()
-            : null,
-        lastTimestamp:
-          last &&
-          typeof last === "object" &&
-          "timestamp" in last &&
-          last.timestamp instanceof Date
-            ? last.timestamp.toISOString()
-            : null,
-      };
+  // Un JOIN lote ← conteo, agrupado por lote
+  const rows = await db
+    .select({
+      id: lote.id,
+      nombre: lote.nombre,
+      conteo: sql<number>`COUNT(${conteo.ts})::int`,
+      firstTimestamp: sql<Date | null>`MIN(${conteo.ts})`,
+      lastTimestamp: sql<Date | null>`MAX(${conteo.ts})`,
+      createdAt: lote.createdAt,
     })
-  );
+    .from(lote)
+    .leftJoin(conteo, eq(conteo.loteId, lote.id))
+    .where(inArray(lote.servicioId, servicioIds))
+    .groupBy(lote.id, lote.nombre, lote.createdAt)
+    .orderBy(desc(lote.createdAt));
 
-  return NextResponse.json(summaries);
+  return NextResponse.json(
+    rows.map((r) => ({
+      id: r.id,
+      nombre: r.nombre,
+      conteo: r.conteo,
+      firstTimestamp: r.firstTimestamp ? new Date(r.firstTimestamp).toISOString() : null,
+      lastTimestamp: r.lastTimestamp ? new Date(r.lastTimestamp).toISOString() : null,
+    }))
+  );
 }

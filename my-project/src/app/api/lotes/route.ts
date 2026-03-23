@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { connectDb } from "@/lib/mongodb";
-import { Lote } from "@/models/lotes";
-import { Servicio } from "@/models/servicio";
+import { db } from "@/db";
+import { lote, servicio } from "@/db/schema";
+import { eq, inArray, desc } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const servicioId = searchParams.get("servicioId");
   const empresaId = searchParams.get("empresaId");
+
   if (!servicioId && !empresaId) {
     return NextResponse.json(
       { error: "servicioId or empresaId is required" },
@@ -14,23 +15,30 @@ export async function GET(request: Request) {
     );
   }
 
-  await connectDb();
+  let lotes;
 
-  let query: Record<string, unknown> = {};
   if (servicioId) {
-    query = { servicioId };
-  } else if (empresaId) {
-    const servicios = await Servicio.find({ empresaId }, { _id: 1 });
-    const servicioIds = servicios.map((s) => s._id);
-    query = { servicioId: { $in: servicioIds } };
+    lotes = await db
+      .select({ id: lote.id, nombre: lote.nombre, fechaCreacion: lote.createdAt })
+      .from(lote)
+      .where(eq(lote.servicioId, servicioId))
+      .orderBy(desc(lote.createdAt));
+  } else {
+    const servicios = await db
+      .select({ id: servicio.id })
+      .from(servicio)
+      .where(eq(servicio.empresaId, empresaId!));
+
+    const servicioIds = servicios.map((s) => s.id);
+    if (servicioIds.length === 0) return NextResponse.json([]);
+
+    lotes = await db
+      .select({ id: lote.id, nombre: lote.nombre, fechaCreacion: lote.createdAt })
+      .from(lote)
+      .where(inArray(lote.servicioId, servicioIds))
+      .orderBy(desc(lote.createdAt));
   }
 
-  const docs = await Lote.find(query).sort({ fechaCreacion: -1 });
-  const lotes = docs.map((lote) => ({
-    id: lote.id.toString(),
-    nombre: lote.nombre,
-    fechaCreacion: lote.fechaCreacion,
-  }));
   return NextResponse.json(lotes);
 }
 
@@ -43,12 +51,13 @@ export async function POST(request: Request) {
     );
   }
 
-  await connectDb();
-  const lote = await Lote.create({
-    nombre,
-    servicioId,
-    fechaCreacion: new Date(),
-  });
+  const [created] = await db
+    .insert(lote)
+    .values({ nombre, servicioId, createdAt: new Date() })
+    .returning();
 
-  return NextResponse.json(lote, { status: 201 });
+  return NextResponse.json(
+    { id: created.id, nombre: created.nombre, fechaCreacion: created.createdAt },
+    { status: 201 }
+  );
 }

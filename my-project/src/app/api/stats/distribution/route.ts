@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import mongoose, { type PipelineStage } from "mongoose";
-import { connectDb } from "@/lib/mongodb";
-import { Conteo } from "@/models/conteo";
-import { LoteActivity } from "@/models/loteactivity";
+import { db } from "@/db";
+import { conteo } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 
 interface DistributionPoint {
   perimeter: number;
@@ -30,86 +29,41 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: [], series: [] });
   }
 
-  await connectDb();
+  // Para cada lote, obtener distribución de perímetros
+  const resultByLote: Record<string, DistributionPoint[]> = {};
 
-  const loteObjectIds = loteIds.map((id) => new mongoose.Types.ObjectId(id));
-  const activities = await LoteActivity.find({
-    loteId: { $in: loteObjectIds },
-  }).lean();
+  await Promise.all(
+    loteIds.map(async (loteId) => {
+      const rows = await db
+        .select({
+          perimeter: sql<number>`ROUND(${conteo.perimeter}::numeric, 1)`,
+          count: sql<number>`COUNT(*)::int`,
+        })
+        .from(conteo)
+        .where(
+          and(eq(conteo.servicioId, servicioId), eq(conteo.loteId, loteId))
+        )
+        .groupBy(sql`ROUND(${conteo.perimeter}::numeric, 1)`)
+        .orderBy(sql`ROUND(${conteo.perimeter}::numeric, 1)`);
 
-  const now = new Date();
-  const rangesByLote = new Map<
-    string,
-    Array<{ startTime: Date; endTime: Date | null }>
-  >();
-
-  for (const activity of activities) {
-    const key = activity.loteId.toString();
-    const list = rangesByLote.get(key) ?? [];
-    list.push({ startTime: activity.startTime, endTime: activity.endTime });
-    rangesByLote.set(key, list);
-  }
-
-  const facets: Record<string, PipelineStage.FacetPipelineStage[]> = {};
-
-  for (const loteId of loteIds) {
-    const ranges = rangesByLote.get(loteId) ?? [];
-    const orConditions = ranges.map(({ startTime, endTime }) => ({
-      timestamp: { $gte: startTime, $lte: endTime ?? now },
-    }));
-
-    const matchStage: PipelineStage.Match = orConditions.length
-      ? {
-          $match: {
-            servicioId,
-            $or: orConditions,
-          },
-        }
-      : {
-          $match: {
-            _id: { $exists: false },
-          },
-        };
-
-    facets[loteId] = [
-      matchStage,
-      {
-        $group: {
-          _id: { $round: ["$perimeter", 1] },
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          perimeter: "$_id",
-          count: 1,
-        },
-      },
-      { $sort: { perimeter: 1 } },
-    ];
-  }
-
-  const [result] = await Conteo.aggregate([{ $facet: facets }]).allowDiskUse(
-    true
+      resultByLote[loteId] = rows.map((r) => ({
+        perimeter: Number(r.perimeter),
+        count: r.count,
+      }));
+    })
   );
 
+  // Combinar en una sola tabla con columna por lote
   const perimeterMap = new Map<number, Record<string, number>>();
 
   for (const loteId of loteIds) {
-    const points = (result?.[loteId] ?? []) as DistributionPoint[];
+    const points = resultByLote[loteId] ?? [];
     for (const point of points) {
-      if (
-        point.perimeter === null ||
-        point.perimeter === undefined ||
-        isNaN(point.perimeter)
-      ) {
-        continue;
-      }
-      const perimeter = Number(point.perimeter.toFixed(1));
-      const entry = perimeterMap.get(perimeter) ?? { perimeter };
+      if (point.perimeter == null || isNaN(point.perimeter)) continue;
+      const key = Number(point.perimeter.toFixed(1));
+      const entry = perimeterMap.get(key) ?? { perimeter: key };
       entry[loteId] = point.count;
-      perimeterMap.set(perimeter, entry);
+      perimeterMap.set(key, entry);
     }
   }
 
@@ -117,11 +71,10 @@ export async function GET(request: Request) {
     (a, b) => a.perimeter - b.perimeter
   );
 
+  // Rellenar ceros donde no hay datos
   for (const entry of data) {
     for (const loteId of loteIds) {
-      if (entry[loteId] === undefined) {
-        entry[loteId] = 0;
-      }
+      if (entry[loteId] === undefined) entry[loteId] = 0;
     }
   }
 

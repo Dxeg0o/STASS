@@ -1,44 +1,40 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import User from "@/models/user";
-import { connectDb } from "@/lib/mongodb";
-import mongoose from "mongoose";
-
-// Conexión a la base de datos
-connectDb();
+import { db } from "@/db";
+import { usuario, empresaUsuario } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export const POST = async (req: Request) => {
   try {
     const body = await req.json();
     const { nombre, correo, contraseña, empresaId } = body;
 
-    // Verifica si el usuario ya existe
-    const existingUser = await User.findOne({ correo });
-    if (existingUser) {
+    const existing = await db.query.usuario.findFirst({
+      where: eq(usuario.correo, correo),
+    });
+
+    if (existing) {
       return NextResponse.json(
         { error: "El correo ya está registrado" },
         { status: 409 }
       );
     }
 
-    // Hash de la contraseña
     const hashedPassword = await bcrypt.hash(contraseña, 10);
 
-    // Crear el usuario
-    const user = new User({
-      _id: new mongoose.Types.ObjectId().toString(),
-      nombre,
-      correo,
-      contraseña: hashedPassword,
-      empresaId,
-      rol: "usuario",
-      fechaRegistro: new Date(),
-    });
+    const [newUser] = await db
+      .insert(usuario)
+      .values({ nombre, correo, password: hashedPassword })
+      .returning({ id: usuario.id });
 
-    await user.save();
+    if (empresaId) {
+      await db
+        .insert(empresaUsuario)
+        .values({ usuarioId: newUser.id, empresaId, rol: "usuario" });
+    }
 
     return NextResponse.json(
-      { message: "Usuario creado exitosamente", userId: user._id },
+      { message: "Usuario creado exitosamente", userId: newUser.id },
       { status: 201 }
     );
   } catch (error) {
