@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import * as jose from "jose";
 import validator from "validator";
-import { connectDb } from "@/lib/mongodb";
-import User from "@/models/user";
+import { db } from "@/db";
+import { usuario } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   try {
-    await connectDb();
     const body = await req.json();
     const { email, password } = body;
 
@@ -20,10 +20,7 @@ export async function POST(req: NextRequest) {
 
     const errors: string[] = [];
     const validationSchema = [
-      {
-        valid: validator.isEmail(email),
-        errorMessage: "Email is invalid",
-      },
+      { valid: validator.isEmail(email), errorMessage: "Email is invalid" },
       {
         valid: validator.isLength(password, { min: 1 }),
         errorMessage: "Password is invalid",
@@ -31,9 +28,7 @@ export async function POST(req: NextRequest) {
     ];
 
     validationSchema.forEach((check) => {
-      if (!check.valid) {
-        errors.push(check.errorMessage);
-      }
+      if (!check.valid) errors.push(check.errorMessage);
     });
 
     if (errors.length) {
@@ -43,7 +38,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await User.findOne({ correo: email });
+    const user = await db.query.usuario.findFirst({
+      where: eq(usuario.correo, email),
+      with: { empresaUsuarios: { limit: 1 } },
+    });
+
     if (!user) {
       return NextResponse.json(
         { errorMessage: "Email or password is invalid" },
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isMatch = await bcrypt.compare(password, user.contraseña);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return NextResponse.json(
         { errorMessage: "Email or password is invalid" },
@@ -60,25 +59,25 @@ export async function POST(req: NextRequest) {
     }
 
     const alg = "HS256";
-    const secret = new TextEncoder().encode("hola");
-    const token = await new jose.SignJWT({ id: user._id, email: user.correo })
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+    const token = await new jose.SignJWT({ id: user.id, email: user.correo })
       .setProtectedHeader({ alg })
       .setExpirationTime("24h")
       .sign(secret);
 
-    // Configurar la cookie en la respuesta
+    const empresaId = user.empresaUsuarios[0]?.empresaId ?? null;
+
     const response = NextResponse.json(
       {
         nombre: user.nombre,
         email: user.correo,
-        userId: user.id_usuario,
-        empresaId: user.empresaId,
+        userId: user.id,
+        empresaId,
       },
       { status: 200 }
     );
     response.cookies.set("token", token, {
-      maxAge: 60 * 60 * 24, // 24 horas
-      //httpOnly: true,
+      maxAge: 60 * 60 * 24,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
     });

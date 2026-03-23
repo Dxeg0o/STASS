@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { connectDb } from "@/lib/mongodb";
-import { Servicio } from "@/models/servicio";
+import { db } from "@/db";
+import { servicio } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -11,13 +12,13 @@ export async function GET(request: Request) {
       { status: 400 }
     );
   }
-  await connectDb();
-  const servicios = await Servicio.find({ empresaId })
-    .select("_id nombre")
-    .lean<{ _id: unknown; nombre: string }[]>();
-  return NextResponse.json(
-    servicios.map((s) => ({ id: String(s._id), nombre: s.nombre }))
-  );
+
+  const servicios = await db
+    .select({ id: servicio.id, nombre: servicio.nombre })
+    .from(servicio)
+    .where(eq(servicio.empresaId, empresaId));
+
+  return NextResponse.json(servicios);
 }
 
 export async function POST(request: Request) {
@@ -28,10 +29,11 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  await connectDb();
-  const servicio = await Servicio.create({ empresaId, nombre });
-  return NextResponse.json(
-    { id: servicio._id.toString(), nombre: servicio.nombre },
-    { status: 201 }
-  );
+
+  const [created] = await db
+    .insert(servicio)
+    .values({ empresaId, nombre, tipo: "linea_conteo" })
+    .returning({ id: servicio.id, nombre: servicio.nombre });
+
+  return NextResponse.json(created, { status: 201 });
 }

@@ -1,14 +1,14 @@
 // app/api/lotes/activity/last/route.ts
 import { NextResponse } from "next/server";
-import { connectDb } from "@/lib/mongodb";
-import { LoteActivity } from "@/models/loteactivity";
-import { Lote, type LoteDocument } from "@/models/lotes";
-import { Servicio } from "@/models/servicio";
+import { db } from "@/db";
+import { loteSession, servicio } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const servicioId = searchParams.get("servicioId");
   const empresaId = searchParams.get("empresaId");
+
   if (!servicioId && !empresaId) {
     return NextResponse.json(
       { error: "servicioId or empresaId is required" },
@@ -16,39 +16,35 @@ export async function GET(request: Request) {
     );
   }
 
-  await connectDb();
-
-  // 1) Obtener solo los _id de los lotes del servicio (o empresa)
-  let query: Record<string, unknown> = {};
+  // Obtener ids de servicios relevantes
+  let servicioIds: string[] = [];
   if (servicioId) {
-    query = { servicioId };
-  } else if (empresaId) {
-    const servicios = await Servicio.find({ empresaId }, { _id: 1 });
-    const servicioIds = servicios.map((s) => s._id);
-    query = { servicioId: { $in: servicioIds } };
-  }
-  const loteDocs = await Lote.find(query, { _id: 1 });
-  const loteIds = loteDocs.map((l) => l._id);
-
-  // 2) Buscar la última actividad de esos lotes y poblar el documento completo
-  const activity = await LoteActivity.findOne(
-    { loteId: { $in: loteIds } },
-    undefined,
-    { sort: { startTime: -1 } }
-  ).populate<{ loteId: LoteDocument }>("loteId");
-
-  // 3) Si no hay actividad o ya está cerrada, no hay lote activo
-  if (!activity || activity.endTime !== null) {
-    return NextResponse.json(null, { status: 200 });
+    servicioIds = [servicioId];
+  } else {
+    const servicios = await db
+      .select({ id: servicio.id })
+      .from(servicio)
+      .where(eq(servicio.empresaId, empresaId!));
+    servicioIds = servicios.map((s) => s.id);
   }
 
-  // 4) Como usamos el genérico en populate, activity.loteId es LoteDocument
-  const lote = activity.loteId;
+  if (servicioIds.length === 0) return NextResponse.json(null);
+
+  // Buscar la última sesión abierta (sin endTime) de esos servicios
+  const session = await db.query.loteSession.findFirst({
+    where: (ls, { and, isNull, inArray }) =>
+      and(isNull(ls.endTime), inArray(ls.servicioId, servicioIds)),
+    orderBy: [desc(loteSession.startTime)],
+    with: { lote: true },
+  });
+
+  if (!session) return NextResponse.json(null, { status: 200 });
+
   return NextResponse.json(
     {
-      id: lote._id.toString(),
-      nombre: lote.nombre,
-      fechaCreacion: lote.fechaCreacion,
+      id: session.lote.id,
+      nombre: session.lote.nombre,
+      fechaCreacion: session.lote.createdAt,
     },
     { status: 200 }
   );

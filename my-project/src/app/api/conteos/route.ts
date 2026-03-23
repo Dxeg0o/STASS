@@ -1,19 +1,14 @@
 // app/api/conteos/route.ts
 import { NextResponse } from "next/server";
-import { connectDb } from "@/lib/mongodb";
-import mongoose from "mongoose";
-import { Conteo } from "@/models/conteo";
-import { LoteActivity } from "@/models/loteactivity";
-import { Servicio } from "@/models/servicio";
+import { db } from "@/db";
+import { conteo, servicio, dispositivo } from "@/db/schema";
+import { eq, inArray, desc } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const loteId = searchParams.get("loteId");
   const empresaId = searchParams.get("empresaId");
   const servicioId = searchParams.get("servicioId");
-
-  // Pagination parameters
-  // Default to 0 (no limit) to allow fetching all records as requested by user
   const limit = parseInt(searchParams.get("limit") || "0", 10);
   const skip = parseInt(searchParams.get("skip") || "0", 10);
 
@@ -24,70 +19,63 @@ export async function GET(request: Request) {
     );
   }
 
-  await connectDb();
+  // Build base query with dispositivo join for the nombre
+  const baseSelect = {
+    ts: conteo.ts,
+    direction: conteo.direction,
+    dispositivo: dispositivo.nombre,
+    perimeter: conteo.perimeter,
+    servicioId: conteo.servicioId,
+    loteId: conteo.loteId,
+  };
 
-  // Common projection for optimization
-  const projection = "timestamp direction dispositivo id perimeter servicioId";
+  let query;
 
-  // Case 1: Filter by Lote (via Activity ranges)
   if (loteId) {
-    const activities = await LoteActivity.find({
-      loteId: new mongoose.Types.ObjectId(loteId),
-    }).lean();
+    query = db
+      .select(baseSelect)
+      .from(conteo)
+      .innerJoin(dispositivo, eq(dispositivo.id, conteo.dispositivoId))
+      .where(eq(conteo.loteId, loteId))
+      .orderBy(desc(conteo.ts));
+  } else if (servicioId) {
+    query = db
+      .select(baseSelect)
+      .from(conteo)
+      .innerJoin(dispositivo, eq(dispositivo.id, conteo.dispositivoId))
+      .where(eq(conteo.servicioId, servicioId))
+      .orderBy(desc(conteo.ts));
+  } else {
+    // empresaId → obtener servicioIds primero
+    const servicios = await db
+      .select({ id: servicio.id })
+      .from(servicio)
+      .where(eq(servicio.empresaId, empresaId!));
 
-    if (!activities.length) {
-      return NextResponse.json([]);
-    }
+    const servicioIds = servicios.map((s) => s.id);
+    if (servicioIds.length === 0) return NextResponse.json([]);
 
-    const now = new Date();
-    const orConds = activities.map(({ startTime, endTime }) => ({
-      timestamp: { $gte: startTime, $lte: endTime ?? now },
-    }));
-
-    const query: Record<string, unknown> = { $or: orConds };
-    if (servicioId) {
-      query.servicioId = servicioId;
-    }
-
-    const conteos = await Conteo.find(query)
-      .sort({ timestamp: -1 }) // Optimized: Descending order
-      .skip(skip)
-      .limit(limit)
-      .select(projection)
-      .lean();
-
-    return NextResponse.json(conteos);
+    query = db
+      .select(baseSelect)
+      .from(conteo)
+      .innerJoin(dispositivo, eq(dispositivo.id, conteo.dispositivoId))
+      .where(inArray(conteo.servicioId, servicioIds))
+      .orderBy(desc(conteo.ts));
   }
 
-  // Case 2: Filter by Servicio
-  if (servicioId) {
-    const conteos = await Conteo.find({ servicioId })
-      .sort({ timestamp: -1 })
-      .skip(skip)
-      .limit(limit)
-      .select(projection)
-      .lean();
-    return NextResponse.json(conteos);
-  }
+  // Aplicar paginación – cast necesario por el tipo dinámico del query builder
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let paged: any = query;
+  if (skip > 0) paged = paged.offset(skip);
+  if (limit > 0) paged = paged.limit(limit);
+  const rows = await paged;
 
-  // Case 3: Filter by Empresa (via Servicios)
-  if (empresaId) {
-    const servicios = await Servicio.find({ empresaId }, { _id: 1 }).lean() as { _id: mongoose.Types.ObjectId }[];
-    const servicioIds = servicios.map(s => s._id.toString());
-    
-    if (!servicioIds.length) {
-      return NextResponse.json([]);
-    }
+  // Normalizar direction: 0 → "in", 1 → "out"
+  const result = rows.map((r: typeof rows[number]) => ({
+    ...r,
+    timestamp: r.ts,
+    direction: r.direction === 0 ? "in" : "out",
+  }));
 
-    const conteos = await Conteo.find({
-      servicioId: { $in: servicioIds },
-    })
-      .sort({ timestamp: -1 })
-      .skip(skip)
-      .limit(limit)
-      .select(projection)
-      .lean();
-
-    return NextResponse.json(conteos);
-  }
+  return NextResponse.json(result);
 }

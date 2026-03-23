@@ -1,35 +1,31 @@
 import { NextResponse, NextRequest } from "next/server";
-
-import { connectDb } from "@/lib/mongodb";
-import Empresa from "@/models/companies";
-import mongoose from "mongoose";
+import { db } from "@/db";
+import { empresa } from "@/db/schema";
 
 export async function GET() {
   try {
-    await connectDb();
-
-    const companies = await Empresa.find();
-
+    const companies = await db.select().from(empresa);
     return NextResponse.json(companies);
   } catch (error) {
-    console.error("Error during login:", error);
-    return NextResponse.json({ error: "Login failed" }, { status: 400 });
+    console.error("Error fetching companies:", error);
+    return NextResponse.json({ error: "Error fetching companies" }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
-  await connectDb();
   try {
     const data = await request.json();
-
-    const companies = await Empresa.create({
-      ...data,
-      _id: new mongoose.Types.ObjectId().toString(),
-    });
-
-    return NextResponse.json(companies);
+    const [created] = await db
+      .insert(empresa)
+      .values({
+        nombre: data.nombre,
+        pais: data.pais,
+        createdAt: data.fechaRegistro ? new Date(data.fechaRegistro) : new Date(),
+      })
+      .returning();
+    return NextResponse.json(created);
   } catch (error) {
-    console.error("Error during login:", error);
-    return NextResponse.json({ error: "Login failed" }, { status: 400 });
+    console.error("Error creating company:", error);
+    return NextResponse.json({ error: "Error creating company" }, { status: 400 });
   }
 }
