@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { conteo } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { loteStats } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
 
 interface DistributionPoint {
   perimeter: number;
@@ -29,22 +29,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: [], series: [] });
   }
 
-  // Para cada lote, obtener distribución de perímetros
   const resultByLote: Record<string, DistributionPoint[]> = {};
 
   await Promise.all(
     loteIds.map(async (loteId) => {
       const rows = await db
         .select({
-          perimeter: sql<number>`ROUND(${conteo.perimeter}::numeric, 1)`,
-          count: sql<number>`COUNT(*)::int`,
+          perimeter: loteStats.calibre,
+          count: sql<number>`(SUM(${loteStats.countIn}) + SUM(${loteStats.countOut}))::int`,
         })
-        .from(conteo)
-        .where(
-          and(eq(conteo.servicioId, servicioId), eq(conteo.loteId, loteId))
-        )
-        .groupBy(sql`ROUND(${conteo.perimeter}::numeric, 1)`)
-        .orderBy(sql`ROUND(${conteo.perimeter}::numeric, 1)`);
+        .from(loteStats)
+        .where(eq(loteStats.loteId, loteId))
+        .groupBy(loteStats.calibre)
+        .orderBy(loteStats.calibre);
 
       resultByLote[loteId] = rows.map((r) => ({
         perimeter: Number(r.perimeter),

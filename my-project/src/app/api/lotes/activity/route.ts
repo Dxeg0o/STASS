@@ -39,16 +39,16 @@ export async function POST(request: Request) {
 
   const now = new Date();
 
-  // Cerrar cualquier sesión abierta del servicio
+  // Cerrar cualquier sesión abierta del dispositivo
   await db
     .update(loteSession)
     .set({ endTime: now })
-    .where(eq(loteSession.servicioId, servicioId) && isNull(loteSession.endTime));
+    .where(eq(loteSession.dispositivoId, dispositivoId) && isNull(loteSession.endTime));
 
   // Abrir nueva sesión
   const [session] = await db
     .insert(loteSession)
-    .values({ loteId, dispositivoId, servicioId, startTime: now, endTime: null })
+    .values({ loteId, dispositivoId, startTime: now, endTime: null })
     .returning();
 
   return NextResponse.json(session, { status: 201 });

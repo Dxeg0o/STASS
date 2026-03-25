@@ -11,6 +11,7 @@ import {
   jsonb,
   primaryKey,
   index,
+  integer,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -237,8 +238,9 @@ export const loteSession = pgTable("lote_session", {
   loteId: uuid("lote_id")
     .notNull()
     .references(() => lote.id, { onDelete: "cascade" }),
-  dispositivoId: uuid("dispositivo_id").notNull(),
-  servicioId: uuid("servicio_id").notNull(),
+  dispositivoId: uuid("dispositivo_id")
+    .notNull()
+    .references(() => dispositivo.id),
   startTime: timestamp("start_time", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -254,13 +256,41 @@ export const loteSessionRelations = relations(loteSession, ({ one }) => ({
 
 // ─── Conteo (tabla de alto volumen) ────────────────────────
 
+// ─── Lote Stats (resumen pre-calculado por lote/dispositivo/calibre) ────────
+
+export const loteStats = pgTable(
+  "lote_stats",
+  {
+    loteId: uuid("lote_id")
+      .notNull()
+      .references(() => lote.id, { onDelete: "cascade" }),
+    dispositivoId: uuid("dispositivo_id")
+      .notNull()
+      .references(() => dispositivo.id),
+    calibre: real("calibre").notNull(),
+    countIn: integer("count_in").notNull().default(0),
+    countOut: integer("count_out").notNull().default(0),
+    firstTs: timestamp("first_ts", { withTimezone: true }),
+    lastTs: timestamp("last_ts", { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.loteId, t.dispositivoId, t.calibre] })]
+);
+
+// ─── Conteo (tabla de alto volumen) ────────────────────────
+
 export const conteo = pgTable(
   "conteo",
   {
     ts: timestamp("ts", { withTimezone: true }).notNull(),
-    servicioId: uuid("servicio_id").notNull(),
-    loteId: uuid("lote_id").notNull(),
-    dispositivoId: uuid("dispositivo_id").notNull(),
+    servicioId: uuid("servicio_id")
+      .notNull()
+      .references(() => servicio.id),
+    loteId: uuid("lote_id")
+      .notNull()
+      .references(() => lote.id),
+    dispositivoId: uuid("dispositivo_id")
+      .notNull()
+      .references(() => dispositivo.id),
     perimeter: real("perimeter").notNull(),
     direction: smallint("direction").notNull(), // 0 = in, 1 = out
   },

@@ -1,8 +1,8 @@
 // app/api/lotes/activity/last/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { loteSession, servicio } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { lote, loteSession, servicio } from "@/db/schema";
+import { eq, desc, inArray } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -30,10 +30,19 @@ export async function GET(request: Request) {
 
   if (servicioIds.length === 0) return NextResponse.json(null);
 
-  // Buscar la última sesión abierta (sin endTime) de esos servicios
+  // Obtener loteIds que pertenecen a esos servicios
+  const lotes = await db
+    .select({ id: lote.id })
+    .from(lote)
+    .where(inArray(lote.servicioId, servicioIds));
+  const loteIds = lotes.map((l) => l.id);
+
+  if (loteIds.length === 0) return NextResponse.json(null);
+
+  // Buscar la última sesión abierta (sin endTime) de esos lotes
   const session = await db.query.loteSession.findFirst({
     where: (ls, { and, isNull, inArray }) =>
-      and(isNull(ls.endTime), inArray(ls.servicioId, servicioIds)),
+      and(isNull(ls.endTime), inArray(ls.loteId, loteIds)),
     orderBy: [desc(loteSession.startTime)],
     with: { lote: true },
   });

@@ -15,18 +15,18 @@
  *   npx tsx scripts/migrate-data.ts
  */
 
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
 import mongoose from "mongoose";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { randomUUID } from "crypto";
 import * as schema from "../src/db/schema";
-import { eq, and, lte, gte, isNull, or, inArray } from "drizzle-orm";
 
 // ─── Conexiones ────────────────────────────────────────────
 
 const MONGO_URI = process.env.MONGODB_URI!;
-const PG_URL = process.env.DATABASE_URL!;
+const PG_URL = process.env.DATABASE_URL_POOLER ?? process.env.DATABASE_URL!;
 
 const pgClient = postgres(PG_URL, { max: 5 });
 const db = drizzle(pgClient, { schema });
@@ -181,7 +181,7 @@ async function migrateUsuarios() {
 
   // empresa_usuario
   const euRows = docs
-    .filter((d: any) => d.empresaId && empresaMap.has(d._id.toString()))
+    .filter((d: any) => d.empresaId && empresaMap.has(d.empresaId.toString()))
     .map((d: any) => {
       const empresaUuid = empresaMap.get(d.empresaId.toString());
       if (!empresaUuid) {

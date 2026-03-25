@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { lote, conteo, servicio } from "@/db/schema";
+import { lote, loteStats, servicio } from "@/db/schema";
 import { eq, inArray, desc, sql } from "drizzle-orm";
 
 export async function GET(request: Request) {
@@ -29,18 +29,17 @@ export async function GET(request: Request) {
 
   if (servicioIds.length === 0) return NextResponse.json([]);
 
-  // Un JOIN lote ← conteo, agrupado por lote
   const rows = await db
     .select({
       id: lote.id,
       nombre: lote.nombre,
-      conteo: sql<number>`COUNT(${conteo.ts})::int`,
-      firstTimestamp: sql<Date | null>`MIN(${conteo.ts})`,
-      lastTimestamp: sql<Date | null>`MAX(${conteo.ts})`,
+      conteo: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
+      firstTimestamp: sql<Date | null>`MIN(${loteStats.firstTs})`,
+      lastTimestamp: sql<Date | null>`MAX(${loteStats.lastTs})`,
       createdAt: lote.createdAt,
     })
     .from(lote)
-    .leftJoin(conteo, eq(conteo.loteId, lote.id))
+    .leftJoin(loteStats, eq(loteStats.loteId, lote.id))
     .where(inArray(lote.servicioId, servicioIds))
     .groupBy(lote.id, lote.nombre, lote.createdAt)
     .orderBy(desc(lote.createdAt));
