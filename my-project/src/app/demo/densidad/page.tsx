@@ -155,13 +155,6 @@ function normalizePoint(point: LocalPoint): LocalPoint {
   };
 }
 
-function toLocal(point: [number, number]): LocalPoint {
-  return {
-    north: (point[0] - FIELD_CENTER[0]) * METERS_PER_DEGREE_LAT,
-    east: (point[1] - FIELD_CENTER[1]) * METERS_PER_DEGREE_LNG,
-  };
-}
-
 function toLatLng(point: LocalPoint): [number, number] {
   return [
     FIELD_CENTER[0] + point.north / METERS_PER_DEGREE_LAT,
@@ -261,7 +254,7 @@ function getSegmentDensity(
   progress: number
 ) {
   const lateralRatio = rowCount <= 1 ? 0.5 : rowIndex / (rowCount - 1);
-  let density =
+  const density =
     7.2 +
     FIELD_SECTORS[sectorIndex].densityBias +
     Math.sin(progress * Math.PI * 2.2 + sectorIndex * 0.9) * 0.8 +
