@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import * as XLSX from "xlsx";
@@ -13,6 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ScanLine,
+  Sprout,
+  ShieldCheck,
+  Activity,
+} from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,6 +55,33 @@ interface DistributionResponse {
   series: { loteId: string }[];
 }
 
+interface HistorialEntry {
+  servicioId: string;
+  asignadoAt: string;
+  servicioNombre: string;
+  servicioTipo: string;
+  procesoId: string | null;
+  procesoTemporada: string | null;
+  procesoEstado: string | null;
+  tipoProcesoNombre: string | null;
+}
+
+const SERVICIO_META: Record<
+  string,
+  { label: string; icon: React.ComponentType<{ className?: string }> }
+> = {
+  linea_conteo: { label: "Línea de Conteo", icon: ScanLine },
+  maquina_plantacion: { label: "Máquina de Plantación", icon: Sprout },
+  estacion_calidad: { label: "Estación de Calidad", icon: ShieldCheck },
+};
+
+const ESTADO_COLORS: Record<string, string> = {
+  planificado: "text-slate-400",
+  en_curso: "text-cyan-400",
+  completado: "text-emerald-400",
+  cancelado: "text-red-400",
+};
+
 const SERIES_COLORS = ["#06b6d4", "#6366f1", "#f97316", "#10b981", "#ec4899"];
 
 const LIMIT = 100;
@@ -73,11 +106,29 @@ export default function LoteDetailPage() {
   const [chartLoading, setChartLoading] = useState(false);
   const [viewMode, setViewMode] = useState<"quantity" | "percentage">("quantity");
 
+  // Historial tab
+  const [historial, setHistorial] = useState<HistorialEntry[]>([]);
+  const [historialLoading, setHistorialLoading] = useState(false);
+
   // Datos tab
   const [conteos, setConteos] = useState<Conteo[]>([]);
   const [conteosLoading, setConteosLoading] = useState(false);
   const [skip, setSkip] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+
+  // ── Fetch historial ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!loteId) return;
+    setHistorialLoading(true);
+    fetch(`/api/lotes/${loteId}/historial`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Error al cargar historial");
+        const data: HistorialEntry[] = await res.json();
+        setHistorial(data);
+      })
+      .catch(console.error)
+      .finally(() => setHistorialLoading(false));
+  }, [loteId]);
 
   // ── Fetch lote info ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -235,6 +286,12 @@ export default function LoteDetailPage() {
             className="data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-slate-400"
           >
             Datos
+          </TabsTrigger>
+          <TabsTrigger
+            value="historial"
+            className="data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-slate-400"
+          >
+            Historial
           </TabsTrigger>
         </TabsList>
 
@@ -460,6 +517,101 @@ export default function LoteDetailPage() {
                   </Button>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* ── Tab: Historial ───────────────────────────────────────────────── */}
+        <TabsContent value="historial">
+          <Card className="border-white/10 bg-slate-900/40">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white">Historial del lote</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {historialLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 rounded bg-slate-800/40 animate-pulse" />
+                  ))}
+                </div>
+              ) : historial.length === 0 ? (
+                <p className="text-sm text-slate-500 py-2">
+                  No hay historial registrado para este lote.
+                </p>
+              ) : (
+                <div className="relative pl-6">
+                  {/* Vertical line */}
+                  <div className="absolute left-2 top-2 bottom-2 w-px bg-white/10" />
+
+                  <div className="space-y-6">
+                    {historial.map((entry, idx) => {
+                      const meta = SERVICIO_META[entry.servicioTipo] ?? {
+                        label: entry.servicioTipo,
+                        icon: Activity,
+                      };
+                      const Icon = meta.icon;
+                      const estadoColor = entry.procesoEstado
+                        ? (ESTADO_COLORS[entry.procesoEstado] ?? "text-slate-400")
+                        : "text-slate-600";
+
+                      return (
+                        <div key={idx} className="relative">
+                          {/* Dot */}
+                          <div className="absolute -left-[18px] top-2 w-2.5 h-2.5 rounded-full bg-cyan-500/60 border border-cyan-400/40" />
+
+                          <div className="flex items-start gap-3">
+                            <div className="shrink-0 p-2 rounded-md bg-slate-800/60 border border-white/5 mt-0.5">
+                              <Icon className="w-3.5 h-3.5 text-cyan-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Link
+                                  href={`/app/servicios/${entry.servicioId}`}
+                                  className="text-sm font-medium text-white hover:text-cyan-300 transition-colors truncate"
+                                >
+                                  {entry.servicioNombre}
+                                </Link>
+                                <span className="text-xs text-slate-600">
+                                  {meta.label}
+                                </span>
+                              </div>
+                              {entry.tipoProcesoNombre && (
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  {entry.procesoId ? (
+                                    <Link
+                                      href={`/app/procesos/${entry.procesoId}`}
+                                      className="text-xs text-slate-400 hover:text-cyan-400 transition-colors"
+                                    >
+                                      {entry.tipoProcesoNombre}
+                                      {entry.procesoTemporada && ` · ${entry.procesoTemporada}`}
+                                    </Link>
+                                  ) : (
+                                    <span className="text-xs text-slate-400">
+                                      {entry.tipoProcesoNombre}
+                                      {entry.procesoTemporada && ` · ${entry.procesoTemporada}`}
+                                    </span>
+                                  )}
+                                  {entry.procesoEstado && (
+                                    <span className={`text-xs ${estadoColor}`}>
+                                      · {entry.procesoEstado.replace("_", " ")}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              <p className="text-xs text-slate-600 mt-0.5">
+                                {new Date(entry.asignadoAt).toLocaleDateString("es-CL", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

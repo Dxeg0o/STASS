@@ -29,6 +29,9 @@ interface ServicioSummary {
   tipo: string;
   fechaInicio: string | null;
   fechaFin: string | null;
+  procesoId: string | null;
+  tipoProcesoNombre: string | null;
+  temporada: string | null;
   loteCount: number;
   totalCount: number;
   lastActivity: string | null;
@@ -105,6 +108,15 @@ function ServicioCard({ servicio }: { servicio: ServicioSummary }) {
               >
                 {TYPE_LABELS[servicio.tipo] ?? servicio.tipo}
               </Badge>
+              {servicio.tipoProcesoNombre && (
+                <Badge
+                  className="mt-1 text-xs border-cyan-500/30 bg-cyan-950/20 text-cyan-500 hover:bg-cyan-950/20"
+                  variant="outline"
+                >
+                  {servicio.tipoProcesoNombre}
+                  {servicio.temporada && ` · ${servicio.temporada}`}
+                </Badge>
+              )}
             </div>
           </div>
 

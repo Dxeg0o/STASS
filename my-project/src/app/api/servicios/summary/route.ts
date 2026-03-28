@@ -6,6 +6,8 @@ import {
   loteSession,
   loteServicio,
   dispositivoServicio,
+  proceso,
+  tipoProceso,
 } from "@/db/schema";
 import { eq, and, isNull, sql, inArray } from "drizzle-orm";
 
@@ -34,8 +36,13 @@ export async function GET(request: Request) {
       tipo: servicio.tipo,
       fechaInicio: servicio.fechaInicio,
       fechaFin: servicio.fechaFin,
+      procesoId: servicio.procesoId,
+      tipoProcesoNombre: tipoProceso.nombre,
+      temporada: proceso.temporada,
     })
     .from(servicio)
+    .leftJoin(proceso, eq(proceso.id, servicio.procesoId))
+    .leftJoin(tipoProceso, eq(tipoProceso.id, proceso.tipoProcesoId))
     .where(whereClause);
 
   if (servicios.length === 0) {
@@ -108,6 +115,9 @@ export async function GET(request: Request) {
       tipo: s.tipo,
       fechaInicio: s.fechaInicio ? new Date(s.fechaInicio).toISOString() : null,
       fechaFin: s.fechaFin ? new Date(s.fechaFin).toISOString() : null,
+      procesoId: s.procesoId ?? null,
+      tipoProcesoNombre: s.tipoProcesoNombre ?? null,
+      temporada: s.temporada ?? null,
       loteCount: agg?.loteCount ?? 0,
       totalCount: agg?.totalCount ?? 0,
       lastActivity: agg?.lastActivity

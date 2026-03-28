@@ -4,7 +4,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
-import { ScanLine, Sprout, ShieldCheck, Activity, Clock } from "lucide-react";
+import { ScanLine, Sprout, ShieldCheck, Activity, Clock, ClipboardList } from "lucide-react";
 
 // ---------- Types ----------
 
@@ -30,11 +30,20 @@ interface RecentLote {
   lastTs: string | null;
 }
 
+interface ProcesoActivo {
+  id: string;
+  temporada: string | null;
+  tipoProcesoNombre: string | null;
+  productoNombre: string | null;
+  servicioCount: number;
+}
+
 interface OverviewData {
   empresa: { nombre: string; pais: string };
   serviceTypeSummary: ServiceTypeSummary[];
   activeSessions: ActiveSession[];
   recentLotes: RecentLote[];
+  procesosActivos: ProcesoActivo[];
 }
 
 // ---------- Helpers ----------
@@ -222,6 +231,49 @@ export default function OverviewPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {overview.serviceTypeSummary.map((s) => (
                   <ServiceTypeCard key={s.tipo} summary={s} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Procesos en Curso */}
+          {overview.procesosActivos?.length > 0 && (
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-base font-semibold text-slate-200">
+                  Procesos en Curso
+                </h2>
+                <span className="text-xs bg-cyan-950/60 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-full">
+                  {overview.procesosActivos.length}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {overview.procesosActivos.map((p) => (
+                  <Link key={p.id} href={`/app/procesos/${p.id}`}>
+                    <Card className="bg-slate-900/40 border-white/10 hover:border-cyan-500/40 hover:bg-slate-900/70 transition-all duration-200 cursor-pointer group">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 rounded-md bg-cyan-950/30 border border-cyan-500/20 group-hover:bg-cyan-950/50 transition-colors shrink-0">
+                            <ClipboardList className="w-4 h-4 text-cyan-400" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-white truncate group-hover:text-cyan-100 transition-colors">
+                              {p.tipoProcesoNombre ?? "Proceso"}
+                              {p.temporada && (
+                                <span className="text-slate-400 font-normal"> · {p.temporada}</span>
+                              )}
+                            </p>
+                            {p.productoNombre && (
+                              <p className="text-xs text-slate-500 truncate">{p.productoNombre}</p>
+                            )}
+                            <p className="text-xs text-slate-600 mt-1">
+                              {p.servicioCount} {p.servicioCount === 1 ? "servicio" : "servicios"}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))}
               </div>
             </section>

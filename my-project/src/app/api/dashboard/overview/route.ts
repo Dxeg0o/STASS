@@ -9,8 +9,11 @@ import {
   loteStats,
   loteServicio,
   dispositivo,
+  proceso,
+  tipoProceso,
+  producto,
 } from "@/db/schema";
-import { eq, inArray, desc, sql, isNull, and } from "drizzle-orm";
+import { eq, inArray, desc, sql, isNull, and, asc } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -179,6 +182,32 @@ export async function GET(request: Request) {
     }));
   }
 
+  // 6. Get active processes (en_curso)
+  const procesosActivosRows = await db
+    .select({
+      id: proceso.id,
+      temporada: proceso.temporada,
+      tipoProcesoNombre: tipoProceso.nombre,
+      productoNombre: producto.nombre,
+      servicioCount: sql<number>`(
+        SELECT COUNT(*) FROM servicio WHERE servicio.proceso_id = ${proceso.id}
+      )::int`,
+    })
+    .from(proceso)
+    .leftJoin(tipoProceso, eq(tipoProceso.id, proceso.tipoProcesoId))
+    .leftJoin(producto, eq(producto.id, proceso.productoId))
+    .where(and(eq(proceso.empresaId, empresaId), eq(proceso.estado, "en_curso")))
+    .orderBy(asc(proceso.createdAt))
+    .limit(5);
+
+  const procesosActivos = procesosActivosRows.map((r) => ({
+    id: r.id,
+    temporada: r.temporada,
+    tipoProcesoNombre: r.tipoProcesoNombre ?? null,
+    productoNombre: r.productoNombre ?? null,
+    servicioCount: r.servicioCount,
+  }));
+
   return NextResponse.json({
     empresa: {
       nombre: empresaData.nombre,
@@ -187,5 +216,6 @@ export async function GET(request: Request) {
     serviceTypeSummary,
     activeSessions,
     recentLotes,
+    procesosActivos,
   });
 }

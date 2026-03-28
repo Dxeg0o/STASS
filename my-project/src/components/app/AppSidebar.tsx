@@ -12,6 +12,7 @@ import {
   ScanLine,
   Sprout,
   ShieldCheck,
+  ClipboardList,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -110,6 +111,28 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
                   strokeWidth={pathname === "/app" ? 2.5 : 2}
                 />
                 <span>Inicio</span>
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        {/* Producción */}
+        <div>
+          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
+            Producción
+          </span>
+          <ul className="mt-2 space-y-1">
+            <li>
+              <Link
+                href="/app/procesos"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/app/procesos") ? activeLinkClasses : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <ClipboardList className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Procesos</span>
               </Link>
             </li>
           </ul>
