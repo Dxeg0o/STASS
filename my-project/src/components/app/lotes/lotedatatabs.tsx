@@ -8,7 +8,6 @@ import * as XLSX from "xlsx";
 
 export interface Lote {
   id: string;
-  nombre: string;
 }
 
 interface ConteoRecord {
@@ -79,7 +78,7 @@ export function LoteDataTabs({ lote }: LoteDataTabsProps) {
     XLSX.utils.book_append_sheet(wb, ws, "Conteos");
     XLSX.writeFile(
       wb,
-      `conteos_${lote?.nombre || "sin_lote"}_${new Date()
+      `conteos_${lote?.id || "sin_lote"}_${new Date()
         .toISOString()
         .slice(0, 19)
         .replace(/[:T]/g, "-")}.xlsx`

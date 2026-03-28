@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { servicio } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { servicio, proceso, tipoProceso } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -14,29 +14,35 @@ export async function GET(request: Request) {
   }
 
   const tipo = searchParams.get("tipo");
+  const procesoId = searchParams.get("procesoId");
 
-  const query = db
+  const conditions = [eq(servicio.empresaId, empresaId)];
+  if (tipo) conditions.push(eq(servicio.tipo, tipo));
+  if (procesoId) conditions.push(eq(servicio.procesoId, procesoId));
+
+  const servicios = await db
     .select({
       id: servicio.id,
       nombre: servicio.nombre,
       tipo: servicio.tipo,
       fechaInicio: servicio.fechaInicio,
       fechaFin: servicio.fechaFin,
+      procesoId: servicio.procesoId,
+      usaCajas: servicio.usaCajas,
+      tipoProcesoNombre: tipoProceso.nombre,
+      procesoTemporada: proceso.temporada,
     })
     .from(servicio)
-    .where(eq(servicio.empresaId, empresaId));
+    .leftJoin(proceso, eq(proceso.id, servicio.procesoId))
+    .leftJoin(tipoProceso, eq(tipoProceso.id, proceso.tipoProcesoId))
+    .where(and(...conditions));
 
-  const servicios = await query;
-
-  const filtered = tipo
-    ? servicios.filter((s) => s.tipo === tipo)
-    : servicios;
-
-  return NextResponse.json(filtered);
+  return NextResponse.json(servicios);
 }
 
 export async function POST(request: Request) {
-  const { empresaId, nombre } = await request.json();
+  const body = await request.json();
+  const { empresaId, nombre, tipo, ubicacionId, procesoId, usaCajas } = body;
   if (!empresaId || !nombre) {
     return NextResponse.json(
       { error: "empresaId y nombre son requeridos" },
@@ -46,8 +52,15 @@ export async function POST(request: Request) {
 
   const [created] = await db
     .insert(servicio)
-    .values({ empresaId, nombre, tipo: "linea_conteo" })
-    .returning({ id: servicio.id, nombre: servicio.nombre });
+    .values({
+      empresaId,
+      nombre,
+      tipo: tipo || "linea_conteo",
+      ubicacionId: ubicacionId || null,
+      procesoId: procesoId || null,
+      usaCajas: usaCajas ?? false,
+    })
+    .returning();
 
   return NextResponse.json(created, { status: 201 });
 }

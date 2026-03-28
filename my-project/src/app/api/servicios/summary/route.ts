@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import {
   servicio,
-  lote,
   loteStats,
   loteSession,
+  loteServicio,
   dispositivoServicio,
 } from "@/db/schema";
 import { eq, and, isNull, sql, inArray } from "drizzle-orm";
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
   const tipo = searchParams.get("tipo");
 
-  // 1. Get servicios for the empresa (optionally filtered by tipo)
+  // 1. Get servicios for the empresa
   const whereClause = tipo
     ? and(eq(servicio.empresaId, empresaId), eq(servicio.tipo, tipo))
     : eq(servicio.empresaId, empresaId);
@@ -44,18 +44,18 @@ export async function GET(request: Request) {
 
   const servicioIds = servicios.map((s) => s.id);
 
-  // 2. Aggregate lote stats per servicio (total count, lastActivity, loteCount)
+  // 2. Aggregate lote stats per servicio via loteServicio junction
   const loteAggRows = await db
     .select({
-      servicioId: lote.servicioId,
-      loteCount: sql<number>`COUNT(DISTINCT ${lote.id})::int`,
+      servicioId: loteServicio.servicioId,
+      loteCount: sql<number>`COUNT(DISTINCT ${loteServicio.loteId})::int`,
       totalCount: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
       lastActivity: sql<Date | null>`MAX(${loteStats.lastTs})`,
     })
-    .from(lote)
-    .leftJoin(loteStats, eq(loteStats.loteId, lote.id))
-    .where(inArray(lote.servicioId, servicioIds))
-    .groupBy(lote.servicioId);
+    .from(loteServicio)
+    .leftJoin(loteStats, eq(loteStats.loteId, loteServicio.loteId))
+    .where(inArray(loteServicio.servicioId, servicioIds))
+    .groupBy(loteServicio.servicioId);
 
   const loteAggMap = new Map(
     loteAggRows.map((r) => [r.servicioId, r])
@@ -75,38 +75,31 @@ export async function GET(request: Request) {
     deviceCountRows.map((r) => [r.servicioId, r.deviceCount])
   );
 
-  // 4. Find active loteSession (endTime IS NULL) for each servicio
-  //    Join loteSession -> lote to get servicioId
+  // 4. Find active loteSession via loteServicio
   const activeSessions = await db
     .select({
-      servicioId: lote.servicioId,
-      loteId: lote.id,
-      loteNombre: lote.nombre,
+      servicioId: loteServicio.servicioId,
+      loteId: loteServicio.loteId,
     })
     .from(loteSession)
-    .innerJoin(lote, eq(lote.id, loteSession.loteId))
+    .innerJoin(loteServicio, eq(loteServicio.loteId, loteSession.loteId))
     .where(
       and(
         isNull(loteSession.endTime),
-        inArray(lote.servicioId, servicioIds)
+        inArray(loteServicio.servicioId, servicioIds)
       )
     );
 
-  // Use the first active session found per servicio
-  const activeSessionMap = new Map<
-    string,
-    { id: string; nombre: string }
-  >();
+  const activeSessionMap = new Map<string, { id: string }>();
   for (const session of activeSessions) {
     if (!activeSessionMap.has(session.servicioId)) {
       activeSessionMap.set(session.servicioId, {
         id: session.loteId,
-        nombre: session.loteNombre,
       });
     }
   }
 
-  // 5. Build the enriched response
+  // 5. Build response
   const result = servicios.map((s) => {
     const agg = loteAggMap.get(s.id);
     return {

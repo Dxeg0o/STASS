@@ -1,8 +1,8 @@
 // app/api/lotes/activity/last/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { lote, loteSession, servicio } from "@/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import { lote, loteSession, loteServicio, servicio } from "@/db/schema";
+import { eq, desc, inArray, isNull, and } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     );
   }
 
-  // Obtener ids de servicios relevantes
+  // Get servicioIds
   let servicioIds: string[] = [];
   if (servicioId) {
     servicioIds = [servicioId];
@@ -30,30 +30,37 @@ export async function GET(request: Request) {
 
   if (servicioIds.length === 0) return NextResponse.json(null);
 
-  // Obtener loteIds que pertenecen a esos servicios
+  // Get loteIds via loteServicio
   const lotes = await db
-    .select({ id: lote.id })
-    .from(lote)
-    .where(inArray(lote.servicioId, servicioIds));
-  const loteIds = lotes.map((l) => l.id);
+    .select({ loteId: loteServicio.loteId })
+    .from(loteServicio)
+    .where(inArray(loteServicio.servicioId, servicioIds));
+  const loteIds = [...new Set(lotes.map((l) => l.loteId))];
 
   if (loteIds.length === 0) return NextResponse.json(null);
 
-  // Buscar la última sesión abierta (sin endTime) de esos lotes
-  const session = await db.query.loteSession.findFirst({
-    where: (ls, { and, isNull, inArray }) =>
-      and(isNull(ls.endTime), inArray(ls.loteId, loteIds)),
-    orderBy: [desc(loteSession.startTime)],
-    with: { lote: true },
-  });
+  // Find most recent open session
+  const [session] = await db
+    .select({
+      loteId: loteSession.loteId,
+      startTime: loteSession.startTime,
+    })
+    .from(loteSession)
+    .where(and(isNull(loteSession.endTime), inArray(loteSession.loteId, loteIds)))
+    .orderBy(desc(loteSession.startTime))
+    .limit(1);
 
   if (!session) return NextResponse.json(null, { status: 200 });
 
+  const [loteData] = await db
+    .select({ id: lote.id, createdAt: lote.createdAt })
+    .from(lote)
+    .where(eq(lote.id, session.loteId));
+
   return NextResponse.json(
     {
-      id: session.lote.id,
-      nombre: session.lote.nombre,
-      fechaCreacion: session.lote.createdAt,
+      id: loteData.id,
+      fechaCreacion: loteData.createdAt,
     },
     { status: 200 }
   );

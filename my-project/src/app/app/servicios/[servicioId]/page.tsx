@@ -23,7 +23,6 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 
 interface ActiveLote {
   id: string;
-  nombre: string;
 }
 
 interface Device {
@@ -35,7 +34,6 @@ interface Device {
 
 interface RecentLote {
   id: string;
-  nombre: string;
   totalCount: number;
   lastTs: string | null;
   variedadNombre: string | null;
@@ -161,13 +159,12 @@ export default function ServicioDetailPage() {
       if (!res.ok) throw new Error("Error al obtener resumen");
       const arr: {
         id: string;
-        nombre: string;
         conteo: number;
         firstTimestamp: string | null;
         lastTimestamp: string | null;
       }[] = await res.json();
       const sheetData = arr.map((l) => ({
-        Lote: l.nombre,
+        Lote: l.id.slice(-8),
         Conteo: l.conteo,
         "Primer conteo": l.firstTimestamp
           ? format(new Date(l.firstTimestamp), "yyyy-MM-dd HH:mm")
@@ -267,7 +264,7 @@ export default function ServicioDetailPage() {
             <p className="text-sm text-slate-400 mb-1">Lote activo</p>
             {detail.activeLote ? (
               <p className="text-xl font-semibold text-white truncate">
-                {detail.activeLote.nombre}
+                {detail.activeLote.id.slice(-8)}
               </p>
             ) : (
               <p className="text-slate-500 italic text-sm">Sin lote activo</p>
@@ -380,7 +377,7 @@ export default function ServicioDetailPage() {
                           href={`/app/servicios/${servicioId}/lotes/${lote.id}`}
                           className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
                         >
-                          {lote.nombre}
+                          {lote.id.slice(-8)}
                         </Link>
                       </td>
                       <td className="py-3 pr-4 text-slate-400">

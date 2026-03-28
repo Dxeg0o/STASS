@@ -7,9 +7,10 @@ import {
   lote,
   loteSession,
   loteStats,
+  loteServicio,
   dispositivo,
 } from "@/db/schema";
-import { eq, inArray, desc, sql, isNull } from "drizzle-orm";
+import { eq, inArray, desc, sql, isNull, and } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -23,26 +24,24 @@ export async function GET(request: Request) {
   }
 
   // 1. Get empresa
-  const empresaRows = await db
+  const [empresaData] = await db
     .select({ id: empresa.id, nombre: empresa.nombre, pais: empresa.pais })
     .from(empresa)
     .where(eq(empresa.id, empresaId));
 
-  if (empresaRows.length === 0) {
+  if (!empresaData) {
     return NextResponse.json({ error: "Empresa not found" }, { status: 404 });
   }
 
-  const empresaData = empresaRows[0];
-
   // 2. Get all servicios for this empresa
   const servicios = await db
-    .select({ id: servicio.id, tipo: servicio.tipo })
+    .select({ id: servicio.id, tipo: servicio.tipo, nombre: servicio.nombre })
     .from(servicio)
     .where(eq(servicio.empresaId, empresaId));
 
   const servicioIds = servicios.map((s) => s.id);
 
-  // 3. Build serviceTypeSummary: group servicios by tipo, aggregate loteStats
+  // 3. Build serviceTypeSummary
   let serviceTypeSummary: {
     tipo: string;
     count: number;
@@ -51,145 +50,96 @@ export async function GET(request: Request) {
   }[] = [];
 
   if (servicioIds.length > 0) {
-    // Get all lotes for these servicios
-    const lotes = await db
-      .select({ id: lote.id, servicioId: lote.servicioId })
-      .from(lote)
-      .where(inArray(lote.servicioId, servicioIds));
+    // Get stats aggregated by servicio via loteStats.servicioId
+    const statsRows = await db
+      .select({
+        servicioId: loteStats.servicioId,
+        totalBulbs: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
+        lastTs: sql<Date | null>`MAX(${loteStats.lastTs})`,
+      })
+      .from(loteStats)
+      .where(inArray(loteStats.servicioId, servicioIds))
+      .groupBy(loteStats.servicioId);
 
-    const loteIds = lotes.map((l) => l.id);
-
-    // Build a map: loteId -> servicioId
-    const loteToServicio = new Map<string, string>(
-      lotes.map((l) => [l.id, l.servicioId])
-    );
-
-    // Build a map: servicioId -> tipo
-    const servicioToTipo = new Map<string, string>(
-      servicios.map((s) => [s.id, s.tipo])
-    );
-
-    // Aggregate loteStats per loteId
-    type LoteAggregate = { totalBulbs: number; lastTs: Date | null };
-    const loteAggregates = new Map<string, LoteAggregate>();
-
-    if (loteIds.length > 0) {
-      const statsRows = await db
-        .select({
-          loteId: loteStats.loteId,
-          totalBulbs: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
-          lastTs: sql<Date | null>`MAX(${loteStats.lastTs})`,
-        })
-        .from(loteStats)
-        .where(inArray(loteStats.loteId, loteIds))
-        .groupBy(loteStats.loteId);
-
-      for (const row of statsRows) {
-        loteAggregates.set(row.loteId, {
-          totalBulbs: row.totalBulbs,
-          lastTs: row.lastTs ? new Date(row.lastTs) : null,
-        });
-      }
-    }
+    const statsMap = new Map(statsRows.map((r) => [r.servicioId, r]));
 
     // Group by tipo
-    type TipoAccumulator = {
-      servicioIds: Set<string>;
-      totalBulbs: number;
-      lastTs: Date | null;
-    };
-    const tipoMap = new Map<string, TipoAccumulator>();
+    type TipoAcc = { count: number; totalBulbs: number; lastTs: Date | null };
+    const tipoMap = new Map<string, TipoAcc>();
 
     for (const s of servicios) {
       if (!tipoMap.has(s.tipo)) {
-        tipoMap.set(s.tipo, {
-          servicioIds: new Set(),
-          totalBulbs: 0,
-          lastTs: null,
-        });
+        tipoMap.set(s.tipo, { count: 0, totalBulbs: 0, lastTs: null });
       }
-      tipoMap.get(s.tipo)!.servicioIds.add(s.id);
-    }
+      const entry = tipoMap.get(s.tipo)!;
+      entry.count++;
 
-    for (const [loteId, agg] of loteAggregates) {
-      const sId = loteToServicio.get(loteId);
-      if (!sId) continue;
-      const tipo = servicioToTipo.get(sId);
-      if (!tipo) continue;
-      const entry = tipoMap.get(tipo);
-      if (!entry) continue;
-
-      entry.totalBulbs += agg.totalBulbs;
-      if (agg.lastTs) {
-        if (!entry.lastTs || agg.lastTs > entry.lastTs) {
-          entry.lastTs = agg.lastTs;
+      const stats = statsMap.get(s.id);
+      if (stats) {
+        entry.totalBulbs += stats.totalBulbs;
+        if (stats.lastTs) {
+          const ts = new Date(stats.lastTs);
+          if (!entry.lastTs || ts > entry.lastTs) entry.lastTs = ts;
         }
       }
     }
 
     serviceTypeSummary = Array.from(tipoMap.entries()).map(([tipo, acc]) => ({
       tipo,
-      count: acc.servicioIds.size,
+      count: acc.count,
       totalBulbs: acc.totalBulbs,
       lastActivity: acc.lastTs ? acc.lastTs.toISOString() : null,
     }));
   }
 
-  // 4. Get active sessions (loteSession where endTime IS NULL), limit 10
+  // 4. Get active sessions
   let activeSessions: {
-    loteNombre: string;
+    loteId: string;
     servicioNombre: string;
     dispositivoNombre: string;
     startTime: string;
   }[] = [];
 
   if (servicioIds.length > 0) {
-    const allLoteIds = await db
-      .select({ id: lote.id })
-      .from(lote)
-      .where(inArray(lote.servicioId, servicioIds));
+    // Get loteIds via loteServicio
+    const loteIdsRows = await db
+      .select({ loteId: loteServicio.loteId, servicioId: loteServicio.servicioId })
+      .from(loteServicio)
+      .where(inArray(loteServicio.servicioId, servicioIds));
 
-    const allLoteIdsList = allLoteIds.map((l) => l.id);
+    const loteIds = [...new Set(loteIdsRows.map((l) => l.loteId))];
+    const loteToServicioMap = new Map(loteIdsRows.map((l) => [l.loteId, l.servicioId]));
 
-    if (allLoteIdsList.length > 0) {
+    if (loteIds.length > 0) {
       const sessionRows = await db
         .select({
-          loteNombre: lote.nombre,
-          servicioNombre: servicio.nombre,
+          loteId: loteSession.loteId,
           dispositivoNombre: dispositivo.nombre,
           startTime: loteSession.startTime,
         })
         .from(loteSession)
-        .innerJoin(lote, eq(lote.id, loteSession.loteId))
-        .innerJoin(servicio, eq(servicio.id, lote.servicioId))
         .innerJoin(dispositivo, eq(dispositivo.id, loteSession.dispositivoId))
-        .where(
-          isNull(loteSession.endTime)
-        )
+        .where(and(isNull(loteSession.endTime), inArray(loteSession.loteId, loteIds)))
         .orderBy(desc(loteSession.startTime))
         .limit(10);
 
-      // Filter to only sessions belonging to this empresa's lotes
-      const loteIdSet = new Set(allLoteIdsList);
-      activeSessions = sessionRows
-        .filter(() => true) // already filtered via join with empresa's servicios
-        .map((r) => ({
-          loteNombre: r.loteNombre,
-          servicioNombre: r.servicioNombre,
+      const servicioNameMap = new Map(servicios.map((s) => [s.id, s.nombre]));
+
+      activeSessions = sessionRows.map((r) => {
+        const sId = loteToServicioMap.get(r.loteId) ?? "";
+        return {
+          loteId: r.loteId,
+          servicioNombre: servicioNameMap.get(sId) ?? "",
           dispositivoNombre: r.dispositivoNombre,
           startTime: new Date(r.startTime).toISOString(),
-        }));
-
-      // Ensure we only include sessions for this empresa's lotes
-      // (the join on lote + servicio already constrains to lotes under these servicios)
-      void loteIdSet;
+        };
+      });
     }
   }
 
-  // 5. Get recent lotes: last 5 by createdAt with totalCount from loteStats, joined with servicio
+  // 5. Get recent lotes
   let recentLotes: {
     loteId: string;
-    loteNombre: string;
     servicioId: string;
     servicioNombre: string;
     totalCount: number;
@@ -199,24 +149,29 @@ export async function GET(request: Request) {
   if (servicioIds.length > 0) {
     const recentRows = await db
       .select({
-        loteId: lote.id,
-        loteNombre: lote.nombre,
-        servicioId: servicio.id,
+        loteId: loteServicio.loteId,
+        servicioId: loteServicio.servicioId,
         servicioNombre: servicio.nombre,
         totalCount: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
         lastTs: sql<Date | null>`MAX(${loteStats.lastTs})`,
+        createdAt: lote.createdAt,
       })
-      .from(lote)
-      .innerJoin(servicio, eq(servicio.id, lote.servicioId))
-      .leftJoin(loteStats, eq(loteStats.loteId, lote.id))
-      .where(inArray(lote.servicioId, servicioIds))
-      .groupBy(lote.id, lote.nombre, lote.createdAt, servicio.id, servicio.nombre)
+      .from(loteServicio)
+      .innerJoin(lote, eq(lote.id, loteServicio.loteId))
+      .innerJoin(servicio, eq(servicio.id, loteServicio.servicioId))
+      .leftJoin(loteStats, eq(loteStats.loteId, loteServicio.loteId))
+      .where(inArray(loteServicio.servicioId, servicioIds))
+      .groupBy(
+        loteServicio.loteId,
+        loteServicio.servicioId,
+        servicio.nombre,
+        lote.createdAt
+      )
       .orderBy(desc(lote.createdAt))
       .limit(5);
 
     recentLotes = recentRows.map((r) => ({
       loteId: r.loteId,
-      loteNombre: r.loteNombre,
       servicioId: r.servicioId,
       servicioNombre: r.servicioNombre,
       totalCount: r.totalCount,

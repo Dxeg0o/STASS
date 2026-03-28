@@ -21,7 +21,6 @@ import {
 
 interface ActiveLote {
   id: string;
-  nombre: string;
 }
 
 interface ServicioSummary {
@@ -117,7 +116,7 @@ function ServicioCard({ servicio }: { servicio: ServicioSummary }) {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
               <span className="text-xs text-emerald-400 truncate font-medium">
-                {servicio.activeLote.nombre}
+                Lote {servicio.activeLote.id.slice(-8)}
               </span>
             </div>
           ) : (

@@ -1,8 +1,8 @@
 // app/api/lotes/activity/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { lote, loteSession, dispositivoServicio } from "@/db/schema";
-import { eq, isNull } from "drizzle-orm";
+import { loteSession, loteServicio, dispositivoServicio } from "@/db/schema";
+import { eq, isNull, and, desc } from "drizzle-orm";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -12,21 +12,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "loteId is required" }, { status: 400 });
   }
 
-  // Obtener servicioId del lote
-  const loteDoc = await db.query.lote.findFirst({
-    where: eq(lote.id, loteId),
-  });
-  if (!loteDoc) {
-    return NextResponse.json({ error: "lote not found" }, { status: 404 });
+  // Get servicio activo via loteServicio (most recent assignment)
+  const [latestAssignment] = await db
+    .select({ servicioId: loteServicio.servicioId })
+    .from(loteServicio)
+    .where(eq(loteServicio.loteId, loteId))
+    .orderBy(desc(loteServicio.asignadoAt))
+    .limit(1);
+
+  if (!latestAssignment) {
+    return NextResponse.json({ error: "lote has no servicio assigned" }, { status: 404 });
   }
 
-  const servicioId = loteDoc.servicioId;
-
-  // Resolver dispositivoId: usar el del body o el primero del servicio
+  // Resolver dispositivoId
   let dispositivoId = bodyDispositivoId;
   if (!dispositivoId) {
     const ds = await db.query.dispositivoServicio.findFirst({
-      where: eq(dispositivoServicio.servicioId, servicioId),
+      where: eq(dispositivoServicio.servicioId, latestAssignment.servicioId),
     });
     dispositivoId = ds?.dispositivoId;
   }
@@ -39,13 +41,13 @@ export async function POST(request: Request) {
 
   const now = new Date();
 
-  // Cerrar cualquier sesión abierta del dispositivo
+  // Cerrar sesiones abiertas del dispositivo
   await db
     .update(loteSession)
     .set({ endTime: now })
-    .where(eq(loteSession.dispositivoId, dispositivoId) && isNull(loteSession.endTime));
+    .where(and(eq(loteSession.dispositivoId, dispositivoId), isNull(loteSession.endTime)));
 
-  // Abrir nueva sesión
+  // Abrir nueva sesion
   const [session] = await db
     .insert(loteSession)
     .values({ loteId, dispositivoId, startTime: now, endTime: null })

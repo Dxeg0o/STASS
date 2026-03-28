@@ -16,16 +16,14 @@ interface ServiceTypeSummary {
 }
 
 interface ActiveSession {
-  loteNombre: string;
+  loteId: string;
   servicioNombre: string;
-  servicioId: string;
   dispositivoNombre: string;
   startTime: string;
 }
 
 interface RecentLote {
   loteId: string;
-  loteNombre: string;
   servicioId: string;
   servicioNombre: string;
   totalCount: number;
@@ -129,8 +127,8 @@ function ActiveSessionCard({ session }: { session: ActiveSession }) {
   }, [session.startTime]);
 
   return (
-    <Link href={`/app/servicios/${session.servicioId}/lotes`}>
-      <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/40 border border-white/5 hover:border-cyan-500/20 hover:bg-slate-900/70 transition-all duration-200 cursor-pointer group">
+    <div>
+      <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/40 border border-white/5 hover:border-cyan-500/20 hover:bg-slate-900/70 transition-all duration-200 group">
         <div className="flex-shrink-0">
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -138,7 +136,7 @@ function ActiveSessionCard({ session }: { session: ActiveSession }) {
           </span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate">{session.loteNombre}</p>
+          <p className="text-sm font-medium text-white truncate">{session.loteId.slice(-8)}</p>
           <p className="text-xs text-slate-400 truncate">{session.servicioNombre}</p>
           <p className="text-xs text-slate-500 truncate">{session.dispositivoNombre}</p>
         </div>
@@ -147,7 +145,7 @@ function ActiveSessionCard({ session }: { session: ActiveSession }) {
           <p className="text-xs text-slate-600">transcurrido</p>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -286,7 +284,7 @@ export default function OverviewPage() {
                                 href={`/app/servicios/${lote.servicioId}/lotes/${lote.loteId}`}
                                 className="text-slate-200 hover:text-cyan-400 transition-colors font-medium"
                               >
-                                {lote.loteNombre}
+                                {lote.loteId.slice(-8)}
                               </Link>
                             </td>
                             <td className="px-5 py-3 text-slate-400 hidden sm:table-cell">

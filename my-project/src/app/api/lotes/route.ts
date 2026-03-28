@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { lote, servicio, variedad, producto } from "@/db/schema";
+import { lote, loteServicio, servicio, variedad, producto } from "@/db/schema";
 import { eq, inArray, desc } from "drizzle-orm";
 
 export async function GET(request: Request) {
@@ -15,28 +15,32 @@ export async function GET(request: Request) {
     );
   }
 
-  let condition;
+  let servicioIds: string[];
 
   if (servicioId) {
-    condition = eq(lote.servicioId, servicioId);
+    servicioIds = [servicioId];
   } else {
     const servicios = await db
       .select({ id: servicio.id })
       .from(servicio)
       .where(eq(servicio.empresaId, empresaId!));
-
-    const servicioIds = servicios.map((s) => s.id);
+    servicioIds = servicios.map((s) => s.id);
     if (servicioIds.length === 0) return NextResponse.json([]);
-
-    condition = inArray(lote.servicioId, servicioIds);
   }
+
+  // Get lotes via loteServicio junction
+  const loteIds = await db
+    .select({ loteId: loteServicio.loteId })
+    .from(loteServicio)
+    .where(inArray(loteServicio.servicioId, servicioIds));
+
+  const uniqueLoteIds = [...new Set(loteIds.map((l) => l.loteId))];
+  if (uniqueLoteIds.length === 0) return NextResponse.json([]);
 
   const lotes = await db
     .select({
       id: lote.id,
-      nombre: lote.nombre,
       fechaCreacion: lote.createdAt,
-      servicioId: lote.servicioId,
       variedadId: lote.variedadId,
       variedadNombre: variedad.nombre,
       productoNombre: producto.nombre,
@@ -44,33 +48,38 @@ export async function GET(request: Request) {
     .from(lote)
     .leftJoin(variedad, eq(variedad.id, lote.variedadId))
     .leftJoin(producto, eq(producto.id, variedad.productoId))
-    .where(condition)
+    .where(inArray(lote.id, uniqueLoteIds))
     .orderBy(desc(lote.createdAt));
 
   return NextResponse.json(lotes);
 }
 
 export async function POST(request: Request) {
-  const { nombre, servicioId, variedadId } = await request.json();
-  if (!nombre || !servicioId) {
+  const { servicioId, variedadId } = await request.json();
+  if (!servicioId) {
     return NextResponse.json(
-      { error: "nombre and servicioId are required" },
+      { error: "servicioId is required" },
       { status: 400 }
     );
   }
 
+  // Create lote
   const [created] = await db
     .insert(lote)
     .values({
-      nombre,
-      servicioId,
       variedadId: variedadId || null,
       createdAt: new Date(),
     })
     .returning();
 
+  // Create lote_servicio junction
+  await db.insert(loteServicio).values({
+    loteId: created.id,
+    servicioId,
+  });
+
   return NextResponse.json(
-    { id: created.id, nombre: created.nombre, fechaCreacion: created.createdAt },
+    { id: created.id, fechaCreacion: created.createdAt },
     { status: 201 }
   );
 }

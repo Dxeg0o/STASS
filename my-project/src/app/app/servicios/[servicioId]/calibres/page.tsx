@@ -19,9 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Lote {
   id: string;
-  nombre: string;
   fechaCreacion: string;
-  servicioId: string;
   variedadId?: string;
   variedadNombre?: string;
   productoNombre?: string;
@@ -112,16 +110,15 @@ export default function CalibresPage() {
   const filteredLotes = useMemo(() => {
     const term = search.toLowerCase().trim();
     if (!term) return lotes;
-    return lotes.filter((l) => l.nombre.toLowerCase().includes(term));
+    return lotes.filter((l) => l.id.toLowerCase().includes(term));
   }, [lotes, search]);
 
   // ── Derived: chart series ──────────────────────────────────────────────────
   const series = useMemo<CaliberSeries[]>(() => {
     return selectedLoteIds.map((id, index) => {
-      const lote = lotes.find((l) => l.id === id);
       return {
         key: id,
-        label: lote?.nombre ?? `Lote ${id.slice(-4)}`,
+        label: `Lote ${id.slice(-8)}`,
         color: SERIES_COLORS[index % SERIES_COLORS.length],
       };
     });
@@ -181,7 +178,7 @@ export default function CalibresPage() {
           <span className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse shrink-0" />
           <span className="text-sm text-slate-300">
             Lote activo:{" "}
-            <span className="font-semibold text-white">{activeLote.nombre}</span>
+            <span className="font-semibold text-white font-mono">{activeLote.id.slice(-8)}</span>
           </span>
           <Button
             variant="ghost"
@@ -260,7 +257,7 @@ export default function CalibresPage() {
                               onChange={() => toggleLote(lote.id)}
                             />
                             <span className="text-sm font-medium text-white truncate">
-                              {lote.nombre}
+                              {lote.id.slice(-8)}
                             </span>
                             {lote.variedadNombre && (
                               <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40 text-xs shrink-0">

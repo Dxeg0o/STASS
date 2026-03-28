@@ -29,6 +29,13 @@
       "when": 1774395223325,
       "tag": "0003_rainy_wonder_man",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774665642749,
+      "tag": "0004_shiny_bloodstorm",
+      "breakpoints": true
     }
   ]
 }

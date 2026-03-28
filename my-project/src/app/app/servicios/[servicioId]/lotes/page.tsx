@@ -25,9 +25,7 @@ import {
 
 interface Lote {
   id: string;
-  nombre: string;
   fechaCreacion: string;
-  servicioId: string;
   variedadId?: string;
   variedadNombre?: string;
   productoNombre?: string;
@@ -59,7 +57,6 @@ export default function LotesPage() {
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newNombre, setNewNombre] = useState("");
   const [selectedProductoId, setSelectedProductoId] = useState<string>("");
   const [selectedVariedadId, setSelectedVariedadId] = useState<string>("");
   const [creating, setCreating] = useState(false);
@@ -94,7 +91,7 @@ export default function LotesPage() {
   const filteredLotes = useMemo(() => {
     const term = search.toLowerCase().trim();
     if (!term) return lotes;
-    return lotes.filter((l) => l.nombre.toLowerCase().includes(term));
+    return lotes.filter((l) => l.id.toLowerCase().includes(term));
   }, [lotes, search]);
 
   const variedadesForSelected = useMemo(() => {
@@ -109,14 +106,12 @@ export default function LotesPage() {
   };
 
   const handleCreateLote = async () => {
-    if (!newNombre.trim()) return;
     setCreating(true);
     try {
       const res = await fetch("/api/lotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nombre: newNombre.trim(),
           servicioId,
           variedadId: selectedVariedadId || undefined,
         }),
@@ -125,7 +120,6 @@ export default function LotesPage() {
         const nuevo: Lote = await res.json();
         setLotes((prev) => [nuevo, ...prev]);
         setDialogOpen(false);
-        setNewNombre("");
         setSelectedProductoId("");
         setSelectedVariedadId("");
       }
@@ -200,7 +194,7 @@ export default function LotesPage() {
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <span className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse" />
-                <span className="font-semibold text-white">{activeLote.nombre}</span>
+                <span className="font-semibold text-white font-mono">{activeLote.id.slice(-8)}</span>
                 {activeLote.variedadNombre && (
                   <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40 text-xs">
                     {activeLote.variedadNombre}
@@ -274,7 +268,7 @@ export default function LotesPage() {
                             <span className="h-2 w-2 rounded-full bg-green-400" />
                           )}
                           <span className="font-medium text-white text-sm group-hover:text-cyan-300 transition-colors truncate">
-                            {lote.nombre}
+                            {lote.id.slice(-8)}
                           </span>
                           {lote.variedadNombre && (
                             <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40 text-xs shrink-0">
@@ -327,15 +321,7 @@ export default function LotesPage() {
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <label className="text-sm text-slate-400">Nombre</label>
-              <Input
-                placeholder="Nombre del lote"
-                value={newNombre}
-                onChange={(e) => setNewNombre(e.target.value)}
-                className="bg-slate-800 border-white/10 text-white placeholder:text-slate-500 focus-visible:ring-cyan-500"
-              />
-            </div>
+            <p className="text-sm text-slate-400">El lote se identificara por su UUID.</p>
 
             <div className="space-y-1.5">
               <label className="text-sm text-slate-400">Producto</label>
@@ -393,7 +379,7 @@ export default function LotesPage() {
                 Cancelar
               </Button>
               <Button
-                disabled={!newNombre.trim() || creating}
+                disabled={creating}
                 onClick={handleCreateLote}
                 className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold"
               >

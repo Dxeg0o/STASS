@@ -18,9 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Lote {
   id: string;
-  nombre: string;
   fechaCreacion: string;
-  servicioId: string;
   variedadId?: string;
   variedadNombre?: string;
   productoNombre?: string;
@@ -163,11 +161,11 @@ export default function LoteDetailPage() {
     return [
       {
         key: loteId,
-        label: lote?.nombre ?? `Lote ${loteId.slice(-4)}`,
+        label: `Lote ${loteId.slice(-8)}`,
         color: SERIES_COLORS[0],
       },
     ];
-  }, [loteId, lote]);
+  }, [loteId]);
 
   // ── Excel export ───────────────────────────────────────────────────────────
   const handleExportExcel = () => {
@@ -193,7 +191,7 @@ export default function LoteDetailPage() {
         ) : (
           <div className="flex items-center flex-wrap gap-3">
             <h1 className="text-2xl font-bold text-white">
-              {lote?.nombre ?? loteId}
+              Lote {loteId.slice(-8)}
             </h1>
             {lote?.variedadNombre && (
               <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
