@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import * as jose from "jose";
 import { db } from "@/db";
-import { usuario } from "@/db/schema";
+import { usuario, empresa, servicio } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET(req: Request) {
@@ -40,12 +40,33 @@ export async function GET(req: Request) {
     }
 
     const eu = user.empresaUsuarios[0];
+    const empresaId = eu?.empresaId ?? null;
+
+    // Fetch empresa name and service types
+    let empresaNombre: string | null = null;
+    let serviceTypes: string[] = [];
+
+    if (empresaId) {
+      const [emp] = await db
+        .select({ nombre: empresa.nombre })
+        .from(empresa)
+        .where(eq(empresa.id, empresaId));
+      empresaNombre = emp?.nombre ?? null;
+
+      const types = await db
+        .selectDistinct({ tipo: servicio.tipo })
+        .from(servicio)
+        .where(eq(servicio.empresaId, empresaId));
+      serviceTypes = types.map((t) => t.tipo);
+    }
 
     return NextResponse.json({
       id: user.id,
       name: user.nombre,
       mail: user.correo,
-      empresaId: eu?.empresaId ?? null,
+      empresaId,
+      empresaNombre,
+      serviceTypes,
       rol_usuario: eu?.rol ?? "usuario",
     });
   } catch (error) {

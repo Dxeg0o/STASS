@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SummaryLote } from "@/components/app/lotes/summarylote";
 import * as XLSX from "xlsx";
-import { useServicio } from "@/app/context/ServicioContext";
 
 export interface Lote {
   id: string;
@@ -30,7 +29,6 @@ export function LoteDataTabs({ lote }: LoteDataTabsProps) {
   const [dataLoading, setDataLoading] = useState(false);
   const [errorRecords, setErrorRecords] = useState<string | null>(null);
   const [refreshSummary, setRefreshSummary] = useState(0);
-  const { selectedServicio } = useServicio();
 
   const fetchRecordsData = useCallback(() => {
     if (!lote) {
@@ -40,7 +38,6 @@ export function LoteDataTabs({ lote }: LoteDataTabsProps) {
     setDataLoading(true);
     setErrorRecords(null);
     const params = new URLSearchParams({ loteId: lote.id });
-    if (selectedServicio) params.append("servicioId", selectedServicio.id);
     fetch(`/api/conteos?${params.toString()}`)
       .then((res) => {
         if (!res.ok) throw new Error("Error al cargar los registros");
@@ -55,7 +52,7 @@ export function LoteDataTabs({ lote }: LoteDataTabsProps) {
       })
       .catch((err) => setErrorRecords(err.message))
       .finally(() => setDataLoading(false));
-  }, [lote, selectedServicio]);
+  }, [lote]);
 
   useEffect(() => {
     if (lote) {

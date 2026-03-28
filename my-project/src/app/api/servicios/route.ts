@@ -13,12 +13,26 @@ export async function GET(request: Request) {
     );
   }
 
-  const servicios = await db
-    .select({ id: servicio.id, nombre: servicio.nombre })
+  const tipo = searchParams.get("tipo");
+
+  const query = db
+    .select({
+      id: servicio.id,
+      nombre: servicio.nombre,
+      tipo: servicio.tipo,
+      fechaInicio: servicio.fechaInicio,
+      fechaFin: servicio.fechaFin,
+    })
     .from(servicio)
     .where(eq(servicio.empresaId, empresaId));
 
-  return NextResponse.json(servicios);
+  const servicios = await query;
+
+  const filtered = tipo
+    ? servicios.filter((s) => s.tipo === tipo)
+    : servicios;
+
+  return NextResponse.json(filtered);
 }
 
 export async function POST(request: Request) {

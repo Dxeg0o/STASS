@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { lote, servicio } from "@/db/schema";
+import { lote, servicio, variedad, producto } from "@/db/schema";
 import { eq, inArray, desc } from "drizzle-orm";
 
 export async function GET(request: Request) {
@@ -15,14 +15,10 @@ export async function GET(request: Request) {
     );
   }
 
-  let lotes;
+  let condition;
 
   if (servicioId) {
-    lotes = await db
-      .select({ id: lote.id, nombre: lote.nombre, fechaCreacion: lote.createdAt })
-      .from(lote)
-      .where(eq(lote.servicioId, servicioId))
-      .orderBy(desc(lote.createdAt));
+    condition = eq(lote.servicioId, servicioId);
   } else {
     const servicios = await db
       .select({ id: servicio.id })
@@ -32,18 +28,30 @@ export async function GET(request: Request) {
     const servicioIds = servicios.map((s) => s.id);
     if (servicioIds.length === 0) return NextResponse.json([]);
 
-    lotes = await db
-      .select({ id: lote.id, nombre: lote.nombre, fechaCreacion: lote.createdAt })
-      .from(lote)
-      .where(inArray(lote.servicioId, servicioIds))
-      .orderBy(desc(lote.createdAt));
+    condition = inArray(lote.servicioId, servicioIds);
   }
+
+  const lotes = await db
+    .select({
+      id: lote.id,
+      nombre: lote.nombre,
+      fechaCreacion: lote.createdAt,
+      servicioId: lote.servicioId,
+      variedadId: lote.variedadId,
+      variedadNombre: variedad.nombre,
+      productoNombre: producto.nombre,
+    })
+    .from(lote)
+    .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+    .leftJoin(producto, eq(producto.id, variedad.productoId))
+    .where(condition)
+    .orderBy(desc(lote.createdAt));
 
   return NextResponse.json(lotes);
 }
 
 export async function POST(request: Request) {
-  const { nombre, servicioId } = await request.json();
+  const { nombre, servicioId, variedadId } = await request.json();
   if (!nombre || !servicioId) {
     return NextResponse.json(
       { error: "nombre and servicioId are required" },
@@ -53,7 +61,12 @@ export async function POST(request: Request) {
 
   const [created] = await db
     .insert(lote)
-    .values({ nombre, servicioId, createdAt: new Date() })
+    .values({
+      nombre,
+      servicioId,
+      variedadId: variedadId || null,
+      createdAt: new Date(),
+    })
     .returning();
 
   return NextResponse.json(

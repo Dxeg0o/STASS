@@ -9,6 +9,8 @@ interface User {
   name: string;
   email: string;
   empresaId: string;
+  empresaNombre: string | null;
+  serviceTypes: string[];
   rol_usuario: string;
 }
 
