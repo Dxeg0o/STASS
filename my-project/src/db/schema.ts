@@ -41,6 +41,7 @@ export const usuario = pgTable("usuario", {
   nombre: text("nombre").notNull(),
   correo: text("correo").unique().notNull(),
   password: text("password").notNull(),
+  isSuperAdmin: boolean("is_super_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

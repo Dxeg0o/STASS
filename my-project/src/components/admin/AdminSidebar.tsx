@@ -5,30 +5,29 @@ import { deleteCookie } from "cookies-next/client";
 import { useRouter, usePathname } from "next/navigation";
 import { useContext } from "react";
 import {
-  Home,
-  Settings,
+  LayoutDashboard,
+  Building2,
+  Users,
+  Package,
+  Cpu,
+  ArrowLeft,
   LogOut,
   ChevronLeft,
-  ClipboardList,
-  Package,
-  BarChart3,
-  Gauge,
-  Building2,
-  ArrowLeftRight,
+  Shield,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
-import { AuthenticationContext } from "../../app/context/AuthContext";
+import { AuthenticationContext } from "@/app/context/AuthContext";
 
-interface AppSidebarProps {
+interface AdminSidebarProps {
   isOpen: boolean;
   toggleSidebar?: () => void;
 }
 
-export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
+export function AdminSidebar({ isOpen, toggleSidebar }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { data, setAuthState, switchEmpresa } = useContext(AuthenticationContext);
+  const { setAuthState } = useContext(AuthenticationContext);
 
   const handleLogout = async () => {
     try {
@@ -47,7 +46,7 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
   const commonLinkClasses =
     "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out text-sm font-medium tracking-wide";
   const activeLinkClasses =
-    "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.15)]";
+    "bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)]";
   const inactiveLinkClasses =
     "text-slate-400 hover:bg-white/5 hover:text-white";
 
@@ -55,9 +54,6 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
     pathname === url || pathname.startsWith(url + "/");
 
   const isActiveExact = (url: string) => pathname === url;
-
-  const hasMultipleEmpresas =
-    data && (data.empresas.length > 1 || data.isSuperAdmin);
 
   return (
     <aside
@@ -71,16 +67,16 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
     >
       {/* Header */}
       <div className="flex h-16 items-center justify-between border-b border-white/10 px-4 md:px-6 bg-slate-950/20">
-        <Link
-          href="/app"
-          className="text-xl font-bold text-white tracking-tight"
-        >
-          Qualiblick
-        </Link>
+        <div className="flex items-center gap-2">
+          <Shield className="w-5 h-5 text-amber-400" />
+          <span className="text-lg font-bold text-white tracking-tight">
+            Admin
+          </span>
+        </div>
         {toggleSidebar && (
           <button
             onClick={toggleSidebar}
-            className="md:hidden text-cyan-400 hover:text-cyan-300 focus:outline-none"
+            className="md:hidden text-amber-400 hover:text-amber-300 focus:outline-none"
             aria-label="Cerrar menú"
           >
             <ChevronLeft size={24} />
@@ -88,53 +84,65 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
         )}
       </div>
 
-      {/* Empresa actual */}
-      {data?.empresaNombre && (
-        <div className="px-4 py-3 border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-cyan-400 shrink-0" />
-            <span className="text-sm text-slate-300 truncate">
-              {data.empresaNombre}
-            </span>
-          </div>
-          {hasMultipleEmpresas && (
-            <button
-              onClick={() => {
-                switchEmpresa?.();
-                if (toggleSidebar) toggleSidebar();
-              }}
-              className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-500 hover:text-cyan-400 transition-colors"
-            >
-              <ArrowLeftRight className="w-3 h-3" />
-              <span>Cambiar empresa</span>
-            </button>
-          )}
-        </div>
-      )}
-
       <nav className="flex flex-1 flex-col space-y-6 overflow-y-auto p-4">
-        {/* Overview */}
+        {/* General */}
         <div>
           <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Overview
+            General
           </span>
           <ul className="mt-2 space-y-1">
             <li>
               <Link
-                href="/app"
+                href="/admin"
                 className={clsx(
                   commonLinkClasses,
-                  isActiveExact("/app")
+                  isActiveExact("/admin")
                     ? activeLinkClasses
                     : inactiveLinkClasses
                 )}
                 onClick={toggleSidebar}
               >
-                <Home
-                  className="h-5 w-5 shrink-0"
-                  strokeWidth={isActiveExact("/app") ? 2.5 : 2}
-                />
-                <span>Inicio</span>
+                <LayoutDashboard className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Dashboard</span>
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        {/* Gestión */}
+        <div>
+          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
+            Gestión
+          </span>
+          <ul className="mt-2 space-y-1">
+            <li>
+              <Link
+                href="/admin/empresas"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/admin/empresas")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <Building2 className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Empresas</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/admin/usuarios"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/admin/usuarios")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <Users className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Usuarios</span>
               </Link>
             </li>
           </ul>
@@ -148,95 +156,51 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
           <ul className="mt-2 space-y-1">
             <li>
               <Link
-                href="/app/procesos"
+                href="/admin/productos"
                 className={clsx(
                   commonLinkClasses,
-                  isActive("/app/procesos")
-                    ? activeLinkClasses
-                    : inactiveLinkClasses
-                )}
-                onClick={toggleSidebar}
-              >
-                <ClipboardList className="h-5 w-5 shrink-0" strokeWidth={2} />
-                <span>Procesos</span>
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/app/lotes"
-                className={clsx(
-                  commonLinkClasses,
-                  isActive("/app/lotes")
+                  isActive("/admin/productos")
                     ? activeLinkClasses
                     : inactiveLinkClasses
                 )}
                 onClick={toggleSidebar}
               >
                 <Package className="h-5 w-5 shrink-0" strokeWidth={2} />
-                <span>Lotes</span>
+                <span>Productos & Variedades</span>
               </Link>
             </li>
-          </ul>
-        </div>
-
-        {/* Inteligencia */}
-        <div>
-          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Inteligencia
-          </span>
-          <ul className="mt-2 space-y-1">
             <li>
               <Link
-                href="/app/analitica"
+                href="/admin/dispositivos"
                 className={clsx(
                   commonLinkClasses,
-                  isActive("/app/analitica")
+                  isActive("/admin/dispositivos")
                     ? activeLinkClasses
                     : inactiveLinkClasses
                 )}
                 onClick={toggleSidebar}
               >
-                <BarChart3 className="h-5 w-5 shrink-0" strokeWidth={2} />
-                <span>Analítica</span>
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/app/control"
-                className={clsx(
-                  commonLinkClasses,
-                  isActive("/app/control")
-                    ? activeLinkClasses
-                    : inactiveLinkClasses
-                )}
-                onClick={toggleSidebar}
-              >
-                <Gauge className="h-5 w-5 shrink-0" strokeWidth={2} />
-                <span>Control Operacional</span>
+                <Cpu className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Dispositivos</span>
               </Link>
             </li>
           </ul>
         </div>
 
-        {/* Ajustes */}
+        {/* Sistema */}
         <div className="mt-auto">
           <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Ajustes
+            Sistema
           </span>
           <ul className="mt-2 space-y-1">
             <li>
               <Link
-                href="/app/configuraciones"
-                className={clsx(
-                  commonLinkClasses,
-                  isActive("/app/configuraciones")
-                    ? activeLinkClasses
-                    : inactiveLinkClasses
-                )}
+                href="/select-empresa"
+                className={clsx(commonLinkClasses, inactiveLinkClasses)}
                 onClick={toggleSidebar}
               >
-                <Settings className="h-5 w-5 shrink-0" strokeWidth={2} />
-                <span>Configuraciones</span>
+                <ArrowLeft className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Volver a App</span>
               </Link>
             </li>
             <li>

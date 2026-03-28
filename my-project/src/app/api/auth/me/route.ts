@@ -1,35 +1,22 @@
 import { NextResponse } from "next/server";
-import * as jose from "jose";
 import { db } from "@/db";
-import { usuario, empresa, servicio } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { usuario, empresa, servicio, empresaUsuario } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
+import { verifyToken } from "@/lib/auth";
 
 export async function GET(req: Request) {
   try {
-    const bearerToken = req.headers.get("authorization");
-
-    if (!bearerToken) {
+    const tokenPayload = await verifyToken(req);
+    if (!tokenPayload) {
       return NextResponse.json(
-        { errorMessage: "Authorization header missing" },
-        { status: 401 }
-      );
-    }
-
-    const token = bearerToken.split(" ")[1];
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-    const { payload } = await jose.jwtVerify(token, secret);
-    const { email } = payload as { email: string };
-
-    if (!email) {
-      return NextResponse.json(
-        { errorMessage: "Unauthorized request (invalid email)" },
+        { errorMessage: "Unauthorized request" },
         { status: 401 }
       );
     }
 
     const user = await db.query.usuario.findFirst({
-      where: eq(usuario.correo, email),
-      with: { empresaUsuarios: { limit: 1 } },
+      where: eq(usuario.correo, tokenPayload.email),
+      with: { empresaUsuarios: true },
     });
 
     if (!user) {
@@ -39,35 +26,80 @@ export async function GET(req: Request) {
       );
     }
 
-    const eu = user.empresaUsuarios[0];
-    const empresaId = eu?.empresaId ?? null;
+    // Fetch all empresas with names
+    const empresas = await Promise.all(
+      user.empresaUsuarios.map(async (eu) => {
+        const [emp] = await db
+          .select({ nombre: empresa.nombre })
+          .from(empresa)
+          .where(eq(empresa.id, eu.empresaId));
+        return {
+          empresaId: eu.empresaId,
+          empresaNombre: emp?.nombre ?? null,
+          rol: eu.rol,
+        };
+      })
+    );
 
-    // Fetch empresa name and service types
-    let empresaNombre: string | null = null;
-    let serviceTypes: string[] = [];
+    // Check if a specific empresa is requested
+    const url = new URL(req.url);
+    const selectedEmpresaId = url.searchParams.get("empresaId");
 
-    if (empresaId) {
+    if (selectedEmpresaId) {
+      // Validate access: user belongs to this empresa OR is super admin
+      const hasAccess =
+        user.isSuperAdmin ||
+        user.empresaUsuarios.some((eu) => eu.empresaId === selectedEmpresaId);
+
+      if (!hasAccess) {
+        return NextResponse.json(
+          { errorMessage: "No tienes acceso a esta empresa" },
+          { status: 403 }
+        );
+      }
+
+      // Get empresa details
       const [emp] = await db
         .select({ nombre: empresa.nombre })
         .from(empresa)
-        .where(eq(empresa.id, empresaId));
-      empresaNombre = emp?.nombre ?? null;
+        .where(eq(empresa.id, selectedEmpresaId));
 
+      // Get service types for this empresa
       const types = await db
         .selectDistinct({ tipo: servicio.tipo })
         .from(servicio)
-        .where(eq(servicio.empresaId, empresaId));
-      serviceTypes = types.map((t) => t.tipo);
+        .where(eq(servicio.empresaId, selectedEmpresaId));
+
+      // Get role for this empresa (super admin gets 'administrador')
+      const euRecord = user.empresaUsuarios.find(
+        (eu) => eu.empresaId === selectedEmpresaId
+      );
+      const rol = euRecord?.rol ?? (user.isSuperAdmin ? "administrador" : "usuario");
+
+      return NextResponse.json({
+        id: user.id,
+        name: user.nombre,
+        mail: user.correo,
+        isSuperAdmin: user.isSuperAdmin,
+        empresaId: selectedEmpresaId,
+        empresaNombre: emp?.nombre ?? null,
+        serviceTypes: types.map((t) => t.tipo),
+        rol_usuario: rol,
+        empresas,
+      });
     }
 
+    // No empresa selected — return user with all empresas
     return NextResponse.json({
       id: user.id,
       name: user.nombre,
       mail: user.correo,
-      empresaId,
-      empresaNombre,
-      serviceTypes,
-      rol_usuario: eu?.rol ?? "usuario",
+      isSuperAdmin: user.isSuperAdmin,
+      empresaId: null,
+      empresaNombre: null,
+      serviceTypes: [],
+      rol_usuario: "usuario",
+      empresas,
     });
   } catch (error) {
     console.error("Invalid token:", error);
