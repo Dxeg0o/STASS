@@ -5,6 +5,12 @@ import { useParams } from "next/navigation";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import Link from "next/link";
 import {
   ScanLine,
@@ -14,6 +20,8 @@ import {
   Calendar,
   ArrowLeft,
   ChevronDown,
+  Package,
+  Cpu,
 } from "lucide-react";
 
 // ---------- Types ----------
@@ -28,28 +36,7 @@ interface Producto {
   nombre: string;
 }
 
-interface Lote {
-  id: string;
-  createdAt: string;
-}
-
-interface LoteServicio {
-  loteId: string;
-  servicioId: string;
-  asignadoAt: string;
-  lote: Lote;
-}
-
-interface Servicio {
-  id: string;
-  nombre: string;
-  tipo: string;
-  fechaInicio: string | null;
-  fechaFin: string | null;
-  loteServicios: LoteServicio[];
-}
-
-interface ProcesoDetail {
+interface ProcesoBasic {
   id: string;
   tipoProcesoId: string;
   empresaId: string;
@@ -62,7 +49,32 @@ interface ProcesoDetail {
   createdAt: string;
   tipoProceso: TipoProceso;
   producto: Producto | null;
-  servicios: Servicio[];
+  servicios: { id: string }[];
+}
+
+interface LoteInfo {
+  loteId: string;
+  variedadNombre: string | null;
+  productoNombre: string | null;
+  asignadoAt: string;
+  createdAt: string;
+  totalCount: number;
+  lastTs: string | null;
+  isActive: boolean;
+}
+
+interface ServicioDetail {
+  id: string;
+  nombre: string;
+  tipo: string;
+  usaCajas: boolean;
+  fechaInicio: string | null;
+  fechaFin: string | null;
+  deviceCount: number;
+  totalCount: number;
+  loteCount: number;
+  lotesEnProceso: LoteInfo[];
+  lotesOtros: LoteInfo[];
 }
 
 // ---------- Helpers ----------
@@ -92,18 +104,71 @@ const SERVICIO_META: Record<
   string,
   { label: string; icon: React.ComponentType<{ className?: string }> }
 > = {
-  linea_conteo: { label: "Línea de Conteo", icon: ScanLine },
-  maquina_plantacion: { label: "Máquina de Plantación", icon: Sprout },
-  estacion_calidad: { label: "Estación de Calidad", icon: ShieldCheck },
+  linea_conteo: { label: "Linea de Conteo", icon: ScanLine },
+  maquina_plantacion: { label: "Maquina de Plantacion", icon: Sprout },
+  estacion_calidad: { label: "Estacion de Calidad", icon: ShieldCheck },
 };
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "\u2014";
   return new Date(iso).toLocaleDateString("es-CL", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
+}
+
+function formatNumber(n: number): string {
+  return n.toLocaleString("es-CL");
+}
+
+function formatTimestamp(iso: string | null): string {
+  if (!iso) return "\u2014";
+  return new Date(iso).toLocaleString("es-CL", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// ---------- Lote Row Component ----------
+
+function LoteRow({ lote }: { lote: LoteInfo }) {
+  return (
+    <Link
+      href={`/app/lotes/${lote.loteId}`}
+      className="flex items-center justify-between gap-4 px-3 py-2.5 rounded-lg hover:bg-white/[0.03] transition-colors group"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        {lote.isActive && (
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="text-sm font-mono text-slate-200 group-hover:text-cyan-400 transition-colors">
+            {lote.loteId.slice(-8)}
+          </p>
+          {lote.variedadNombre && (
+            <p className="text-xs text-slate-500 truncate">
+              {lote.variedadNombre}
+              {lote.productoNombre && ` - ${lote.productoNombre}`}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-4 shrink-0">
+        <span className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
+          {formatNumber(lote.totalCount)}
+        </span>
+        <span className="text-xs text-slate-600 hidden sm:block">
+          {formatTimestamp(lote.lastTs)}
+        </span>
+      </div>
+    </Link>
+  );
 }
 
 // ---------- Main Page ----------
@@ -115,11 +180,14 @@ export default function ProcesoDetailPage() {
   const { data: authData } = useContext(AuthenticationContext);
   const isAdmin = authData?.rol_usuario === "administrador";
 
-  const [proceso, setProceso] = useState<ProcesoDetail | null>(null);
+  const [proceso, setProceso] = useState<ProcesoBasic | null>(null);
+  const [servicios, setServicios] = useState<ServicioDetail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [serviciosLoading, setServiciosLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingEstado, setSavingEstado] = useState(false);
 
+  // Fetch proceso basic info
   useEffect(() => {
     if (!procesoId) return;
     setLoading(true);
@@ -128,9 +196,23 @@ export default function ProcesoDetailPage() {
         if (!res.ok) throw new Error("Proceso no encontrado");
         return res.json();
       })
-      .then((d: ProcesoDetail) => setProceso(d))
+      .then((d: ProcesoBasic) => setProceso(d))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+  }, [procesoId]);
+
+  // Fetch servicios detail
+  useEffect(() => {
+    if (!procesoId) return;
+    setServiciosLoading(true);
+    fetch(`/api/procesos/${procesoId}/servicios-detail`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al cargar servicios");
+        return res.json();
+      })
+      .then((d: ServicioDetail[]) => setServicios(d))
+      .catch(console.error)
+      .finally(() => setServiciosLoading(false));
   }, [procesoId]);
 
   const handleEstadoChange = async (nuevoEstado: string) => {
@@ -143,7 +225,9 @@ export default function ProcesoDetailPage() {
         body: JSON.stringify({ estado: nuevoEstado }),
       });
       if (!res.ok) throw new Error("Error al actualizar estado");
-      setProceso((prev) => prev ? { ...prev, estado: nuevoEstado } : prev);
+      setProceso((prev) =>
+        prev ? { ...prev, estado: nuevoEstado } : prev
+      );
     } catch (err) {
       console.error(err);
     } finally {
@@ -151,10 +235,15 @@ export default function ProcesoDetailPage() {
     }
   };
 
+  // Default open: servicios with active lotes
+  const defaultOpenServiceIds = servicios
+    .filter((s) => s.lotesEnProceso.length > 0)
+    .map((s) => s.id);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-slate-400 text-sm animate-pulse">Cargando…</div>
+        <div className="text-slate-400 text-sm animate-pulse">Cargando...</div>
       </div>
     );
   }
@@ -192,7 +281,8 @@ export default function ProcesoDetailPage() {
                 {proceso.tipoProceso.nombre}
                 {proceso.temporada && (
                   <span className="text-slate-400 font-normal">
-                    {" "}· {proceso.temporada}
+                    {" "}
+                    · {proceso.temporada}
                   </span>
                 )}
               </h1>
@@ -247,63 +337,155 @@ export default function ProcesoDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Servicios vinculados */}
-      <Card className="bg-slate-900/40 border-white/10">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base text-white">
-            Servicios vinculados
-            <span className="ml-2 text-sm font-normal text-slate-500">
-              ({proceso.servicios.length})
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {proceso.servicios.length === 0 ? (
-            <p className="text-sm text-slate-500 py-2">
-              No hay servicios vinculados a este proceso.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {proceso.servicios.map((s) => {
-                const meta = SERVICIO_META[s.tipo] ?? {
-                  label: s.tipo,
-                  icon: Activity,
-                };
-                const Icon = meta.icon;
-                const loteCount = s.loteServicios.length;
+      {/* Servicios accordion */}
+      <div>
+        <h2 className="text-base font-semibold text-white mb-3">
+          Servicios
+          <span className="ml-2 text-sm font-normal text-slate-500">
+            ({servicios.length})
+          </span>
+        </h2>
 
-                return (
-                  <Link
-                    key={s.id}
-                    href={`/app/servicios/${s.id}`}
-                    className="flex items-center justify-between gap-4 p-4 rounded-lg border border-white/5 bg-slate-800/20 hover:border-white/10 hover:bg-slate-800/40 transition-colors group"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="shrink-0 p-2 rounded-md bg-cyan-950/30 border border-cyan-500/20">
+        {serviciosLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-20 rounded-xl bg-slate-900/40 border border-white/5 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : servicios.length === 0 ? (
+          <Card className="bg-slate-900/40 border-white/10">
+            <CardContent className="p-6 text-center">
+              <p className="text-sm text-slate-500">
+                No hay servicios vinculados a este proceso.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Accordion
+            type="multiple"
+            defaultValue={defaultOpenServiceIds}
+            className="space-y-3"
+          >
+            {servicios.map((s) => {
+              const meta = SERVICIO_META[s.tipo] ?? {
+                label: s.tipo,
+                icon: Activity,
+              };
+              const Icon = meta.icon;
+              const hasActive = s.lotesEnProceso.length > 0;
+
+              return (
+                <AccordionItem
+                  key={s.id}
+                  value={s.id}
+                  className="border border-white/10 rounded-xl bg-slate-900/30 overflow-hidden"
+                >
+                  <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-white/[0.02] transition-colors">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="p-2 rounded-lg bg-cyan-950/40 border border-cyan-500/20 shrink-0">
                         <Icon className="w-4 h-4 text-cyan-400" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-white truncate group-hover:text-cyan-100 transition-colors">
-                          {s.nombre}
-                        </p>
+                      <div className="text-left flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-white truncate">
+                            {s.nombre}
+                          </h3>
+                          {hasActive && (
+                            <span className="relative flex h-2 w-2 shrink-0">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-500">{meta.label}</p>
                       </div>
+                      <div className="flex items-center gap-4 shrink-0 text-right">
+                        <div>
+                          <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
+                            {formatNumber(s.totalCount)}
+                          </p>
+                          <p className="text-xs text-slate-600">bulbos</p>
+                        </div>
+                        <div className="hidden sm:block">
+                          <p className="text-sm text-slate-300">
+                            {s.loteCount}
+                          </p>
+                          <p className="text-xs text-slate-600">lotes</p>
+                        </div>
+                        <div className="hidden sm:flex items-center gap-1 text-xs text-slate-500">
+                          <Cpu className="w-3 h-3" />
+                          {s.deviceCount}
+                        </div>
+                      </div>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
-                        {loteCount}
-                      </p>
-                      <p className="text-xs text-slate-600">
-                        {loteCount === 1 ? "lote" : "lotes"}
-                      </p>
+                  </AccordionTrigger>
+
+                  <AccordionContent className="px-5 pb-5">
+                    <div className="space-y-4 pt-2">
+                      {/* Lotes en proceso */}
+                      {s.lotesEnProceso.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2 flex items-center gap-1.5">
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                            </span>
+                            En proceso ({s.lotesEnProceso.length})
+                          </h4>
+                          <div className="space-y-1 bg-emerald-950/10 border border-emerald-500/10 rounded-lg p-1">
+                            {s.lotesEnProceso.map((l) => (
+                              <LoteRow key={l.loteId} lote={l} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Otros lotes */}
+                      {s.lotesOtros.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                            {s.lotesEnProceso.length > 0
+                              ? "Completados / Pendientes"
+                              : "Lotes"}{" "}
+                            ({s.lotesOtros.length})
+                          </h4>
+                          <div className="space-y-1">
+                            {s.lotesOtros.map((l) => (
+                              <LoteRow key={l.loteId} lote={l} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* No lotes */}
+                      {s.loteCount === 0 && (
+                        <p className="text-sm text-slate-500 py-2">
+                          No hay lotes asignados a este servicio.
+                        </p>
+                      )}
+
+                      {/* Cajas indicator */}
+                      {s.usaCajas && (
+                        <div className="pt-2 border-t border-white/5">
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <Package className="w-3 h-3" />
+                            <span>
+                              Este servicio utiliza cajas para el procesamiento
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
+      </div>
     </div>
   );
 }

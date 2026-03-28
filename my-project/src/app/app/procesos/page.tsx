@@ -4,6 +4,12 @@ import React, { useContext, useEffect, useState, useMemo } from "react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import Link from "next/link";
 import {
   ClipboardList,
@@ -39,12 +45,16 @@ interface Proceso {
   producto: Producto | null;
 }
 
+interface ProcesoGroup {
+  tipoProcesoId: string;
+  tipoProcesoNombre: string;
+  procesos: Proceso[];
+  enCursoCount: number;
+}
+
 // ---------- Helpers ----------
 
-const ESTADO_CONFIG: Record<
-  string,
-  { label: string; className: string }
-> = {
+const ESTADO_CONFIG: Record<string, { label: string; className: string }> = {
   planificado: {
     label: "Planificado",
     className: "border-slate-600 bg-slate-800/60 text-slate-400",
@@ -72,7 +82,7 @@ const ESTADO_TABS = [
 ];
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "\u2014";
   return new Date(iso).toLocaleDateString("es-CL", {
     day: "2-digit",
     month: "2-digit",
@@ -99,7 +109,8 @@ function ProcesoCard({ proceso }: { proceso: Proceso }) {
                 {proceso.tipoProceso.nombre}
                 {proceso.temporada && (
                   <span className="text-slate-400 font-normal">
-                    {" "}· {proceso.temporada}
+                    {" "}
+                    · {proceso.temporada}
                   </span>
                 )}
               </h3>
@@ -125,7 +136,7 @@ function ProcesoCard({ proceso }: { proceso: Proceso }) {
             </div>
             {proceso.fechaFin && (
               <>
-                <span>→</span>
+                <span>&rarr;</span>
                 <span>{formatDate(proceso.fechaFin)}</span>
               </>
             )}
@@ -135,7 +146,10 @@ function ProcesoCard({ proceso }: { proceso: Proceso }) {
           <div className="mt-auto pt-2 border-t border-white/5 flex items-center gap-1.5 text-xs text-slate-600">
             <Layers className="w-3 h-3" />
             <span>
-              {proceso.notas ? proceso.notas.slice(0, 60) + (proceso.notas.length > 60 ? "…" : "") : "Sin notas"}
+              {proceso.notas
+                ? proceso.notas.slice(0, 60) +
+                  (proceso.notas.length > 60 ? "\u2026" : "")
+                : "Sin notas"}
             </span>
           </div>
         </CardContent>
@@ -173,23 +187,57 @@ export default function ProcesosPage() {
       .finally(() => setLoading(false));
   }, [data?.empresaId, estadoFilter]);
 
-  // Derive unique temporadas from all loaded data
+  // Derive unique temporadas
   const temporadas = useMemo(() => {
-    const all = Array.from(
+    return Array.from(
       new Set(procesos.map((p) => p.temporada).filter(Boolean) as string[])
     ).sort((a, b) => b.localeCompare(a));
-    return all;
   }, [procesos]);
 
+  // Apply temporada filter
   const filtered = useMemo(() => {
     if (temporadaFilter === "todas") return procesos;
     return procesos.filter((p) => p.temporada === temporadaFilter);
   }, [procesos, temporadaFilter]);
 
+  // Group by tipoProceso
+  const groups = useMemo<ProcesoGroup[]>(() => {
+    const map = new Map<string, ProcesoGroup>();
+    for (const p of filtered) {
+      const key = p.tipoProcesoId;
+      if (!map.has(key)) {
+        map.set(key, {
+          tipoProcesoId: key,
+          tipoProcesoNombre: p.tipoProceso.nombre,
+          procesos: [],
+          enCursoCount: 0,
+        });
+      }
+      const group = map.get(key)!;
+      group.procesos.push(p);
+      if (p.estado === "en_curso") group.enCursoCount++;
+    }
+    // Sort groups alphabetically, but put groups with en_curso processes first
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.enCursoCount > 0 && b.enCursoCount === 0) return -1;
+      if (b.enCursoCount > 0 && a.enCursoCount === 0) return 1;
+      return a.tipoProcesoNombre.localeCompare(b.tipoProcesoNombre);
+    });
+  }, [filtered]);
+
+  // Default open: groups with en_curso processes
+  const defaultOpenGroups = useMemo(
+    () =>
+      groups
+        .filter((g) => g.enCursoCount > 0)
+        .map((g) => g.tipoProcesoId),
+    [groups]
+  );
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-slate-400 text-sm animate-pulse">Cargando…</div>
+        <div className="text-slate-400 text-sm animate-pulse">Cargando...</div>
       </div>
     );
   }
@@ -197,7 +245,7 @@ export default function ProcesosPage() {
   if (!data) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-slate-400 text-sm">No estás autenticado.</div>
+        <div className="text-slate-400 text-sm">No estas autenticado.</div>
       </div>
     );
   }
@@ -263,33 +311,72 @@ export default function ProcesosPage() {
 
       {/* Loading skeleton */}
       {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-44 rounded-xl bg-slate-900/40 border border-white/5 animate-pulse"
+              className="h-16 rounded-xl bg-slate-900/40 border border-white/5 animate-pulse"
             />
           ))}
         </div>
       )}
 
-      {/* Cards */}
-      {!loading && filtered.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((p) => (
-            <ProcesoCard key={p.id} proceso={p} />
+      {/* Grouped Accordion */}
+      {!loading && groups.length > 0 && (
+        <Accordion
+          type="multiple"
+          defaultValue={defaultOpenGroups}
+          className="space-y-3"
+        >
+          {groups.map((group) => (
+            <AccordionItem
+              key={group.tipoProcesoId}
+              value={group.tipoProcesoId}
+              className="border border-white/10 rounded-xl bg-slate-900/30 overflow-hidden"
+            >
+              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-white/[0.02] transition-colors">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="p-2 rounded-lg bg-cyan-950/40 border border-cyan-500/20">
+                    <ClipboardList className="w-4 h-4 text-cyan-400" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-sm font-semibold text-white">
+                      {group.tipoProcesoNombre}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      {group.procesos.length}{" "}
+                      {group.procesos.length === 1 ? "proceso" : "procesos"}
+                    </p>
+                  </div>
+                  {group.enCursoCount > 0 && (
+                    <span className="ml-2 text-xs bg-cyan-950/60 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-full">
+                      {group.enCursoCount} en curso
+                    </span>
+                  )}
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-5 pb-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                  {group.procesos.map((p) => (
+                    <ProcesoCard key={p.id} proceso={p} />
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
           ))}
-        </div>
+        </Accordion>
       )}
 
       {/* Empty */}
-      {!loading && filtered.length === 0 && !error && (
+      {!loading && groups.length === 0 && !error && (
         <div className="text-center py-20 text-slate-500">
           <ClipboardList className="w-10 h-10 mx-auto mb-3 text-slate-700" />
           <p className="text-lg font-medium">No hay procesos</p>
           <p className="text-sm mt-1">
             {estadoFilter !== "todos"
-              ? `No se encontraron procesos con estado "${ESTADO_CONFIG[estadoFilter]?.label ?? estadoFilter}".`
+              ? `No se encontraron procesos con estado "${
+                  ESTADO_CONFIG[estadoFilter]?.label ?? estadoFilter
+                }".`
               : "No hay procesos registrados para esta empresa."}
           </p>
         </div>

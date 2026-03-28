@@ -3,29 +3,20 @@
 import axios from "axios";
 import { deleteCookie } from "cookies-next/client";
 import { useRouter, usePathname } from "next/navigation";
-import { useContext, type ComponentType, type SVGProps } from "react";
+import { useContext } from "react";
 import {
   Home,
   Settings,
   LogOut,
   ChevronLeft,
-  ScanLine,
-  Sprout,
-  ShieldCheck,
   ClipboardList,
+  Package,
+  BarChart3,
+  Gauge,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { AuthenticationContext } from "../../app/context/AuthContext";
-
-const TIPO_CONFIG: Record<
-  string,
-  { label: string; icon: ComponentType<SVGProps<SVGSVGElement>> }
-> = {
-  linea_conteo: { label: "Líneas de Conteo", icon: ScanLine },
-  maquina_plantacion: { label: "Máq. Plantación", icon: Sprout },
-  estacion_calidad: { label: "Est. Calidad", icon: ShieldCheck },
-};
 
 interface AppSidebarProps {
   isOpen: boolean;
@@ -36,8 +27,6 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { data, setAuthState } = useContext(AuthenticationContext);
-
-  const serviceTypes = data?.serviceTypes ?? [];
 
   const handleLogout = async () => {
     try {
@@ -59,7 +48,10 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
   const inactiveLinkClasses =
     "text-slate-400 hover:bg-white/5 hover:text-white";
 
-  const isActive = (url: string) => pathname === url || pathname.startsWith(url + "/");
+  const isActive = (url: string) =>
+    pathname === url || pathname.startsWith(url + "/");
+
+  const isActiveExact = (url: string) => pathname === url;
 
   return (
     <aside
@@ -102,13 +94,15 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
                 href="/app"
                 className={clsx(
                   commonLinkClasses,
-                  pathname === "/app" ? activeLinkClasses : inactiveLinkClasses
+                  isActiveExact("/app")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
                 )}
                 onClick={toggleSidebar}
               >
                 <Home
                   className="h-5 w-5 shrink-0"
-                  strokeWidth={pathname === "/app" ? 2.5 : 2}
+                  strokeWidth={isActiveExact("/app") ? 2.5 : 2}
                 />
                 <span>Inicio</span>
               </Link>
@@ -116,10 +110,10 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
           </ul>
         </div>
 
-        {/* Producción */}
+        {/* Operaciones */}
         <div>
           <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Producción
+            Operaciones
           </span>
           <ul className="mt-2 space-y-1">
             <li>
@@ -127,7 +121,9 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
                 href="/app/procesos"
                 className={clsx(
                   commonLinkClasses,
-                  isActive("/app/procesos") ? activeLinkClasses : inactiveLinkClasses
+                  isActive("/app/procesos")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
                 )}
                 onClick={toggleSidebar}
               >
@@ -135,51 +131,60 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
                 <span>Procesos</span>
               </Link>
             </li>
+            <li>
+              <Link
+                href="/app/lotes"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/app/lotes")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <Package className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Lotes</span>
+              </Link>
+            </li>
           </ul>
         </div>
 
-        {/* Servicios - dynamic by type */}
+        {/* Inteligencia */}
         <div>
           <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Servicios
+            Inteligencia
           </span>
           <ul className="mt-2 space-y-1">
-            {serviceTypes.map((tipo) => {
-              const config = TIPO_CONFIG[tipo] ?? {
-                label: tipo,
-                icon: ScanLine,
-              };
-              const Icon = config.icon;
-              const url = `/app/servicios?tipo=${tipo}`;
-              const active =
-                pathname === "/app/servicios" &&
-                typeof window !== "undefined" &&
-                new URLSearchParams(window.location.search).get("tipo") ===
-                  tipo;
-
-              return (
-                <li key={tipo}>
-                  <Link
-                    href={url}
-                    className={clsx(
-                      commonLinkClasses,
-                      active || (pathname.startsWith("/app/servicios") && serviceTypes.length === 1)
-                        ? activeLinkClasses
-                        : inactiveLinkClasses
-                    )}
-                    onClick={toggleSidebar}
-                  >
-                    <Icon className="h-5 w-5 shrink-0" strokeWidth={2} />
-                    <span>{config.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-            {serviceTypes.length === 0 && (
-              <li className="px-4 py-2 text-xs text-slate-600">
-                Sin servicios
-              </li>
-            )}
+            <li>
+              <Link
+                href="/app/analitica"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/app/analitica")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <BarChart3 className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Analítica</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/app/control"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/app/control")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <Gauge className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Control Operacional</span>
+              </Link>
+            </li>
           </ul>
         </div>
 

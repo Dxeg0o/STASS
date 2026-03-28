@@ -12,6 +12,7 @@ import {
   proceso,
   tipoProceso,
   producto,
+  variedad,
 } from "@/db/schema";
 import { eq, inArray, desc, sql, isNull, and, asc } from "drizzle-orm";
 
@@ -128,13 +129,33 @@ export async function GET(request: Request) {
 
       const servicioNameMap = new Map(servicios.map((s) => [s.id, s.nombre]));
 
+      // Get variedad/producto info for active lotes
+      const activeLoteIds = sessionRows.map((r) => r.loteId);
+      const activeLoteInfo =
+        activeLoteIds.length > 0
+          ? await db
+              .select({
+                id: lote.id,
+                variedadNombre: variedad.nombre,
+                productoNombre: producto.nombre,
+              })
+              .from(lote)
+              .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+              .leftJoin(producto, eq(producto.id, variedad.productoId))
+              .where(inArray(lote.id, activeLoteIds))
+          : [];
+      const loteInfoMap = new Map(activeLoteInfo.map((l) => [l.id, l]));
+
       activeSessions = sessionRows.map((r) => {
         const sId = loteToServicioMap.get(r.loteId) ?? "";
+        const info = loteInfoMap.get(r.loteId);
         return {
           loteId: r.loteId,
           servicioNombre: servicioNameMap.get(sId) ?? "",
           dispositivoNombre: r.dispositivoNombre,
           startTime: new Date(r.startTime).toISOString(),
+          variedadNombre: info?.variedadNombre ?? null,
+          productoNombre: info?.productoNombre ?? null,
         };
       });
     }
