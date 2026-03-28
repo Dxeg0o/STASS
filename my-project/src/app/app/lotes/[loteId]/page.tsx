@@ -54,7 +54,8 @@ interface Conteo {
   hora: string;
   direction: string;
   dispositivo: string;
-  perimetro: number;
+  perimetro: number | null;
+  perimeter?: number | null;
 }
 
 interface DistributionResponse {
@@ -178,7 +179,15 @@ export default function LoteGlobalDetailPage() {
     fetch(`/api/conteos?loteId=${loteId}&limit=${CONTEO_LIMIT}&skip=${skip}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Error al cargar datos");
-        const data: Conteo[] = await res.json();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const raw: any[] = await res.json();
+        const data: Conteo[] = raw.map((r, i) => ({
+          id: r.id ?? `${skip + i}`,
+          hora: r.timestamp ?? r.hora ?? r.ts,
+          direction: r.direction,
+          dispositivo: r.dispositivo,
+          perimetro: r.perimetro ?? r.perimeter ?? 0,
+        }));
         setConteos(data);
         setHasMore(data.length === CONTEO_LIMIT);
       })
@@ -601,7 +610,7 @@ export default function LoteGlobalDetailPage() {
                             {c.dispositivo}
                           </td>
                           <td className="py-2 text-right font-mono text-cyan-300">
-                            {c.perimetro.toFixed(1)}
+                            {(c.perimetro ?? 0).toFixed(1)}
                           </td>
                         </tr>
                       ))}

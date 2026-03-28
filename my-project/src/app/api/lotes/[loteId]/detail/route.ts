@@ -14,7 +14,7 @@ import {
   cajaLoteSession,
   caja,
 } from "@/db/schema";
-import { eq, and, isNull, sql, desc } from "drizzle-orm";
+import { eq, and, isNull, sql, desc, inArray } from "drizzle-orm";
 
 export async function GET(
   request: Request,
@@ -124,7 +124,7 @@ export async function GET(
       .where(
         and(
           eq(servicio.usaCajas, true),
-          sql`${servicio.id} = ANY(${servicioIds})`
+          inArray(servicio.id, servicioIds)
         )
       )
       .limit(1);
