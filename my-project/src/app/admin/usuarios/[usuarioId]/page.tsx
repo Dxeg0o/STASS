@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, User, Shield, Building2, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, User, Shield, Building2, Trash2, Plus, AlertTriangle } from "lucide-react";
 
 interface UsuarioDetail {
   id: string;
@@ -53,6 +53,11 @@ export default function UsuarioDetailPage() {
   const [selectedEmpresaId, setSelectedEmpresaId] = useState("");
   const [selectedRol, setSelectedRol] = useState("usuario");
   const [addingEmp, setAddingEmp] = useState(false);
+
+  // Delete challenge state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteChallenge, setDeleteChallenge] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchUsuario();
@@ -123,6 +128,33 @@ export default function UsuarioDetailPage() {
       console.error(error);
     }
   };
+
+  const handleChangeRol = async (empresaId: string, newRol: string) => {
+    try {
+      await axios.put(`/api/admin/empresas/${empresaId}/usuarios`, {
+        usuarioId,
+        rol: newRol,
+      });
+      await fetchUsuario();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleDeleteUsuario = async () => {
+    setDeleting(true);
+    try {
+      await axios.delete(`/api/admin/usuarios/${usuarioId}`);
+      router.push("/admin/usuarios");
+    } catch (error) {
+      console.error(error);
+      setDeleting(false);
+    }
+  };
+
+  const expectedDeleteText = usuario
+    ? `Deseo eliminar a ${usuario.nombre} y toda su información`
+    : "";
 
   if (loading) {
     return (
@@ -289,9 +321,18 @@ export default function UsuarioDetailPage() {
                   <div className="flex items-center gap-3">
                     <Building2 className="w-4 h-4 text-slate-400" />
                     <span className="text-white text-sm">{eu.empresa.nombre}</span>
-                    <Badge className={eu.rol === "administrador" ? "bg-amber-500/20 text-amber-400 text-xs" : "bg-slate-700/50 text-slate-300 text-xs"}>
-                      {eu.rol}
-                    </Badge>
+                    <Select
+                      value={eu.rol}
+                      onValueChange={(newRol) => handleChangeRol(eu.empresa.id, newRol)}
+                    >
+                      <SelectTrigger className="w-[150px] h-7 bg-slate-800/50 border-white/10 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        <SelectItem value="usuario" className="text-white hover:bg-slate-800 text-xs">Usuario</SelectItem>
+                        <SelectItem value="administrador" className="text-white hover:bg-slate-800 text-xs">Administrador</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <button
                     onClick={() => handleRemoveEmpresa(eu.empresa.id)}
@@ -303,6 +344,63 @@ export default function UsuarioDetailPage() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Delete User */}
+      <Card className="bg-red-950/20 border-red-500/20">
+        <CardHeader>
+          <CardTitle className="text-red-400 text-lg flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            Zona Peligrosa
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-slate-400 text-sm mb-4">
+            Eliminar este usuario borrará su cuenta y todas sus asignaciones permanentemente.
+          </p>
+          <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+            setDeleteDialogOpen(open);
+            if (!open) setDeleteChallenge("");
+          }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-950/30 hover:text-red-300">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar Usuario
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-slate-900 border-white/10 text-white">
+              <DialogHeader>
+                <DialogTitle className="text-red-400">Eliminar Usuario</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <p className="text-slate-400 text-sm">
+                  Para confirmar, escriba exactamente:
+                </p>
+                <p className="text-white text-sm font-mono bg-slate-800/60 p-3 rounded-lg border border-white/10">
+                  {expectedDeleteText}
+                </p>
+                <Input
+                  value={deleteChallenge}
+                  onChange={(e) => setDeleteChallenge(e.target.value)}
+                  placeholder="Escriba el texto de confirmación..."
+                  className="bg-slate-800/50 border-white/10 text-white"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="border-white/10 text-slate-400 hover:text-white">
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleDeleteUsuario}
+                  disabled={deleting || deleteChallenge !== expectedDeleteText}
+                  className="bg-red-600 hover:bg-red-500 text-white font-semibold disabled:opacity-50"
+                >
+                  {deleting ? "Eliminando..." : "Eliminar Permanentemente"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     </div>

@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronLeft,
   Shield,
+  Link2,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -143,6 +144,21 @@ export function AdminSidebar({ isOpen, toggleSidebar }: AdminSidebarProps) {
               >
                 <Users className="h-5 w-5 shrink-0" strokeWidth={2} />
                 <span>Usuarios</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/admin/invitaciones"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/admin/invitaciones")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <Link2 className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Invitaciones</span>
               </Link>
             </li>
           </ul>

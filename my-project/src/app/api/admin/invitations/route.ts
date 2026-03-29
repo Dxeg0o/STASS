@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { dispositivo } from "@/db/schema";
+import { invitationLink } from "@/db/schema";
 import { verifyAdmin } from "@/lib/auth";
+import { randomUUID } from "crypto";
 
 export async function GET(req: Request) {
   try {
@@ -10,17 +11,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dispositivos = await db.query.dispositivo.findMany({
-      with: {
-        dispositivoServicios: {
-          with: { servicio: true },
-        },
-      },
+    const invitations = await db.query.invitationLink.findMany({
+      with: { empresa: true },
+      orderBy: (t, { desc }) => [desc(t.createdAt)],
     });
 
-    return NextResponse.json(dispositivos);
+    return NextResponse.json(invitations);
   } catch (error) {
-    console.error("Error fetching dispositivos:", error);
+    console.error("Error fetching invitations:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -35,26 +33,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { nombre, tipo } = await req.json();
+    const { empresaId, rol, expiresAt } = await req.json();
 
-    if (!nombre) {
+    if (!empresaId || !rol) {
       return NextResponse.json(
-        { error: "nombre is required" },
+        { error: "empresaId and rol are required" },
         { status: 400 }
       );
     }
 
-    const [newDispositivo] = await db
-      .insert(dispositivo)
+    const token = randomUUID();
+
+    const [invitation] = await db
+      .insert(invitationLink)
       .values({
-        nombre,
-        tipo: tipo || "nvidia_agx",
+        token,
+        empresaId,
+        rol,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        createdBy: admin.id,
       })
       .returning();
 
-    return NextResponse.json(newDispositivo, { status: 201 });
+    return NextResponse.json(invitation, { status: 201 });
   } catch (error) {
-    console.error("Error creating dispositivo:", error);
+    console.error("Error creating invitation:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

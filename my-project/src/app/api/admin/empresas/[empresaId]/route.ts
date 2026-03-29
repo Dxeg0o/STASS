@@ -22,8 +22,12 @@ export async function GET(
         empresaUsuarios: {
           with: { usuario: true },
         },
-        procesos: true,
-        servicios: true,
+        procesos: {
+          with: { tipoProceso: true, producto: true },
+        },
+        servicios: {
+          with: { proceso: { with: { tipoProceso: true } } },
+        },
       },
     });
 

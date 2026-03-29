@@ -66,6 +66,54 @@ export async function POST(
   }
 }
 
+export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ empresaId: string }> }
+) {
+  try {
+    const admin = await verifyAdmin(req);
+    if (!admin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { empresaId } = await params;
+    const { usuarioId, rol } = await req.json();
+
+    if (!usuarioId || !rol) {
+      return NextResponse.json(
+        { error: "usuarioId and rol are required" },
+        { status: 400 }
+      );
+    }
+
+    const [updated] = await db
+      .update(empresaUsuario)
+      .set({ rol })
+      .where(
+        and(
+          eq(empresaUsuario.empresaId, empresaId),
+          eq(empresaUsuario.usuarioId, usuarioId)
+        )
+      )
+      .returning();
+
+    if (!updated) {
+      return NextResponse.json(
+        { error: "Assignment not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("Error updating usuario role:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ empresaId: string }> }

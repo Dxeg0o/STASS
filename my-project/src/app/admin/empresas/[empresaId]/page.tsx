@@ -31,7 +31,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { Plus, Trash2, ArrowLeft, Building2 } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Building2, AlertTriangle } from "lucide-react";
 
 interface EmpresaDetail {
   id: string;
@@ -56,6 +56,7 @@ interface EmpresaDetail {
     nombre: string;
     tipo: string;
     fechaInicio: string;
+    proceso?: { tipoProceso?: { nombre: string } | null } | null;
   }>;
 }
 
@@ -102,6 +103,19 @@ export default function EmpresaDetailPage() {
   const [wfDialogOpen, setWfDialogOpen] = useState(false);
   const [wfNombre, setWfNombre] = useState("");
   const [creatingWf, setCreatingWf] = useState(false);
+
+  // Servicios tab state
+  const [addServicioDialogOpen, setAddServicioDialogOpen] = useState(false);
+  const [servicioNombre, setServicioNombre] = useState("");
+  const [servicioTipo, setServicioTipo] = useState("");
+  const [servicioProcesoId, setServicioProcesoId] = useState("");
+  const [servicioUsaCajas, setServicioUsaCajas] = useState(false);
+  const [creatingServicio, setCreatingServicio] = useState(false);
+
+  // Delete challenge state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteChallenge, setDeleteChallenge] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchEmpresa();
@@ -226,6 +240,43 @@ export default function EmpresaDetailPage() {
     }
   };
 
+  const handleCreateServicio = async () => {
+    if (!servicioNombre.trim() || !servicioTipo || !servicioProcesoId) return;
+    setCreatingServicio(true);
+    try {
+      await axios.post(`/api/admin/empresas/${empresaId}/procesos/${servicioProcesoId}/servicios`, {
+        nombre: servicioNombre,
+        tipo: servicioTipo,
+        usaCajas: servicioUsaCajas,
+      });
+      setAddServicioDialogOpen(false);
+      setServicioNombre("");
+      setServicioTipo("");
+      setServicioProcesoId("");
+      setServicioUsaCajas(false);
+      await fetchEmpresa();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setCreatingServicio(false);
+    }
+  };
+
+  const handleDeleteEmpresa = async () => {
+    setDeleting(true);
+    try {
+      await axios.delete(`/api/admin/empresas/${empresaId}`);
+      router.push("/admin/empresas");
+    } catch (error) {
+      console.error(error);
+      setDeleting(false);
+    }
+  };
+
+  const expectedDeleteText = empresa
+    ? `Deseo eliminar a ${empresa.nombre} y toda su información`
+    : "";
+
   if (loading) {
     return (
       <div className="w-full max-w-5xl mx-auto space-y-6">
@@ -280,7 +331,7 @@ export default function EmpresaDetailPage() {
         </TabsList>
 
         {/* GENERAL */}
-        <TabsContent value="general" className="mt-4">
+        <TabsContent value="general" className="mt-4 space-y-4">
           <Card className="bg-slate-900/60 border-white/10">
             <CardHeader>
               <CardTitle className="text-white text-lg">Información General</CardTitle>
@@ -310,6 +361,63 @@ export default function EmpresaDetailPage() {
               >
                 {saving ? "Guardando..." : "Guardar Cambios"}
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Delete Empresa */}
+          <Card className="bg-red-950/20 border-red-500/20">
+            <CardHeader>
+              <CardTitle className="text-red-400 text-lg flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                Zona Peligrosa
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-400 text-sm mb-4">
+                Eliminar esta empresa borrará todos sus datos permanentemente: usuarios asignados, procesos, servicios, workflows y toda la información asociada.
+              </p>
+              <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+                setDeleteDialogOpen(open);
+                if (!open) setDeleteChallenge("");
+              }}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-950/30 hover:text-red-300">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Eliminar Empresa
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-slate-900 border-white/10 text-white">
+                  <DialogHeader>
+                    <DialogTitle className="text-red-400">Eliminar Empresa</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <p className="text-slate-400 text-sm">
+                      Para confirmar, escriba exactamente:
+                    </p>
+                    <p className="text-white text-sm font-mono bg-slate-800/60 p-3 rounded-lg border border-white/10">
+                      {expectedDeleteText}
+                    </p>
+                    <Input
+                      value={deleteChallenge}
+                      onChange={(e) => setDeleteChallenge(e.target.value)}
+                      placeholder="Escriba el texto de confirmación..."
+                      className="bg-slate-800/50 border-white/10 text-white"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="border-white/10 text-slate-400 hover:text-white">
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleDeleteEmpresa}
+                      disabled={deleting || deleteChallenge !== expectedDeleteText}
+                      className="bg-red-600 hover:bg-red-500 text-white font-semibold disabled:opacity-50"
+                    >
+                      {deleting ? "Eliminando..." : "Eliminar Permanentemente"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </TabsContent>
@@ -574,7 +682,88 @@ export default function EmpresaDetailPage() {
         </TabsContent>
 
         {/* SERVICIOS */}
-        <TabsContent value="servicios" className="mt-4">
+        <TabsContent value="servicios" className="mt-4 space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="text-slate-400 text-sm">{empresa.servicios.length} servicio(s) creados</p>
+            <Dialog open={addServicioDialogOpen} onOpenChange={setAddServicioDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nuevo Servicio
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-white/10 text-white">
+                <DialogHeader>
+                  <DialogTitle>Nuevo Servicio</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <label className="text-sm text-slate-400 mb-1.5 block">Proceso *</label>
+                    <Select value={servicioProcesoId} onValueChange={setServicioProcesoId}>
+                      <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                        <SelectValue placeholder="Seleccionar proceso" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        {empresa.procesos.map((p) => (
+                          <SelectItem key={p.id} value={p.id} className="text-white hover:bg-slate-800">
+                            {p.tipoProceso?.nombre ?? "Proceso"} {p.temporada ? `(${p.temporada})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-400 mb-1.5 block">Nombre *</label>
+                    <Input
+                      value={servicioNombre}
+                      onChange={(e) => setServicioNombre(e.target.value)}
+                      placeholder="Nombre del servicio"
+                      className="bg-slate-800/50 border-white/10 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-400 mb-1.5 block">Tipo *</label>
+                    <Select value={servicioTipo} onValueChange={setServicioTipo}>
+                      <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                        <SelectValue placeholder="Seleccionar tipo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        <SelectItem value="linea_conteo" className="text-white hover:bg-slate-800">Linea de Conteo</SelectItem>
+                        <SelectItem value="maquina_plantacion" className="text-white hover:bg-slate-800">Maquina de Plantacion</SelectItem>
+                        <SelectItem value="estacion_calidad" className="text-white hover:bg-slate-800">Estacion de Calidad</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm text-slate-400">Usa Cajas</label>
+                    <button
+                      onClick={() => setServicioUsaCajas(!servicioUsaCajas)}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${
+                        servicioUsaCajas ? "bg-amber-500" : "bg-slate-700"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow ${
+                          servicioUsaCajas ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddServicioDialogOpen(false)} className="border-white/10 text-slate-400 hover:text-white">Cancelar</Button>
+                  <Button
+                    onClick={handleCreateServicio}
+                    disabled={creatingServicio || !servicioNombre.trim() || !servicioTipo || !servicioProcesoId}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+                  >
+                    {creatingServicio ? "Creando..." : "Crear"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           <Card className="bg-slate-900/60 border-white/10">
             <CardContent className="p-0">
               <Table>
@@ -582,13 +771,14 @@ export default function EmpresaDetailPage() {
                   <TableRow className="border-white/10 hover:bg-transparent">
                     <TableHead className="text-slate-400 uppercase text-xs">Nombre</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Tipo</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">Proceso</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Inicio</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {empresa.servicios.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center text-slate-500 py-8">
+                      <TableCell colSpan={4} className="text-center text-slate-500 py-8">
                         No hay servicios para esta empresa
                       </TableCell>
                     </TableRow>
@@ -599,6 +789,9 @@ export default function EmpresaDetailPage() {
                         <Badge variant="outline" className="border-white/10 text-slate-300 text-xs capitalize">
                           {s.tipo.replace(/_/g, " ")}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-slate-400">
+                        {s.proceso?.tipoProceso?.nombre ?? "-"}
                       </TableCell>
                       <TableCell className="text-slate-400">
                         {new Date(s.fechaInicio).toLocaleDateString("es-CL")}

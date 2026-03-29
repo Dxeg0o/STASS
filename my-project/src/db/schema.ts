@@ -32,6 +32,7 @@ export const empresaRelations = relations(empresa, ({ many }) => ({
   workflowEmpresas: many(workflowEmpresa),
   procesos: many(proceso),
   cajas: many(caja),
+  invitationLinks: many(invitationLink),
 }));
 
 // ─── Usuario ───────────────────────────────────────────────
@@ -344,10 +345,10 @@ export const dispositivoServicio = pgTable(
   {
     dispositivoId: uuid("dispositivo_id")
       .notNull()
-      .references(() => dispositivo.id),
+      .references(() => dispositivo.id, { onDelete: "cascade" }),
     servicioId: uuid("servicio_id")
       .notNull()
-      .references(() => servicio.id),
+      .references(() => servicio.id, { onDelete: "cascade" }),
     maquina: text("maquina"),
     asignadoAt: timestamp("asignado_at", { withTimezone: true }).defaultNow(),
   },
@@ -534,4 +535,38 @@ export const conteo = pgTable(
     index("idx_conteo_servicio").on(t.servicioId, t.ts),
     index("idx_conteo_dispositivo").on(t.dispositivoId, t.ts),
   ]
+);
+
+// ─── Invitation Link ──────────────────────────────────────
+
+export const invitationLink = pgTable("invitation_link", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  token: text("token").unique().notNull(),
+  empresaId: uuid("empresa_id")
+    .notNull()
+    .references(() => empresa.id, { onDelete: "cascade" }),
+  rol: text("rol").notNull(), // 'administrador' | 'usuario'
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  usedByUsuarioId: uuid("used_by_usuario_id").references(() => usuario.id, {
+    onDelete: "set null",
+  }),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => usuario.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const invitationLinkRelations = relations(
+  invitationLink,
+  ({ one }) => ({
+    empresa: one(empresa, {
+      fields: [invitationLink.empresaId],
+      references: [empresa.id],
+    }),
+    createdByUsuario: one(usuario, {
+      fields: [invitationLink.createdBy],
+      references: [usuario.id],
+    }),
+  })
 );
