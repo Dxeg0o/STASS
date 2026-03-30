@@ -4,7 +4,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
-import { Activity, Clock } from "lucide-react";
+import { Activity } from "lucide-react";
 
 // ---------- Types ----------
 

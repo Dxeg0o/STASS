@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { usuario, empresa, servicio, empresaUsuario } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { usuario, empresa, servicio } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET(req: Request) {

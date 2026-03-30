@@ -135,8 +135,8 @@ export default function ControlOperacionalPage() {
       if (!res.ok) throw new Error("Error al cargar datos de produccion");
       const json: ProduccionResponse = await res.json();
       setProduccion(json);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setLoading(false);
     }
@@ -154,21 +154,6 @@ export default function ControlOperacionalPage() {
       count: h.count,
       date: h.date,
     }));
-  }, [produccion]);
-
-  // Heatmap data: hour x day-of-week
-  const heatmapData = useMemo(() => {
-    if (!produccion) return [];
-    const map = new Map<string, number>();
-    for (const h of produccion.hourly) {
-      const dayOfWeek = new Date(h.date).getDay();
-      const key = `${dayOfWeek}-${h.hour}`;
-      map.set(key, (map.get(key) ?? 0) + h.count);
-    }
-    return Array.from(map.entries()).map(([key, count]) => {
-      const [day, hour] = key.split("-").map(Number);
-      return { day, hour, count };
-    });
   }, [produccion]);
 
   if (authLoading) {

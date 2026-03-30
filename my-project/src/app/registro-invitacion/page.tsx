@@ -40,6 +40,7 @@ export default function RegistroInvitacionPage() {
       return;
     }
     validateToken();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const validateToken = async () => {

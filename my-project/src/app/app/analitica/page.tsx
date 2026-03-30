@@ -4,7 +4,6 @@ import React, { useContext, useEffect, useState, useMemo } from "react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BarChart,
@@ -18,7 +17,7 @@ import {
   Line,
   Legend,
 } from "recharts";
-import { BarChart3, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 // ---------- Types ----------
 
@@ -68,10 +67,8 @@ function formatNumber(n: number): string {
 export default function AnaliticaPage() {
   const { data, loading: authLoading } = useContext(AuthenticationContext);
 
-  // Shared state: lote search
-  const [loteSearch, setLoteSearch] = useState("");
+  // Shared state: lote options
   const [loteOptions, setLoteOptions] = useState<LoteOption[]>([]);
-  const [loteOptionsLoading, setLoteOptionsLoading] = useState(false);
 
   // Tab 1: Evolucion
   const [selectedLoteEvo, setSelectedLoteEvo] = useState<string>("");
@@ -93,33 +90,19 @@ export default function AnaliticaPage() {
   // Fetch lote options for search
   useEffect(() => {
     if (!data?.empresaId) return;
-    setLoteOptionsLoading(true);
     fetch(`/api/lotes/global?empresaId=${data.empresaId}&limit=100`)
       .then((res) => res.json())
       .then((json) => {
         setLoteOptions(
-          json.data?.map((l: any) => ({
+          json.data?.map((l: LoteOption) => ({
             id: l.id,
             variedadNombre: l.variedadNombre,
             productoNombre: l.productoNombre,
           })) ?? []
         );
       })
-      .catch(console.error)
-      .finally(() => setLoteOptionsLoading(false));
+      .catch(console.error);
   }, [data?.empresaId]);
-
-  const filteredLotes = useMemo(() => {
-    if (!loteSearch) return loteOptions.slice(0, 20);
-    const s = loteSearch.toLowerCase();
-    return loteOptions
-      .filter(
-        (l) =>
-          l.id.toLowerCase().includes(s) ||
-          l.variedadNombre?.toLowerCase().includes(s)
-      )
-      .slice(0, 20);
-  }, [loteOptions, loteSearch]);
 
   // ── Tab 1: Fetch evolucion ────────────────────────────────────────────────
   useEffect(() => {
@@ -172,7 +155,7 @@ export default function AnaliticaPage() {
     const calibres = Array.from(calibreSet).sort((a, b) => a - b);
 
     return calibres.map((cal) => {
-      const point: any = { calibre: cal.toFixed(1) };
+      const point: Record<string, string | number> = { calibre: cal.toFixed(1) };
       for (const l of comparacion) {
         const entry = l.distribution.find((d) => d.calibre === cal);
         point[l.loteId.slice(-8)] = entry?.count ?? 0;

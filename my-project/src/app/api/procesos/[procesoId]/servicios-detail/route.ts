@@ -8,11 +8,7 @@ import {
   lote,
   variedad,
   producto,
-  dispositivo,
   dispositivoServicio,
-  caja,
-  cajaLoteSession,
-  cajaStats,
 } from "@/db/schema";
 import { eq, and, isNull, inArray, sql, desc } from "drizzle-orm";
 

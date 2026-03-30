@@ -120,6 +120,7 @@ export default function EmpresaDetailPage() {
   useEffect(() => {
     fetchEmpresa();
     fetchAllUsuarios();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empresaId]);
 
   const fetchEmpresa = async () => {

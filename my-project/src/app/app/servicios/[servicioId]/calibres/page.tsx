@@ -122,7 +122,7 @@ export default function CalibresPage() {
         color: SERIES_COLORS[index % SERIES_COLORS.length],
       };
     });
-  }, [selectedLoteIds, lotes]);
+  }, [selectedLoteIds]);
 
   // ── Derived: totals for percentage mode ───────────────────────────────────
   const loteTotals = useMemo(() => {

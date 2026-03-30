@@ -62,6 +62,7 @@ export default function UsuarioDetailPage() {
   useEffect(() => {
     fetchUsuario();
     fetchAllEmpresas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuarioId]);
 
   const fetchUsuario = async () => {

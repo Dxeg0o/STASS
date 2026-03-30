@@ -11,7 +11,7 @@ import {
   proceso,
   tipoProceso,
 } from "@/db/schema";
-import { eq, inArray, desc, sql, ilike, or, and, isNull } from "drizzle-orm";
+import { eq, inArray, desc, sql, and, isNull } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

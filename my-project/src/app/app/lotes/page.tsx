@@ -9,7 +9,6 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  Clock,
 } from "lucide-react";
 
 // ---------- Types ----------
@@ -45,17 +44,6 @@ function formatDate(iso: string | null): string {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  });
-}
-
-function formatTimestamp(iso: string | null): string {
-  if (!iso) return "\u2014";
-  return new Date(iso).toLocaleString("es-CL", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 }
 
@@ -103,8 +91,8 @@ export default function LotesPage() {
       const json: LotesResponse = await res.json();
       setLotes(json.data);
       setTotal(json.total);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setLoading(false);
     }

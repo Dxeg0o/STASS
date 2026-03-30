@@ -11,10 +11,8 @@ import {
   proceso,
   tipoProceso,
   dispositivo,
-  cajaLoteSession,
-  caja,
 } from "@/db/schema";
-import { eq, and, isNull, sql, desc, inArray } from "drizzle-orm";
+import { eq, and, isNull, sql, inArray } from "drizzle-orm";
 
 export async function GET(
   request: Request,
@@ -134,7 +132,6 @@ export async function GET(
   // Build lifecycle steps with stats
   const steps = lifecycle.map((step) => {
     const stats = statsMap.get(step.servicioId);
-    const isCurrentlyActive = activeSessions.length > 0;
 
     return {
       servicioId: step.servicioId,
