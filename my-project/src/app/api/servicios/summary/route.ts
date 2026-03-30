@@ -60,7 +60,13 @@ export async function GET(request: Request) {
       lastActivity: sql<Date | null>`MAX(${loteStats.lastTs})`,
     })
     .from(loteServicio)
-    .leftJoin(loteStats, eq(loteStats.loteId, loteServicio.loteId))
+    .leftJoin(
+      loteStats,
+      and(
+        eq(loteStats.loteId, loteServicio.loteId),
+        eq(loteStats.servicioId, loteServicio.servicioId)
+      )
+    )
     .where(inArray(loteServicio.servicioId, servicioIds))
     .groupBy(loteServicio.servicioId);
 
@@ -82,7 +88,19 @@ export async function GET(request: Request) {
     deviceCountRows.map((r) => [r.servicioId, r.deviceCount])
   );
 
-  // 4. Find active loteSession via loteServicio
+  // 4. Find active loteSession via loteServicio (latest assignment only)
+  // Subquery: for each lote, get the most recent assignment timestamp
+  const latestAssignment = db
+    .select({
+      loteId: loteServicio.loteId,
+      maxAsignadoAt: sql<Date>`MAX(${loteServicio.asignadoAt})`.as(
+        "max_asignado_at"
+      ),
+    })
+    .from(loteServicio)
+    .groupBy(loteServicio.loteId)
+    .as("latest_assignment");
+
   const activeSessions = await db
     .select({
       servicioId: loteServicio.servicioId,
@@ -90,6 +108,13 @@ export async function GET(request: Request) {
     })
     .from(loteSession)
     .innerJoin(loteServicio, eq(loteServicio.loteId, loteSession.loteId))
+    .innerJoin(
+      latestAssignment,
+      and(
+        eq(latestAssignment.loteId, loteServicio.loteId),
+        eq(loteServicio.asignadoAt, latestAssignment.maxAsignadoAt)
+      )
+    )
     .where(
       and(
         isNull(loteSession.endTime),
