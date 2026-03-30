@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ interface InvitationData {
   expiresAt: string | null;
 }
 
-export default function RegistroInvitacionPage() {
+function RegistroInvitacionContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
@@ -240,5 +240,20 @@ export default function RegistroInvitacionPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function RegistroInvitacionPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-full max-w-md space-y-4">
+          <div className="h-8 w-48 bg-slate-800 animate-pulse rounded mx-auto" />
+          <div className="h-96 bg-slate-800 animate-pulse rounded-lg" />
+        </div>
+      </div>
+    }>
+      <RegistroInvitacionContent />
+    </Suspense>
   );
 }
