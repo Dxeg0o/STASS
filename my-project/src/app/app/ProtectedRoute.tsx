@@ -10,6 +10,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading && !data?.id) {
       router.push("/login");
+    } else if (!loading && data?.id && !data?.empresaId) {
+      // Authenticated but no empresa selected
+      router.push("/select-empresa");
     }
   }, [loading, data, router]);
 
@@ -20,8 +23,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
 
-  // Mientras se espera la redirección, no se muestra contenido
-  if (!loading && !data?.id) {
+  if (!loading && (!data?.id || !data?.empresaId)) {
     return null;
   }
 

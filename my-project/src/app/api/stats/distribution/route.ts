@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { loteStats } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 interface DistributionPoint {
   perimeter: number;
@@ -18,13 +18,6 @@ export async function GET(request: Request) {
     .map((id) => id.trim())
     .filter(Boolean);
 
-  if (!servicioId) {
-    return NextResponse.json(
-      { error: "servicioId es requerido" },
-      { status: 400 }
-    );
-  }
-
   if (loteIds.length === 0) {
     return NextResponse.json({ data: [], series: [] });
   }
@@ -33,13 +26,19 @@ export async function GET(request: Request) {
 
   await Promise.all(
     loteIds.map(async (loteId) => {
+      // Filter by loteId, and optionally also by servicioId
+      const conditions = [eq(loteStats.loteId, loteId)];
+      if (servicioId) {
+        conditions.push(eq(loteStats.servicioId, servicioId));
+      }
+
       const rows = await db
         .select({
           perimeter: loteStats.calibre,
           count: sql<number>`(SUM(${loteStats.countIn}) + SUM(${loteStats.countOut}))::int`,
         })
         .from(loteStats)
-        .where(eq(loteStats.loteId, loteId))
+        .where(and(...conditions))
         .groupBy(loteStats.calibre)
         .orderBy(loteStats.calibre);
 

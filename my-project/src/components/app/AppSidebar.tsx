@@ -3,36 +3,22 @@
 import axios from "axios";
 import { deleteCookie } from "cookies-next/client";
 import { useRouter, usePathname } from "next/navigation";
-import { useContext, type ComponentType, type SVGProps } from "react";
-import { Home, Settings, Archive, LogOut, ChevronLeft, Ruler } from "lucide-react";
+import { useContext } from "react";
+import {
+  Home,
+  Settings,
+  LogOut,
+  ChevronLeft,
+  ClipboardList,
+  Package,
+  BarChart3,
+  Gauge,
+  Building2,
+  ArrowLeftRight,
+} from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
-import { AuthenticationContext } from "../../app/context/AuthContext"; // Ajusta la ruta si es necesario
-import { useServicio } from "@/app/context/ServicioContext";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-
-// Definimos un tipo más específico para los iconos
-type MenuItem = {
-  title: string;
-  url: string;
-  icon: ComponentType<SVGProps<SVGSVGElement>>;
-};
-
-const mainItems: MenuItem[] = [
-  { title: "Inicio", url: "/app", icon: Home },
-  { title: "Lotes", url: "/app/lotes", icon: Archive },
-  { title: "Calibres", url: "/app/calibres", icon: Ruler },
-];
-
-const secondaryItems: MenuItem[] = [
-  { title: "Configuraciones", url: "/app/configuraciones", icon: Settings },
-];
+import { AuthenticationContext } from "../../app/context/AuthContext";
 
 interface AppSidebarProps {
   isOpen: boolean;
@@ -42,9 +28,7 @@ interface AppSidebarProps {
 export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { setAuthState } = useContext(AuthenticationContext);
-  const { servicios, selectedServicio, setSelectedServicio, loading } =
-    useServicio();
+  const { data, setAuthState, switchEmpresa } = useContext(AuthenticationContext);
 
   const handleLogout = async () => {
     try {
@@ -52,6 +36,7 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
     } catch (error) {
       console.error("Error during logout:", error);
     } finally {
+      localStorage.removeItem("selectedEmpresaId");
       deleteCookie("token", { path: "/" });
       delete axios.defaults.headers.common["Authorization"];
       setAuthState?.({ data: null, error: null, loading: false });
@@ -61,9 +46,18 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
 
   const commonLinkClasses =
     "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out text-sm font-medium tracking-wide";
-  const activeLinkClasses = "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.15)]";
+  const activeLinkClasses =
+    "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.15)]";
   const inactiveLinkClasses =
     "text-slate-400 hover:bg-white/5 hover:text-white";
+
+  const isActive = (url: string) =>
+    pathname === url || pathname.startsWith(url + "/");
+
+  const isActiveExact = (url: string) => pathname === url;
+
+  const hasMultipleEmpresas =
+    data && (data.empresas.length > 1 || data.isSuperAdmin);
 
   return (
     <aside
@@ -75,10 +69,13 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
         }
       )}
     >
-      {/* Header del Sidebar con nombre de la empresa y botón de cerrar para móviles */}
+      {/* Header */}
       <div className="flex h-16 items-center justify-between border-b border-white/10 px-4 md:px-6 bg-slate-950/20">
-        <Link href="/app" className="text-xl font-bold text-white tracking-tight">
-          AgroBulbs
+        <Link
+          href="/app"
+          className="text-xl font-bold text-white tracking-tight"
+        >
+          Qualiblick
         </Link>
         {toggleSidebar && (
           <button
@@ -91,91 +88,157 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
         )}
       </div>
 
-      {/* Contenido del Sidebar */}
-      <nav className="flex flex-1 flex-col space-y-6 overflow-y-auto p-4">
-        {/* Selector de Servicio */}
-        <div>
-          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Servicio
-          </span>
-          <Select
-            value={selectedServicio?.id ?? "all"}
-            onValueChange={(v) => {
-              const svc = servicios.find((s) => s.id === v);
-              setSelectedServicio(v === "all" ? null : svc || null);
-            }}
-            disabled={loading}
-          >
-            <SelectTrigger className="mt-2 bg-slate-950/50 border-white/10 text-slate-200">
-              <SelectValue placeholder={loading ? "Cargando..." : "Todos"} />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-900 border-white/10 text-slate-200">
-              <SelectItem value="all">Todos</SelectItem>
-              {servicios.map((s) => (
-                <SelectItem key={s.id} value={s.id} className="hover:bg-cyan-950/30 hover:text-cyan-400 focus:bg-cyan-950/30 focus:text-cyan-400">
-                  {s.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Empresa actual */}
+      {data?.empresaNombre && (
+        <div className="px-4 py-3 border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span className="text-sm text-slate-300 truncate">
+              {data.empresaNombre}
+            </span>
+          </div>
+          {hasMultipleEmpresas && (
+            <button
+              onClick={() => {
+                switchEmpresa?.();
+                if (toggleSidebar) toggleSidebar();
+              }}
+              className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-500 hover:text-cyan-400 transition-colors"
+            >
+              <ArrowLeftRight className="w-3 h-3" />
+              <span>Cambiar empresa</span>
+            </button>
+          )}
         </div>
+      )}
 
-        {/* Navegación Principal */}
+      <nav className="flex flex-1 flex-col space-y-6 overflow-y-auto p-4">
+        {/* Overview */}
         <div>
           <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Principal
+            Overview
           </span>
           <ul className="mt-2 space-y-1">
-            {mainItems.map((item) => (
-              <li key={item.title}>
-                <Link
-                  href={item.url}
-                  className={clsx(
-                    commonLinkClasses,
-                    pathname === item.url
-                      ? activeLinkClasses
-                      : inactiveLinkClasses
-                  )}
-                  onClick={toggleSidebar}
-                >
-                  <item.icon
-                    className="h-5 w-5 shrink-0"
-                    strokeWidth={pathname === item.url ? 2.5 : 2}
-                  />
-                  <span>{item.title}</span>
-                </Link>
-              </li>
-            ))}
+            <li>
+              <Link
+                href="/app"
+                className={clsx(
+                  commonLinkClasses,
+                  isActiveExact("/app")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <Home
+                  className="h-5 w-5 shrink-0"
+                  strokeWidth={isActiveExact("/app") ? 2.5 : 2}
+                />
+                <span>Inicio</span>
+              </Link>
+            </li>
           </ul>
         </div>
 
-        {/* Navegación Secundaria */}
+        {/* Operaciones */}
+        <div>
+          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
+            Operaciones
+          </span>
+          <ul className="mt-2 space-y-1">
+            <li>
+              <Link
+                href="/app/procesos"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/app/procesos")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <ClipboardList className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Procesos</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/app/lotes"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/app/lotes")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <Package className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Lotes</span>
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        {/* Inteligencia */}
+        <div>
+          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
+            Inteligencia
+          </span>
+          <ul className="mt-2 space-y-1">
+            <li>
+              <Link
+                href="/app/analitica"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/app/analitica")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <BarChart3 className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Analítica</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/app/control"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/app/control")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <Gauge className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Control Operacional</span>
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        {/* Ajustes */}
         <div className="mt-auto">
           <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
             Ajustes
           </span>
           <ul className="mt-2 space-y-1">
-            {secondaryItems.map((item) => (
-              <li key={item.title}>
-                <Link
-                  href={item.url}
-                  className={clsx(
-                    commonLinkClasses,
-                    pathname === item.url
-                      ? activeLinkClasses
-                      : inactiveLinkClasses
-                  )}
-                  onClick={toggleSidebar}
-                >
-                  <item.icon
-                    className="h-5 w-5 shrink-0"
-                    strokeWidth={pathname === item.url ? 2.5 : 2}
-                  />
-                  <span>{item.title}</span>
-                </Link>
-              </li>
-            ))}
-            {/* Item de Cerrar sesión */}
+            <li>
+              <Link
+                href="/app/configuraciones"
+                className={clsx(
+                  commonLinkClasses,
+                  isActive("/app/configuraciones")
+                    ? activeLinkClasses
+                    : inactiveLinkClasses
+                )}
+                onClick={toggleSidebar}
+              >
+                <Settings className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span>Configuraciones</span>
+              </Link>
+            </li>
             <li>
               <button
                 onClick={() => {

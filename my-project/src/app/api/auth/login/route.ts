@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import * as jose from "jose";
 import validator from "validator";
 import { db } from "@/db";
-import { usuario } from "@/db/schema";
+import { usuario, empresa } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     const user = await db.query.usuario.findFirst({
       where: eq(usuario.correo, email),
-      with: { empresaUsuarios: { limit: 1 } },
+      with: { empresaUsuarios: true },
     });
 
     if (!user) {
@@ -60,19 +60,37 @@ export async function POST(req: NextRequest) {
 
     const alg = "HS256";
     const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-    const token = await new jose.SignJWT({ id: user.id, email: user.correo })
+    const token = await new jose.SignJWT({
+      id: user.id,
+      email: user.correo,
+      isSuperAdmin: user.isSuperAdmin,
+    })
       .setProtectedHeader({ alg })
       .setExpirationTime("24h")
       .sign(secret);
 
-    const empresaId = user.empresaUsuarios[0]?.empresaId ?? null;
+    // Fetch empresa names for all assignments
+    const empresas = await Promise.all(
+      user.empresaUsuarios.map(async (eu) => {
+        const [emp] = await db
+          .select({ nombre: empresa.nombre })
+          .from(empresa)
+          .where(eq(empresa.id, eu.empresaId));
+        return {
+          empresaId: eu.empresaId,
+          empresaNombre: emp?.nombre ?? null,
+          rol: eu.rol,
+        };
+      })
+    );
 
     const response = NextResponse.json(
       {
         nombre: user.nombre,
         email: user.correo,
         userId: user.id,
-        empresaId,
+        isSuperAdmin: user.isSuperAdmin,
+        empresas,
       },
       { status: 200 }
     );

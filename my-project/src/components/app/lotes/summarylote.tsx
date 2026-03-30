@@ -3,8 +3,6 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { useServicio } from "@/app/context/ServicioContext";
-
 interface Summary {
   dispositivo: string;
   countIn: number;
@@ -15,10 +13,6 @@ interface Summary {
 
 interface SummaryLoteProps {
   loteId: string;
-  /**
-   * Opcional: si cambia este valor se volverá a solicitar el resumen.
-   * Permite que un componente padre fuerce la recarga sin cambiar el lote.
-   */
   refreshKey?: number;
 }
 
@@ -26,7 +20,6 @@ export function SummaryLote({ loteId, refreshKey }: SummaryLoteProps) {
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { selectedServicio } = useServicio();
 
   useEffect(() => {
     if (!loteId) {
@@ -37,7 +30,6 @@ export function SummaryLote({ loteId, refreshKey }: SummaryLoteProps) {
     setError(null);
 
     const params = new URLSearchParams({ loteId });
-    if (selectedServicio) params.append("servicioId", selectedServicio.id);
     fetch(`/api/lotes/summary?${params.toString()}`)
       .then((res) => {
         if (!res.ok) throw new Error("Error al cargar el resumen");
@@ -53,7 +45,7 @@ export function SummaryLote({ loteId, refreshKey }: SummaryLoteProps) {
       .finally(() => {
         setLoading(false);
       });
-  }, [loteId, refreshKey, selectedServicio]);
+  }, [loteId, refreshKey]);
 
   // Calcular el total de bulbos de todo el lote (suma de countIn + countOut por dispositivo)
   const totalBulbos = summaries.reduce(

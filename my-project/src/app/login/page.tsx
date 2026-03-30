@@ -27,10 +27,25 @@ export default function LoginPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error en las credenciales.");
+        throw new Error(errorData.errorMessage || "Error en las credenciales.");
       }
 
-      router.push("/app");
+      const data = await response.json();
+      const { isSuperAdmin, empresas } = data;
+
+      if (empresas.length === 0 && !isSuperAdmin) {
+        setError("No tienes acceso a ninguna empresa.");
+        return;
+      }
+
+      if (empresas.length === 1 && !isSuperAdmin) {
+        // Auto-select the only empresa and go to app
+        localStorage.setItem("selectedEmpresaId", empresas[0].empresaId);
+        router.push("/app");
+      } else {
+        // Multiple empresas or super admin → show selector
+        router.push("/select-empresa");
+      }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -65,14 +80,14 @@ export default function LoginPage() {
               Ingresa tus credenciales para acceder a la plataforma.
             </p>
           </div>
-         
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm text-center">
                 {error}
               </div>
             )}
-            
+
             <div className="space-y-2">
               <label
                 htmlFor="email"

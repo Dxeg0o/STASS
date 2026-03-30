@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
-import { Inter } from "next/font/google"; // [MODIFY] Use Inter font
 import "./globals.css";
 import AuthContext from "./context/AuthContext";
 import { Toaster } from "sonner";
-
-const inter = Inter({ subsets: ["latin"] }); // [MODIFY] Initialize Inter font
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.qualiblick.com"),
@@ -54,7 +51,7 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark scroll-smooth">
       <body
-        className={`${inter.className} antialiased bg-slate-950 text-white selection:bg-cyan-500/30`}
+        className="antialiased bg-slate-950 text-white selection:bg-cyan-500/30"
       >
         <AuthContext>{children}</AuthContext>
         <Toaster position="top-center" richColors />

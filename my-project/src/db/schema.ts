@@ -28,6 +28,11 @@ export const empresaRelations = relations(empresa, ({ many }) => ({
   empresaUsuarios: many(empresaUsuario),
   servicios: many(servicio),
   ubicaciones: many(ubicacion),
+  tiposProceso: many(tipoProceso),
+  workflowEmpresas: many(workflowEmpresa),
+  procesos: many(proceso),
+  cajas: many(caja),
+  invitationLinks: many(invitationLink),
 }));
 
 // ─── Usuario ───────────────────────────────────────────────
@@ -37,6 +42,7 @@ export const usuario = pgTable("usuario", {
   nombre: text("nombre").notNull(),
   correo: text("correo").unique().notNull(),
   password: text("password").notNull(),
+  isSuperAdmin: boolean("is_super_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -76,7 +82,7 @@ export const empresaUsuarioRelations = relations(
   })
 );
 
-// ─── Ubicación ─────────────────────────────────────────────
+// ─── Ubicacion ─────────────────────────────────────────────
 
 export const ubicacion = pgTable("ubicacion", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -98,6 +104,111 @@ export const ubicacionRelations = relations(ubicacion, ({ one, many }) => ({
   servicios: many(servicio),
 }));
 
+// ─── Tipo Proceso (diccionario) ─────────────────────────────
+
+export const tipoProceso = pgTable("tipo_proceso", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nombre: text("nombre").notNull(), // "Plantacion", "Cosecha", "Lavado"
+  empresaId: uuid("empresa_id")
+    .notNull()
+    .references(() => empresa.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const tipoProcesoRelations = relations(tipoProceso, ({ one, many }) => ({
+  empresa: one(empresa, {
+    fields: [tipoProceso.empresaId],
+    references: [empresa.id],
+  }),
+  workflowPasos: many(workflowPaso),
+  procesos: many(proceso),
+}));
+
+// ─── Workflow Empresa (definicion de workflow) ──────────────
+
+export const workflowEmpresa = pgTable("workflow_empresa", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nombre: text("nombre").notNull(), // "Engorde Bulbos", "Proceso Comercial"
+  empresaId: uuid("empresa_id")
+    .notNull()
+    .references(() => empresa.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const workflowEmpresaRelations = relations(
+  workflowEmpresa,
+  ({ one, many }) => ({
+    empresa: one(empresa, {
+      fields: [workflowEmpresa.empresaId],
+      references: [empresa.id],
+    }),
+    pasos: many(workflowPaso),
+  })
+);
+
+// ─── Workflow Paso (pasos ordenados del workflow) ───────────
+
+export const workflowPaso = pgTable(
+  "workflow_paso",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workflowEmpresaId: uuid("workflow_empresa_id")
+      .notNull()
+      .references(() => workflowEmpresa.id, { onDelete: "cascade" }),
+    tipoProcesoId: uuid("tipo_proceso_id")
+      .notNull()
+      .references(() => tipoProceso.id),
+    orden: integer("orden").notNull(),
+  },
+  (t) => [unique().on(t.workflowEmpresaId, t.orden)]
+);
+
+export const workflowPasoRelations = relations(workflowPaso, ({ one }) => ({
+  workflowEmpresa: one(workflowEmpresa, {
+    fields: [workflowPaso.workflowEmpresaId],
+    references: [workflowEmpresa.id],
+  }),
+  tipoProceso: one(tipoProceso, {
+    fields: [workflowPaso.tipoProcesoId],
+    references: [tipoProceso.id],
+  }),
+}));
+
+// ─── Proceso (instancia de un proceso) ─────────────────────
+
+export const proceso = pgTable("proceso", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tipoProcesoId: uuid("tipo_proceso_id")
+    .notNull()
+    .references(() => tipoProceso.id),
+  empresaId: uuid("empresa_id")
+    .notNull()
+    .references(() => empresa.id, { onDelete: "cascade" }),
+  productoId: uuid("producto_id").references(() => producto.id),
+  temporada: text("temporada"), // "2025"
+  estado: text("estado").notNull().default("planificado"), // planificado|en_curso|completado|cancelado
+  fechaInicio: timestamp("fecha_inicio", { withTimezone: true }),
+  fechaFin: timestamp("fecha_fin", { withTimezone: true }),
+  notas: text("notas"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const procesoRelations = relations(proceso, ({ one, many }) => ({
+  tipoProceso: one(tipoProceso, {
+    fields: [proceso.tipoProcesoId],
+    references: [tipoProceso.id],
+  }),
+  empresa: one(empresa, {
+    fields: [proceso.empresaId],
+    references: [empresa.id],
+  }),
+  producto: one(producto, {
+    fields: [proceso.productoId],
+    references: [producto.id],
+  }),
+  servicios: many(servicio),
+}));
+
 // ─── Servicio ──────────────────────────────────────────────
 
 export const servicio = pgTable("servicio", {
@@ -107,6 +218,8 @@ export const servicio = pgTable("servicio", {
     .notNull()
     .references(() => empresa.id, { onDelete: "cascade" }),
   ubicacionId: uuid("ubicacion_id").references(() => ubicacion.id),
+  procesoId: uuid("proceso_id").references(() => proceso.id),
+  usaCajas: boolean("usa_cajas").notNull().default(false),
   tipo: text("tipo").notNull(), // 'linea_conteo' | 'maquina_plantacion' | 'estacion_calidad'
   fechaInicio: timestamp("fecha_inicio", { withTimezone: true })
     .notNull()
@@ -123,7 +236,11 @@ export const servicioRelations = relations(servicio, ({ one, many }) => ({
     fields: [servicio.ubicacionId],
     references: [ubicacion.id],
   }),
-  lotes: many(lote),
+  proceso: one(proceso, {
+    fields: [servicio.procesoId],
+    references: [proceso.id],
+  }),
+  loteServicios: many(loteServicio),
   dispositivoServicios: many(dispositivoServicio),
 }));
 
@@ -137,6 +254,7 @@ export const producto = pgTable("producto", {
 
 export const productoRelations = relations(producto, ({ many }) => ({
   variedades: many(variedad),
+  procesos: many(proceso),
 }));
 
 // ─── Variedad ──────────────────────────────────────────────
@@ -167,24 +285,44 @@ export const variedadRelations = relations(variedad, ({ one, many }) => ({
 
 export const lote = pgTable("lote", {
   id: uuid("id").primaryKey().defaultRandom(),
-  nombre: text("nombre").notNull(),
-  servicioId: uuid("servicio_id")
-    .notNull()
-    .references(() => servicio.id, { onDelete: "cascade" }),
   variedadId: uuid("variedad_id").references(() => variedad.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
 export const loteRelations = relations(lote, ({ one, many }) => ({
-  servicio: one(servicio, {
-    fields: [lote.servicioId],
-    references: [servicio.id],
-  }),
   variedad: one(variedad, {
     fields: [lote.variedadId],
     references: [variedad.id],
   }),
+  loteServicios: many(loteServicio),
   loteSessions: many(loteSession),
+}));
+
+// ─── Lote ↔ Servicio (N:N con historial) ──────────────────
+
+export const loteServicio = pgTable(
+  "lote_servicio",
+  {
+    loteId: uuid("lote_id")
+      .notNull()
+      .references(() => lote.id, { onDelete: "cascade" }),
+    servicioId: uuid("servicio_id")
+      .notNull()
+      .references(() => servicio.id, { onDelete: "cascade" }),
+    asignadoAt: timestamp("asignado_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.loteId, t.servicioId] })]
+);
+
+export const loteServicioRelations = relations(loteServicio, ({ one }) => ({
+  lote: one(lote, {
+    fields: [loteServicio.loteId],
+    references: [lote.id],
+  }),
+  servicio: one(servicio, {
+    fields: [loteServicio.servicioId],
+    references: [servicio.id],
+  }),
 }));
 
 // ─── Dispositivo ───────────────────────────────────────────
@@ -207,10 +345,10 @@ export const dispositivoServicio = pgTable(
   {
     dispositivoId: uuid("dispositivo_id")
       .notNull()
-      .references(() => dispositivo.id),
+      .references(() => dispositivo.id, { onDelete: "cascade" }),
     servicioId: uuid("servicio_id")
       .notNull()
-      .references(() => servicio.id),
+      .references(() => servicio.id, { onDelete: "cascade" }),
     maquina: text("maquina"),
     asignadoAt: timestamp("asignado_at", { withTimezone: true }).defaultNow(),
   },
@@ -247,23 +385,76 @@ export const loteSession = pgTable("lote_session", {
   endTime: timestamp("end_time", { withTimezone: true }),
 });
 
-export const loteSessionRelations = relations(loteSession, ({ one }) => ({
-  lote: one(lote, {
-    fields: [loteSession.loteId],
-    references: [lote.id],
+export const loteSessionRelations = relations(
+  loteSession,
+  ({ one, many }) => ({
+    lote: one(lote, {
+      fields: [loteSession.loteId],
+      references: [lote.id],
+    }),
+    cajaLoteSessions: many(cajaLoteSession),
+  })
+);
+
+// ─── Caja ──────────────────────────────────────────────────
+
+export const caja = pgTable("caja", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  codigo: text("codigo").unique().notNull(), // QR
+  empresaId: uuid("empresa_id")
+    .notNull()
+    .references(() => empresa.id, { onDelete: "cascade" }),
+  tipo: text("tipo").notNull().default("reutilizable"),
+  capacidad: integer("capacidad"),
+  activa: boolean("activa").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const cajaRelations = relations(caja, ({ one, many }) => ({
+  empresa: one(empresa, {
+    fields: [caja.empresaId],
+    references: [empresa.id],
   }),
+  cajaLoteSessions: many(cajaLoteSession),
 }));
 
-// ─── Conteo (tabla de alto volumen) ────────────────────────
+// ─── Caja ↔ Lote Session ──────────────────────────────────
 
-// ─── Lote Stats (resumen pre-calculado por lote/dispositivo/calibre) ────────
+export const cajaLoteSession = pgTable("caja_lote_session", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  cajaId: uuid("caja_id")
+    .notNull()
+    .references(() => caja.id),
+  loteSessionId: uuid("lote_session_id")
+    .notNull()
+    .references(() => loteSession.id, { onDelete: "cascade" }),
+  asignadoAt: timestamp("asignado_at", { withTimezone: true }).defaultNow(),
+  retiradoAt: timestamp("retirado_at", { withTimezone: true }),
+});
 
-export const loteStats = pgTable(
-  "lote_stats",
+export const cajaLoteSessionRelations = relations(
+  cajaLoteSession,
+  ({ one, many }) => ({
+    caja: one(caja, {
+      fields: [cajaLoteSession.cajaId],
+      references: [caja.id],
+    }),
+    loteSession: one(loteSession, {
+      fields: [cajaLoteSession.loteSessionId],
+      references: [loteSession.id],
+    }),
+    cajaStats: many(cajaStats),
+  })
+);
+
+// ─── Caja Stats (resumen pre-calculado por caja/dispositivo/calibre) ────
+
+export const cajaStats = pgTable(
+  "caja_stats",
   {
-    loteId: uuid("lote_id")
+    cajaLoteSessionId: uuid("caja_lote_session_id")
       .notNull()
-      .references(() => lote.id, { onDelete: "cascade" }),
+      .references(() => cajaLoteSession.id, { onDelete: "cascade" }),
     dispositivoId: uuid("dispositivo_id")
       .notNull()
       .references(() => dispositivo.id),
@@ -273,7 +464,49 @@ export const loteStats = pgTable(
     firstTs: timestamp("first_ts", { withTimezone: true }),
     lastTs: timestamp("last_ts", { withTimezone: true }),
   },
-  (t) => [primaryKey({ columns: [t.loteId, t.dispositivoId, t.calibre] })]
+  (t) => [
+    primaryKey({
+      columns: [t.cajaLoteSessionId, t.dispositivoId, t.calibre],
+    }),
+  ]
+);
+
+export const cajaStatsRelations = relations(cajaStats, ({ one }) => ({
+  cajaLoteSession: one(cajaLoteSession, {
+    fields: [cajaStats.cajaLoteSessionId],
+    references: [cajaLoteSession.id],
+  }),
+  dispositivo: one(dispositivo, {
+    fields: [cajaStats.dispositivoId],
+    references: [dispositivo.id],
+  }),
+}));
+
+// ─── Lote Stats (resumen pre-calculado por lote/servicio/dispositivo/calibre) ──
+
+export const loteStats = pgTable(
+  "lote_stats",
+  {
+    loteId: uuid("lote_id")
+      .notNull()
+      .references(() => lote.id, { onDelete: "cascade" }),
+    servicioId: uuid("servicio_id")
+      .notNull()
+      .references(() => servicio.id),
+    dispositivoId: uuid("dispositivo_id")
+      .notNull()
+      .references(() => dispositivo.id),
+    calibre: real("calibre").notNull(),
+    countIn: integer("count_in").notNull().default(0),
+    countOut: integer("count_out").notNull().default(0),
+    firstTs: timestamp("first_ts", { withTimezone: true }),
+    lastTs: timestamp("last_ts", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({
+      columns: [t.loteId, t.servicioId, t.dispositivoId, t.calibre],
+    }),
+  ]
 );
 
 // ─── Conteo (tabla de alto volumen) ────────────────────────
@@ -291,6 +524,9 @@ export const conteo = pgTable(
     dispositivoId: uuid("dispositivo_id")
       .notNull()
       .references(() => dispositivo.id),
+    cajaLoteSessionId: uuid("caja_lote_session_id").references(
+      () => cajaLoteSession.id
+    ),
     perimeter: real("perimeter").notNull(),
     direction: smallint("direction").notNull(), // 0 = in, 1 = out
   },
@@ -299,4 +535,38 @@ export const conteo = pgTable(
     index("idx_conteo_servicio").on(t.servicioId, t.ts),
     index("idx_conteo_dispositivo").on(t.dispositivoId, t.ts),
   ]
+);
+
+// ─── Invitation Link ──────────────────────────────────────
+
+export const invitationLink = pgTable("invitation_link", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  token: text("token").unique().notNull(),
+  empresaId: uuid("empresa_id")
+    .notNull()
+    .references(() => empresa.id, { onDelete: "cascade" }),
+  rol: text("rol").notNull(), // 'administrador' | 'usuario'
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  usedByUsuarioId: uuid("used_by_usuario_id").references(() => usuario.id, {
+    onDelete: "set null",
+  }),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => usuario.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const invitationLinkRelations = relations(
+  invitationLink,
+  ({ one }) => ({
+    empresa: one(empresa, {
+      fields: [invitationLink.empresaId],
+      references: [empresa.id],
+    }),
+    createdByUsuario: one(usuario, {
+      fields: [invitationLink.createdBy],
+      references: [usuario.id],
+    }),
+  })
 );

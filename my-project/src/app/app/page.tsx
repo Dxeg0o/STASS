@@ -1,394 +1,383 @@
-// app/dashboard/page.tsx
-
 "use client";
-import React, { useContext, useState, useEffect, useMemo } from "react";
-import * as XLSX from "xlsx";
-import { AuthenticationContext } from "@/app/context/AuthContext";
-import { Lote } from "@/components/app/lotes/loteselector";
-import { ResumenLoteSelector } from "@/components/app/lotes/resumenloteselector";
-import { useServicio } from "@/app/context/ServicioContext";
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { LoteDataTabs } from "@/components/app/lotes/lotedatatabs";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { DateRange } from "react-day-picker";
-import { startOfDay, endOfDay, format } from "date-fns";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker";
-import { motion } from "framer-motion";
 
-// Define aquí la forma de cada registro de conteo
-interface ConteoRecord {
-  _id: string;
-  timestamp: string;
-  direction: "in" | "out";
-  dispositivo: string;
-  id: number;
-  perimeter: number;
+import React, { useContext, useEffect, useState } from "react";
+import { AuthenticationContext } from "@/app/context/AuthContext";
+import { Card, CardContent } from "@/components/ui/card";
+import Link from "next/link";
+import { Activity } from "lucide-react";
+
+// ---------- Types ----------
+
+interface ActiveSession {
+  loteId: string;
+  servicioNombre: string;
+  dispositivoNombre: string;
+  startTime: string;
+  variedadNombre: string | null;
+  productoNombre: string | null;
 }
 
-export default function Dashboard() {
-  const { data, loading: authLoading } = useContext(AuthenticationContext);
+interface RecentLote {
+  loteId: string;
+  servicioId: string;
+  servicioNombre: string;
+  totalCount: number;
+  lastTs: string | null;
+}
 
-  // Estados para lotes
-  const [lotes, setLotes] = useState<Lote[]>([]);
-  const [loadingLotes, setLoadingLotes] = useState(false);
-  const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
+interface OverviewData {
+  empresa: { nombre: string; pais: string };
+  serviceTypeSummary: {
+    tipo: string;
+    count: number;
+    totalBulbs: number;
+    lastActivity: string | null;
+  }[];
+  activeSessions: ActiveSession[];
+  recentLotes: RecentLote[];
+  procesosActivos: {
+    id: string;
+    temporada: string | null;
+    tipoProcesoNombre: string | null;
+    productoNombre: string | null;
+    servicioCount: number;
+  }[];
+}
 
-  // Servicio seleccionado (global)
-  const { selectedServicio } = useServicio();
+// ---------- Helpers ----------
 
-  // Datos totales de la empresa
-  const [totalRecords, setTotalRecords] = useState<ConteoRecord[]>([]);
-  const [loadingTotal, setLoadingTotal] = useState(false);
-  const [errorTotal, setErrorTotal] = useState<string | null>(null);
+function formatNumber(n: number): string {
+  return n.toLocaleString("es-CL");
+}
 
-  const [activeLote, setActiveLote] = useState<Lote | null>(null);
-  const [totalSum, setTotalSum] = useState(0);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: new Date(),
-    to: new Date(),
+function getRelativeTime(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const totalSeconds = Math.floor(diff / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
+
+function formatTimestamp(isoString: string | null): string {
+  if (!isoString) return "\u2014";
+  return new Date(isoString).toLocaleString("es-CL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
+}
 
-  // ============== Funciones de carga (fetch) ==============
-  useEffect(() => {
-    if (!data || !selectedServicio) return;
-    setLoadingLotes(true);
-    fetch(`/api/lotes?servicioId=${selectedServicio.id}`)
-      .then((res) => res.json())
-      .then((arr: Lote[]) => setLotes(arr))
-      .catch((err) => console.error(err))
-      .finally(() => setLoadingLotes(false));
-  }, [data, selectedServicio]);
-  // Lote activo actual del servicio
-  useEffect(() => {
-    if (!data || !selectedServicio) return;
-    fetch(`/api/lotes/activity/last?servicioId=${selectedServicio.id}`)
-      .then((res) => res.json())
-      .then((l: Lote | null) => setActiveLote(l))
-      .catch(() => setActiveLote(null));
-  }, [data, selectedServicio]);
+// ---------- Active Lote Card ----------
 
-  //  Carga datos totales de la empresa
+function ActiveLoteCard({ session }: { session: ActiveSession }) {
+  const [elapsed, setElapsed] = useState(() =>
+    getRelativeTime(session.startTime)
+  );
+
   useEffect(() => {
-    if (!data) return;
-    setLoadingTotal(true);
-    const params = new URLSearchParams({ empresaId: data.empresaId });
-    if (selectedServicio) params.append("servicioId", selectedServicio.id);
-    fetch(`/api/conteos?${params.toString()}`)
+    const interval = setInterval(() => {
+      setElapsed(getRelativeTime(session.startTime));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [session.startTime]);
+
+  return (
+    <Link href={`/app/lotes/${session.loteId}`}>
+      <div className="flex-shrink-0 w-[260px] p-4 rounded-xl bg-slate-900/40 border border-white/5 hover:border-emerald-500/30 hover:bg-slate-900/70 transition-all duration-200 cursor-pointer group">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <span className="text-sm font-mono font-semibold text-white group-hover:text-emerald-100 transition-colors">
+              {session.loteId.slice(-8)}
+            </span>
+          </div>
+          <span className="text-xs font-mono text-emerald-400">{elapsed}</span>
+        </div>
+        {session.variedadNombre && (
+          <p className="text-xs text-cyan-400 mb-1">{session.variedadNombre}</p>
+        )}
+        <p className="text-xs text-slate-400 truncate">
+          {session.servicioNombre}
+        </p>
+        <p className="text-xs text-slate-600 truncate">
+          {session.dispositivoNombre}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+// ---------- Main Page ----------
+
+export default function OverviewPage() {
+  const { data, loading: authLoading } = useContext(AuthenticationContext);
+  const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!data?.empresaId) return;
+    setLoading(true);
+    setError(null);
+    fetch(`/api/dashboard/overview?empresaId=${data.empresaId}`)
       .then((res) => {
-        if (!res.ok) throw new Error("Error al cargar datos totales");
+        if (!res.ok) throw new Error("Error al cargar el resumen");
         return res.json();
       })
-      .then((arr: ConteoRecord[]) => setTotalRecords(arr))
-      .catch((err) => setErrorTotal(err.message))
-      .finally(() => setLoadingTotal(false));
-  }, [data, selectedServicio]);
+      .then((d: OverviewData) => setOverview(d))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [data?.empresaId]);
 
-  // Calcular suma total de conteos
-  useEffect(() => {
-    setTotalSum(totalRecords.length);
-  }, [totalRecords]);
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-slate-400 text-sm animate-pulse">Cargando...</div>
+      </div>
+    );
+  }
 
-  const filteredRecords = useMemo(() => {
-    if (!dateRange?.from || !dateRange.to) return [];
-    const start = startOfDay(dateRange.from);
-    const end = endOfDay(dateRange.to);
-    return totalRecords.filter((r) => {
-      const d = new Date(r.timestamp);
-      return d >= start && d <= end;
-    });
-  }, [totalRecords, dateRange]);
-
-  const totalRangeCount = useMemo(() => {
-    return filteredRecords.length;
-  }, [filteredRecords]);
-
-  const startInfo = useMemo(() => {
-    const map = new Map<string, Date>();
-    filteredRecords.forEach((r) => {
-      const d = new Date(r.timestamp);
-      const key = format(d, "yyyy-MM-dd");
-      const current = map.get(key);
-      if (!current || d < current) {
-        map.set(key, d);
-      }
-    });
-
-    if (map.size === 0) return null;
-    const times = Array.from(map.values());
-    if (times.length === 1) {
-      return { label: "Hora de inicio", value: format(times[0], "HH:mm") };
-    }
-    const avgMinutes =
-      times.reduce((acc, d) => acc + d.getHours() * 60 + d.getMinutes(), 0) /
-      times.length;
-    const h = Math.floor(avgMinutes / 60);
-    const m = Math.round(avgMinutes % 60);
-    const value = `${h.toString().padStart(2, "0")}:${m
-      .toString()
-      .padStart(2, "0")}`;
-    return { label: "Hora promedio de inicio", value };
-  }, [filteredRecords]);
-
-  const volumeData = useMemo(() => {
-    const map = new Map<number, number>();
-    filteredRecords.forEach((r) => {
-      const d = new Date(r.timestamp);
-      d.setMinutes(0, 0, 0);
-      const key = d.getTime();
-      map.set(key, (map.get(key) ?? 0) + 1);
-    });
-    return Array.from(map.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([time, count]) => ({
-        hora: new Date(time).toLocaleString("es-CL", {
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-        }),
-        volumen: count,
-      }));
-  }, [filteredRecords]);
-
-  const lastOverallTimestamp = useMemo(() => {
-    if (totalRecords.length === 0) return null;
-    let max = -Infinity;
-    for (const r of totalRecords) {
-      const t = new Date(r.timestamp).getTime();
-      if (t > max) max = t;
-    }
-    return max !== -Infinity ? new Date(max) : null;
-  }, [totalRecords]);
-
-
-  const downloadSummaryExcel = async () => {
-    if (!data) return;
-    try {
-      const params = new URLSearchParams({ empresaId: data.empresaId });
-      if (selectedServicio)
-        params.append("servicioId", selectedServicio.id);
-      const res = await fetch(
-        `/api/lotes/summary/all?${params.toString()}`
-      );
-      if (!res.ok) throw new Error("Error al obtener resumen");
-      const arr: {
-        id: string;
-        nombre: string;
-        conteo: number;
-        firstTimestamp: string | null;
-        lastTimestamp: string | null;
-      }[] = await res.json();
-      const sheetData = arr.map((l) => ({
-        Lote: l.nombre,
-        Conteo: l.conteo,
-        "Primer conteo": l.firstTimestamp
-          ? format(new Date(l.firstTimestamp), "yyyy-MM-dd HH:mm")
-          : "",
-        "Último conteo": l.lastTimestamp
-          ? format(new Date(l.lastTimestamp), "yyyy-MM-dd HH:mm")
-          : "",
-      }));
-      const ws = XLSX.utils.json_to_sheet(sheetData, {
-        header: ["Lote", "Conteo", "Primer conteo", "Último conteo"],
-      });
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Resumen");
-      XLSX.writeFile(
-        wb,
-        `resumen_lotes_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`
-      );
-    } catch (err) {
-      console.error(err);
-      alert("No se pudo generar el Excel");
-    }
-  };
-
-  // ============== Renderizado ==============
-  if (authLoading) return <div>Cargando…</div>;
-  if (!data) return <div>No estás autenticado.</div>;
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-slate-400 text-sm">No estas autenticado.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Hola, {data.name}</h1>
-          <p className="text-slate-400">Bienvenido a tu panel de control.</p>
-        </div>
+      {/* Greeting */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-white">
+          Hola, {data.name}
+        </h1>
+        <p className="text-slate-400 mt-1">
+          {overview?.empresa.nombre ?? data.empresaNombre ?? ""}
+        </p>
       </div>
 
-      {/* ------------------------------------------------------ */}
-      {/* Pestañas principales: “Datos Totales” y “Datos por Lote” */}
-      <Tabs defaultValue="datosTotales">
-        <TabsList className="grid grid-cols-2 mb-4">
-          <TabsTrigger value="datosTotales">Resumen</TabsTrigger>
-          <TabsTrigger value="datosPorLote">Datos por Lote</TabsTrigger>
-        </TabsList>
+      {loading && (
+        <div className="text-slate-500 text-sm animate-pulse py-4">
+          Cargando datos...
+        </div>
+      )}
 
-        {/* ------------------------------------------------------ */}
-        {/* DATOS TOTALES */}
-        <TabsContent value="datosTotales">
-          {loadingTotal ? (
-            <p className="text-center text-slate-500 py-20">Cargando datos totales...</p>
-          ) : errorTotal ? (
-            <p className="text-red-400 bg-red-950/20 p-4 rounded border border-red-500/20">{errorTotal}</p>
-          ) : (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-semibold">Resumen</CardTitle>
-                  <button
-                    onClick={downloadSummaryExcel}
-                    className="px-4 py-2 bg-cyan-950/30 text-cyan-400 border border-cyan-500/20 rounded-lg hover:bg-cyan-950/60 transition-colors text-sm font-medium hover:shadow-[0_0_15px_rgba(34,211,238,0.15)]"
-                  >
-                    Descargar Excel
-                  </button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-8">
-                {/* Conteo total */}
-                <div>
-                  <h3 className="text-lg font-medium">Conteo total</h3>
-                  <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
-                    {totalSum}
-                  </p>
-                </div>
+      {error && (
+        <div className="p-4 rounded-lg bg-red-950/20 border border-red-500/20 text-red-400 text-sm">
+          {error}
+        </div>
+      )}
 
-                {/* Lote activo */}
-                <div>
-                  <h3 className="text-lg font-medium mb-2">
-                    Lote activo actual
-                  </h3>
-                  {activeLote ? (
-                    <div className="p-4 rounded-xl bg-slate-900 border border-white/5 shadow-inner">
-                      <p className="text-xl font-semibold text-white">
-                        {activeLote.nombre}
-                      </p>
-                      {activeLote.fechaCreacion && (
-                        <p className="text-sm text-slate-400 mt-1">
-                          Creado:{" "}
-                          <span className="text-slate-300">{new Date(
-                            activeLote.fechaCreacion
-                          ).toLocaleDateString()}</span>
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-slate-500 italic">Ningún lote activo</p>
-                  )}
-                </div>
-
-                {/* Último conteo */}
-                <div>
-                  <h3 className="text-lg font-medium mb-2 text-slate-200">Último conteo</h3>
-                  {lastOverallTimestamp ? (
-                    <p className="text-xl font-semibold text-emerald-400">
-                      {lastOverallTimestamp.toLocaleString("es-CL")}
-                    </p>
-                  ) : (
-                    <p className="text-slate-500">—</p>
-                  )}
-                </div>
-
-                {/* Gráfico volumen */}
-                <div>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
-                    <h3 className="text-lg font-medium">Volumen por hora</h3>
-                    <DatePickerWithRange
-                      value={dateRange}
-                      onChange={setDateRange}
-                    />
-                  </div>
-                  {startInfo && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <p className="text-sm text-slate-400">Conteo total en rango</p>
-                        <p className="text-2xl font-semibold text-cyan-400">
-                          {totalRangeCount}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-slate-400">{startInfo.label}</p>
-                        <p className="text-2xl font-semibold text-emerald-400">
-                          {startInfo.value}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {volumeData.length === 0 ? (
-                    <p className="text-center text-slate-500 py-12">
-                      No hay datos registrados para este periodo
-                    </p>
-                  ) : (
-                    <motion.div
-                      key={`${dateRange?.from}-${dateRange?.to}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.4 }}
-                      className="w-full h-64"
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={volumeData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                          <XAxis dataKey="hora" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
-                          <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
-                          <Tooltip 
-                            contentStyle={{ 
-                                backgroundColor: "rgba(15, 23, 42, 0.9)", 
-                                borderColor: "rgba(255,255,255,0.1)", 
-                                borderRadius: "8px",
-                                color: "#f8fafc" 
-                            }} 
-                            itemStyle={{ color: "#22d3ee" }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="volumen"
-                            stroke="#22d3ee"
-                            strokeWidth={3}
-                            dot={{ fill: "#0f172a", stroke: "#22d3ee", strokeWidth: 2, r: 4 }}
-                            activeDot={{ r: 6, fill: "#22d3ee", stroke: "#fff", strokeWidth: 2 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </motion.div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+      {overview && (
+        <>
+          {/* Active Lotes Strip */}
+          {overview.activeSessions.length > 0 && (
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-base font-semibold text-slate-200">
+                  Lotes Activos
+                </h2>
+                <span className="text-xs bg-emerald-950/60 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  {overview.activeSessions.length}
+                </span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+                {overview.activeSessions.map((session, idx) => (
+                  <ActiveLoteCard key={idx} session={session} />
+                ))}
+              </div>
+            </section>
           )}
-        </TabsContent>
 
-        {/* ------------------------------------------------------ */}
-        {/* DATOS POR LOTE */}
-        <TabsContent value="datosPorLote">
-          {/* Selector de lote */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Datos de Conteo por Lotes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResumenLoteSelector
-                lotes={lotes}
-                selectedLote={selectedLote}
-                loading={loadingLotes}
-                onSelect={(l) => setSelectedLote(l)}
-                onSelectNone={() => setSelectedLote(null)}
-              />
-            </CardContent>
-          </Card>
+          {/* Quick Stats Row */}
+          {overview.serviceTypeSummary.length > 0 && (
+            <section>
+              <h2 className="text-base font-semibold text-slate-200 mb-4">
+                Resumen
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* Total bulbs */}
+                <Card className="bg-slate-900/40 border-white/10">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-slate-500 mb-1">
+                      Bulbos totales
+                    </p>
+                    <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
+                      {formatNumber(
+                        overview.serviceTypeSummary.reduce(
+                          (sum, s) => sum + s.totalBulbs,
+                          0
+                        )
+                      )}
+                    </p>
+                  </CardContent>
+                </Card>
+                {/* Active processes */}
+                <Card className="bg-slate-900/40 border-white/10">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-slate-500 mb-1">
+                      Procesos en curso
+                    </p>
+                    <p className="text-xl font-bold text-cyan-400">
+                      {overview.procesosActivos.length}
+                    </p>
+                  </CardContent>
+                </Card>
+                {/* Services */}
+                <Card className="bg-slate-900/40 border-white/10">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-slate-500 mb-1">Servicios</p>
+                    <p className="text-xl font-bold text-slate-200">
+                      {overview.serviceTypeSummary.reduce(
+                        (sum, s) => sum + s.count,
+                        0
+                      )}
+                    </p>
+                  </CardContent>
+                </Card>
+                {/* Active sessions */}
+                <Card className="bg-slate-900/40 border-white/10">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-slate-500 mb-1">
+                      Sesiones activas
+                    </p>
+                    <p className="text-xl font-bold text-emerald-400">
+                      {overview.activeSessions.length}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </section>
+          )}
 
-          <LoteDataTabs lote={selectedLote} />
-        </TabsContent>
-      </Tabs>
+          {/* Procesos en Curso */}
+          {overview.procesosActivos.length > 0 && (
+            <section>
+              <h2 className="text-base font-semibold text-slate-200 mb-4">
+                Procesos en Curso
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {overview.procesosActivos.map((p) => (
+                  <Link key={p.id} href={`/app/procesos/${p.id}`}>
+                    <Card className="bg-slate-900/40 border-white/10 hover:border-cyan-500/40 hover:bg-slate-900/70 transition-all duration-200 cursor-pointer group">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 rounded-md bg-cyan-950/30 border border-cyan-500/20 group-hover:bg-cyan-950/50 transition-colors shrink-0">
+                            <Activity className="w-4 h-4 text-cyan-400" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-white truncate group-hover:text-cyan-100 transition-colors">
+                              {p.tipoProcesoNombre ?? "Proceso"}
+                              {p.temporada && (
+                                <span className="text-slate-400 font-normal">
+                                  {" "}
+                                  · {p.temporada}
+                                </span>
+                              )}
+                            </p>
+                            {p.productoNombre && (
+                              <p className="text-xs text-slate-500 truncate">
+                                {p.productoNombre}
+                              </p>
+                            )}
+                            <p className="text-xs text-slate-600 mt-1">
+                              {p.servicioCount}{" "}
+                              {p.servicioCount === 1 ? "servicio" : "servicios"}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Recent Activity */}
+          {overview.recentLotes.length > 0 && (
+            <section>
+              <h2 className="text-base font-semibold text-slate-200 mb-4">
+                Actividad Reciente
+              </h2>
+              <Card className="bg-slate-900/40 border-white/10">
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/5">
+                          <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                            Lote
+                          </th>
+                          <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider hidden sm:table-cell">
+                            Servicio
+                          </th>
+                          <th className="text-right px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                            Conteo
+                          </th>
+                          <th className="text-right px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider hidden md:table-cell">
+                            Ultima actividad
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {overview.recentLotes.map((lote) => (
+                          <tr
+                            key={lote.loteId}
+                            className="hover:bg-white/[0.02] transition-colors"
+                          >
+                            <td className="px-5 py-3">
+                              <Link
+                                href={`/app/lotes/${lote.loteId}`}
+                                className="text-slate-200 hover:text-cyan-400 transition-colors font-medium font-mono text-xs"
+                              >
+                                {lote.loteId.slice(-8)}
+                              </Link>
+                            </td>
+                            <td className="px-5 py-3 text-slate-400 hidden sm:table-cell">
+                              {lote.servicioNombre}
+                            </td>
+                            <td className="px-5 py-3 text-right">
+                              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 font-semibold">
+                                {formatNumber(lote.totalCount)}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3 text-right text-slate-500 hidden md:table-cell">
+                              {formatTimestamp(lote.lastTs)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* Empty state */}
+          {overview.serviceTypeSummary.length === 0 &&
+            overview.activeSessions.length === 0 &&
+            overview.recentLotes.length === 0 && (
+              <div className="text-center py-20 text-slate-500">
+                <p className="text-lg">No hay datos disponibles aun.</p>
+                <p className="text-sm mt-2">
+                  Los datos apareceran aqui cuando haya actividad registrada.
+                </p>
+              </div>
+            )}
+        </>
+      )}
     </div>
   );
 }
