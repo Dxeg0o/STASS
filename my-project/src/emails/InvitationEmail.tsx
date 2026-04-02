@@ -23,7 +23,7 @@ interface InvitationEmailProps {
 export const InvitationEmail = ({
   nombreEmpresa = "Agrícola del Sur",
   rol = "administrador",
-  invitationUrl = "http://localhost:3000/register?token=preview",
+  invitationUrl = "http://localhost:3000/registro-invitacion?token=preview",
   expiresAt = "09 de abril de 2026",
 }: InvitationEmailProps) => {
   const rolLabel = rol === "administrador" ? "Administrador" : "Usuario";

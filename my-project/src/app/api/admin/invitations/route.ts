@@ -66,7 +66,7 @@ export async function POST(req: Request) {
           where: eq(empresa.id, empresaId),
         });
 
-        const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/register?token=${token}`;
+        const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/registro-invitacion?token=${token}`;
         const expiresLabel = expiresAtDate
           ? expiresAtDate.toLocaleDateString("es-CL", {
               day: "2-digit",
