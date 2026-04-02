@@ -5,7 +5,7 @@ import { verifyAdmin } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { sendEmail } from "@/lib/email";
-import { InvitationEmail } from "@/emails/InvitationEmail";
+import InvitationEmail from "@/emails/InvitationEmail";
 import React from "react";
 
 export async function GET(req: Request) {

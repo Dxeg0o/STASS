@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { proceso, empresa, empresaUsuario, usuario } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { sendEmail } from "@/lib/email";
-import { ProcessCompletedEmail } from "@/emails/ProcessCompletedEmail";
+import ProcessCompletedEmail from "@/emails/ProcessCompletedEmail";
 import React from "react";
 
 export async function GET(

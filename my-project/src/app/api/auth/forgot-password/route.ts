@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { usuario } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sendEmail } from "@/lib/email";
-import { ResetPasswordEmail } from "@/emails/ResetPasswordEmail";
+import ResetPasswordEmail from "@/emails/ResetPasswordEmail";
 import React from "react";
 
 export async function POST(req: NextRequest) {

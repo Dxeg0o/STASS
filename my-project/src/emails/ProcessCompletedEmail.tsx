@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Body,
   Container,
@@ -10,20 +11,20 @@ import {
 } from "@react-email/components";
 
 interface ProcessCompletedEmailProps {
-  nombreAdmin: string;
-  nombreProceso: string;
-  nombreEmpresa: string;
-  fechaCompletado: string;
+  nombreAdmin?: string;
+  nombreProceso?: string;
+  nombreEmpresa?: string;
+  fechaCompletado?: string;
   notas?: string;
 }
 
-export function ProcessCompletedEmail({
-  nombreAdmin,
-  nombreProceso,
-  nombreEmpresa,
-  fechaCompletado,
+export const ProcessCompletedEmail = ({
+  nombreAdmin = "María González",
+  nombreProceso = "Proceso Cosecha 2025",
+  nombreEmpresa = "Agrícola del Sur",
+  fechaCompletado = "02 de abril de 2026, 14:30",
   notas,
-}: ProcessCompletedEmailProps) {
+}: ProcessCompletedEmailProps) => {
   return (
     <Html lang="es">
       <Head />
@@ -132,3 +133,4 @@ const mutedText: React.CSSProperties = {
   lineHeight: "20px",
   margin: "24px 0 0",
 };
+export default ProcessCompletedEmail;

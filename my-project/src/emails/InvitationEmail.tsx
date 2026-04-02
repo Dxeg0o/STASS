@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Body,
   Button,
@@ -11,18 +12,18 @@ import {
 } from "@react-email/components";
 
 interface InvitationEmailProps {
-  nombreEmpresa: string;
-  rol: string;
-  invitationUrl: string;
-  expiresAt: string;
+  nombreEmpresa?: string;
+  rol?: string;
+  invitationUrl?: string;
+  expiresAt?: string;
 }
 
-export function InvitationEmail({
-  nombreEmpresa,
-  rol,
-  invitationUrl,
-  expiresAt,
-}: InvitationEmailProps) {
+export const InvitationEmail = ({
+  nombreEmpresa = "Agrícola del Sur",
+  rol = "administrador",
+  invitationUrl = "http://localhost:3000/register?token=preview",
+  expiresAt = "09 de abril de 2026",
+}: InvitationEmailProps) => {
   const rolLabel = rol === "administrador" ? "Administrador" : "Usuario";
 
   return (
@@ -105,3 +106,4 @@ const mutedText: React.CSSProperties = {
   lineHeight: "20px",
   margin: "24px 0 0",
 };
+export default InvitationEmail;

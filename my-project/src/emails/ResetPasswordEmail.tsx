@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Body,
   Button,
@@ -11,11 +12,14 @@ import {
 } from "@react-email/components";
 
 interface ResetPasswordEmailProps {
-  nombre: string;
-  resetUrl: string;
+  nombre?: string;
+  resetUrl?: string;
 }
 
-export function ResetPasswordEmail({ nombre, resetUrl }: ResetPasswordEmailProps) {
+export const ResetPasswordEmail = ({
+  nombre = "Juan Pérez",
+  resetUrl = "http://localhost:3000/reset-password?token=preview",
+}: ResetPasswordEmailProps) => {
   return (
     <Html lang="es">
       <Head />
@@ -95,3 +99,4 @@ const button: React.CSSProperties = {
   textDecoration: "none",
   display: "inline-block",
 };
+export default ResetPasswordEmail;
