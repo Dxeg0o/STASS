@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
@@ -106,15 +106,6 @@ export default function AdminServicioLotesPage() {
   const [deleting, setDeleting] = useState(false);
 
   // ── Fetch data ──────────────────────────────────────────────
-
-  const fetchLotes = useCallback(async () => {
-    try {
-      const res = await axios.get(`/api/admin/servicios/${servicioId}/lotes`);
-      setLotes(res.data);
-    } catch {
-      toast.error("Error al cargar lotes");
-    }
-  }, [servicioId]);
 
   useEffect(() => {
     if (!servicioId || !empresaId) return;
