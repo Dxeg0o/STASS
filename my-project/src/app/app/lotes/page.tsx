@@ -15,8 +15,10 @@ import {
 
 interface LoteRow {
   id: string;
+  codigoLote: string | null;
   createdAt: string;
   variedadNombre: string | null;
+  variedadTipo: string | null;
   productoNombre: string | null;
   totalBulbs: number;
   lastTs: string | null;
@@ -133,7 +135,7 @@ export default function LotesPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
         <input
           type="text"
-          placeholder="Buscar por ID de lote..."
+          placeholder="Buscar por código de lote..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-900/40 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/20 transition-colors"
@@ -205,11 +207,18 @@ export default function LotesPage() {
                           href={`/app/lotes/${l.id}`}
                           className="text-slate-200 hover:text-cyan-400 transition-colors font-medium font-mono text-xs"
                         >
-                          {l.id.slice(-8)}
+                          {l.codigoLote ?? l.id.slice(-8)}
                         </Link>
                       </td>
                       <td className="px-5 py-3 text-slate-400 hidden sm:table-cell">
-                        {l.variedadNombre ?? (
+                        {l.variedadNombre ? (
+                          <span>
+                            {l.variedadTipo && (
+                              <span className="text-slate-600 text-xs">{l.variedadTipo} › </span>
+                            )}
+                            {l.variedadNombre}
+                          </span>
+                        ) : (
                           <span className="text-slate-600">-</span>
                         )}
                       </td>

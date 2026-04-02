@@ -39,9 +39,11 @@ import { ArrowLeft, Plus, Trash2, CheckSquare, Square, Layers } from "lucide-rea
 
 interface Lote {
   id: string;
+  codigoLote?: string | null;
   fechaCreacion: string;
   variedadId?: string | null;
   variedadNombre?: string | null;
+  variedadTipo?: string | null;
   productoNombre?: string | null;
 }
 
@@ -96,6 +98,7 @@ export default function AdminServicioLotesPage() {
   const [bulkQuantity, setBulkQuantity] = useState(10);
   const [creating, setCreating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<number | null>(null);
+  const [codigoLoteInput, setCodigoLoteInput] = useState("");
 
   // Selection mode
   const [selectionMode, setSelectionMode] = useState(false);
@@ -137,6 +140,8 @@ export default function AdminServicioLotesPage() {
     return lotes.filter(
       (l) =>
         l.id.toLowerCase().includes(term) ||
+        (l.codigoLote ?? "").toLowerCase().includes(term) ||
+        (l.variedadTipo ?? "").toLowerCase().includes(term) ||
         l.variedadNombre?.toLowerCase().includes(term) ||
         l.productoNombre?.toLowerCase().includes(term)
     );
@@ -162,6 +167,7 @@ export default function AdminServicioLotesPage() {
     setBulkQuantity(10);
     setBulkProgress(null);
     setCreationMode("individual");
+    setCodigoLoteInput("");
   };
 
   const handleCreate = async () => {
@@ -173,6 +179,7 @@ export default function AdminServicioLotesPage() {
       const res = await axios.post(`/api/admin/servicios/${servicioId}/lotes`, {
         variedadId: selectedVariedadId || undefined,
         cantidad,
+        codigoLote: creationMode === "individual" ? (codigoLoteInput.trim() || undefined) : undefined,
       });
 
       if (creationMode === "masivo") setBulkProgress(90);
@@ -409,6 +416,9 @@ export default function AdminServicioLotesPage() {
                       Producto
                     </TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">
+                      Tipo
+                    </TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">
                       Variedad
                     </TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">
@@ -447,10 +457,19 @@ export default function AdminServicioLotesPage() {
                           </TableCell>
                         )}
                         <TableCell className="font-mono text-white text-sm">
-                          {l.id.slice(-8)}
+                          {l.codigoLote ?? l.id.slice(-8)}
                         </TableCell>
                         <TableCell className="text-slate-400">
                           {l.productoNombre ?? (
+                            <span className="italic text-slate-600">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {l.variedadTipo ? (
+                            <Badge className="bg-violet-500/15 text-violet-300 border-violet-500/30 text-xs">
+                              {l.variedadTipo}
+                            </Badge>
+                          ) : (
                             <span className="italic text-slate-600">—</span>
                           )}
                         </TableCell>
@@ -618,11 +637,20 @@ export default function AdminServicioLotesPage() {
                 )}
               </TabsContent>
 
-              {/* Individual hint */}
-              <TabsContent value="individual" className="mt-0">
-                <p className="text-xs text-slate-500">
-                  Se creará un lote identificado por UUID.
-                </p>
+              {/* Individual-specific fields */}
+              <TabsContent value="individual" className="mt-0 space-y-2">
+                <div>
+                  <label className="text-sm text-slate-400 mb-1.5 block">
+                    Código de lote <span className="text-slate-600">(ej. 320.22C.S)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="320.22C.S"
+                    value={codigoLoteInput}
+                    onChange={(e) => setCodigoLoteInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md bg-slate-800/50 border border-white/10 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
               </TabsContent>
             </div>
           </Tabs>

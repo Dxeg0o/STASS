@@ -36,8 +36,10 @@ interface DeviceStats {
 
 interface LoteDetail {
   id: string;
+  codigoLote: string | null;
   createdAt: string;
   variedadNombre: string | null;
+  variedadTipo: string | null;
   productoNombre: string | null;
   lifecycle: LifecycleStep[];
   activeSessions: ActiveSession[];
@@ -220,11 +222,11 @@ export default function LoteGlobalDetailPage() {
     () => [
       {
         key: loteId,
-        label: `Lote ${loteId.slice(-8)}`,
+        label: detail?.codigoLote ?? `Lote ${loteId.slice(-8)}`,
         color: SERIES_COLORS[0],
       },
     ],
-    [loteId]
+    [loteId, detail?.codigoLote]
   );
 
   // ── Excel export ────────────────────────────────────────────────────────────
@@ -238,7 +240,7 @@ export default function LoteGlobalDetailPage() {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, "Datos");
-    XLSX.writeFile(wb, `lote-${loteId.slice(-8)}-datos.xlsx`);
+    XLSX.writeFile(wb, `lote-${detail?.codigoLote ?? loteId.slice(-8)}-datos.xlsx`);
   };
 
   // ── Loading / Error states ──────────────────────────────────────────────────
@@ -278,16 +280,21 @@ export default function LoteGlobalDetailPage() {
         <div className="space-y-2">
           <div className="flex items-center flex-wrap gap-3">
             <h1 className="text-2xl font-bold text-white font-mono">
-              {loteId.slice(-8)}
+              {detail.codigoLote ?? loteId.slice(-8)}
             </h1>
-            {detail.variedadNombre && (
-              <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
-                {detail.variedadNombre}
-              </Badge>
-            )}
             {detail.productoNombre && (
               <Badge className="bg-slate-700/60 text-slate-300 border-slate-600/40">
                 {detail.productoNombre}
+              </Badge>
+            )}
+            {detail.variedadTipo && (
+              <Badge className="bg-violet-500/20 text-violet-300 border-violet-500/40">
+                {detail.variedadTipo}
+              </Badge>
+            )}
+            {detail.variedadNombre && (
+              <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
+                {detail.variedadNombre}
               </Badge>
             )}
             {detail.activeSessions.length > 0 && (

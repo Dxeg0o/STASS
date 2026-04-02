@@ -50,6 +50,13 @@
       "when": 1775140473267,
       "tag": "0006_abandoned_mongoose",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775170298365,
+      "tag": "0007_cooing_tyger_tiger",
+      "breakpoints": true
     }
   ]
 }

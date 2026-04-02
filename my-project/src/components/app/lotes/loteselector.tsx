@@ -14,11 +14,15 @@ import React from "react";
 
 export interface Lote {
   id: string;
+  codigoLote?: string | null;
+  variedadNombre?: string | null;
+  variedadTipo?: string | null;
+  productoNombre?: string | null;
   fechaCreacion?: string;
 }
 
-function shortId(id: string) {
-  return id.slice(-8);
+function displayLote(lote: Lote) {
+  return lote.codigoLote ?? lote.id.slice(-8);
 }
 
 interface LoteSelectorProps {
@@ -41,9 +45,13 @@ export function LoteSelector({
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
 
-  const filtered = lotes.filter((l) =>
-    l.id.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = lotes.filter((l) => {
+    const term = search.toLowerCase();
+    return (
+      (l.codigoLote ?? "").toLowerCase().includes(term) ||
+      l.id.toLowerCase().includes(term)
+    );
+  });
 
   if (loading) {
     return (
@@ -73,7 +81,7 @@ export function LoteSelector({
           <div>
             <p className="text-sm text-slate-400">Trabajando en:</p>
             <p className="text-xl font-medium text-white font-mono">
-              {selectedLote ? shortId(selectedLote.id) : "Ningun lote seleccionado"}
+              {selectedLote ? displayLote(selectedLote) : "Ningun lote seleccionado"}
             </p>
             {selectedLote?.fechaCreacion && (
               <p className="text-xs text-slate-500 mt-1">
@@ -101,7 +109,7 @@ export function LoteSelector({
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
               <Input
-                placeholder="Buscar por ID..."
+                placeholder="Buscar por código o ID..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-8"
@@ -141,7 +149,23 @@ export function LoteSelector({
                       }`}
                     >
                       <div>
-                        <div className="font-medium font-mono">{shortId(lote.id)}</div>
+                        <div className="font-medium font-mono">{displayLote(lote)}</div>
+                        {(lote.variedadTipo || lote.variedadNombre) && (
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            {lote.variedadTipo && (
+                              <span className="text-gray-500">{lote.variedadTipo}{lote.variedadNombre ? " › " : ""}</span>
+                            )}
+                            {lote.variedadNombre && <span>{lote.variedadNombre}</span>}
+                          </div>
+                        )}
+                        {lote.productoNombre && (
+                          <div className="text-xs text-gray-500">{lote.productoNombre}</div>
+                        )}
+                        {lote.codigoLote && (
+                          <div className="text-xs text-gray-400 font-normal">
+                            ID: {lote.id.slice(-8)}
+                          </div>
+                        )}
                         {lote.fechaCreacion && (
                           <div className="text-xs text-gray-500">
                             Creado:{" "}

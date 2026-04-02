@@ -25,9 +25,11 @@ import {
 
 interface Lote {
   id: string;
+  codigoLote?: string | null;
   fechaCreacion: string;
   variedadId?: string;
   variedadNombre?: string;
+  variedadTipo?: string | null;
   productoNombre?: string;
 }
 
@@ -60,6 +62,7 @@ export default function LotesPage() {
   const [selectedProductoId, setSelectedProductoId] = useState<string>("");
   const [selectedVariedadId, setSelectedVariedadId] = useState<string>("");
   const [creating, setCreating] = useState(false);
+  const [codigoLoteInput, setCodigoLoteInput] = useState("");
 
   // Session action state
   const [sessionLoading, setSessionLoading] = useState(false);
@@ -91,7 +94,11 @@ export default function LotesPage() {
   const filteredLotes = useMemo(() => {
     const term = search.toLowerCase().trim();
     if (!term) return lotes;
-    return lotes.filter((l) => l.id.toLowerCase().includes(term));
+    return lotes.filter(
+      (l) =>
+        (l.codigoLote ?? "").toLowerCase().includes(term) ||
+        l.id.toLowerCase().includes(term)
+    );
   }, [lotes, search]);
 
   const variedadesForSelected = useMemo(() => {
@@ -114,6 +121,7 @@ export default function LotesPage() {
         body: JSON.stringify({
           servicioId,
           variedadId: selectedVariedadId || undefined,
+          codigoLote: codigoLoteInput.trim() || undefined,
         }),
       });
       if (res.ok) {
@@ -122,6 +130,7 @@ export default function LotesPage() {
         setDialogOpen(false);
         setSelectedProductoId("");
         setSelectedVariedadId("");
+        setCodigoLoteInput("");
       }
     } catch (err) {
       console.error(err);
@@ -194,7 +203,7 @@ export default function LotesPage() {
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <span className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse" />
-                <span className="font-semibold text-white font-mono">{activeLote.id.slice(-8)}</span>
+                <span className="font-semibold text-white font-mono">{activeLote.codigoLote ?? activeLote.id.slice(-8)}</span>
                 {activeLote.variedadNombre && (
                   <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40 text-xs">
                     {activeLote.variedadNombre}
@@ -268,8 +277,13 @@ export default function LotesPage() {
                             <span className="h-2 w-2 rounded-full bg-green-400" />
                           )}
                           <span className="font-medium text-white text-sm group-hover:text-cyan-300 transition-colors truncate">
-                            {lote.id.slice(-8)}
+                            {lote.codigoLote ?? lote.id.slice(-8)}
                           </span>
+                          {lote.variedadTipo && (
+                            <Badge className="bg-violet-500/20 text-violet-300 border-violet-500/40 text-xs shrink-0">
+                              {lote.variedadTipo}
+                            </Badge>
+                          )}
                           {lote.variedadNombre && (
                             <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40 text-xs shrink-0">
                               {lote.variedadNombre}
@@ -321,7 +335,18 @@ export default function LotesPage() {
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
-            <p className="text-sm text-slate-400">El lote se identificara por su UUID.</p>
+            <p className="text-sm text-slate-400">El lote se identificará con el código que ingreses o con su UUID si lo dejas vacío.</p>
+
+            <div className="space-y-1.5">
+              <label className="text-sm text-slate-400">Código de lote <span className="text-slate-600">(ej. 320.22C.S)</span></label>
+              <input
+                type="text"
+                placeholder="320.22C.S"
+                value={codigoLoteInput}
+                onChange={(e) => setCodigoLoteInput(e.target.value)}
+                className="w-full px-3 py-2 rounded-md bg-slate-800 border border-white/10 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+              />
+            </div>
 
             <div className="space-y-1.5">
               <label className="text-sm text-slate-400">Producto</label>

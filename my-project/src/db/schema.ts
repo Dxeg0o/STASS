@@ -287,6 +287,7 @@ export const variedadRelations = relations(variedad, ({ one, many }) => ({
 
 export const lote = pgTable("lote", {
   id: uuid("id").primaryKey().defaultRandom(),
+  codigoLote: text("codigo_lote"), // ID de empresa, ej. "320.22C.S"
   variedadId: uuid("variedad_id").references(() => variedad.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });

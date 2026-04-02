@@ -11,7 +11,7 @@ import {
   proceso,
   tipoProceso,
 } from "@/db/schema";
-import { eq, inArray, desc, sql, and, isNull } from "drizzle-orm";
+import { eq, inArray, desc, sql, and, isNull, ilike, or } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -49,20 +49,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: [], total: 0, page, limit });
   }
 
-  // Search filter by lote ID
-  if (search) {
-    uniqueLoteIds = uniqueLoteIds.filter((id) =>
-      id.toLowerCase().includes(search.toLowerCase())
-    );
-    if (uniqueLoteIds.length === 0) {
-      return NextResponse.json({ data: [], total: 0, page, limit });
-    }
-  }
-
   // Build conditions
   const conditions = [inArray(lote.id, uniqueLoteIds)];
   if (variedadId) {
     conditions.push(eq(lote.variedadId, variedadId));
+  }
+  // Search by codigoLote (primary) or UUID suffix
+  if (search) {
+    conditions.push(
+      or(
+        ilike(lote.codigoLote, `%${search}%`),
+        sql`${lote.id}::text ilike ${"%" + search + "%"}`
+      )!
+    );
   }
 
   const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
@@ -77,9 +76,11 @@ export async function GET(request: Request) {
   const rows = await db
     .select({
       id: lote.id,
+      codigoLote: lote.codigoLote,
       createdAt: lote.createdAt,
       variedadId: lote.variedadId,
       variedadNombre: variedad.nombre,
+      variedadTipo: variedad.tipo,
       productoNombre: producto.nombre,
       totalBulbs: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
       lastTs: sql<string | null>`MAX(${loteStats.lastTs})`,
@@ -89,7 +90,7 @@ export async function GET(request: Request) {
     .leftJoin(producto, eq(producto.id, variedad.productoId))
     .leftJoin(loteStats, eq(loteStats.loteId, lote.id))
     .where(whereClause!)
-    .groupBy(lote.id, lote.createdAt, lote.variedadId, variedad.nombre, producto.nombre)
+    .groupBy(lote.id, lote.codigoLote, lote.createdAt, lote.variedadId, variedad.nombre, variedad.tipo, producto.nombre)
     .orderBy(desc(lote.createdAt))
     .limit(limit)
     .offset(offset);
@@ -147,8 +148,10 @@ export async function GET(request: Request) {
     const latest = latestByLote.get(r.id);
     return {
       id: r.id,
+      codigoLote: r.codigoLote,
       createdAt: r.createdAt,
       variedadNombre: r.variedadNombre,
+      variedadTipo: r.variedadTipo,
       productoNombre: r.productoNombre,
       totalBulbs: r.totalBulbs,
       lastTs: r.lastTs,

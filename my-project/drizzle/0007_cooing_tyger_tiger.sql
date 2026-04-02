@@ -1,0 +1,1 @@
+ALTER TABLE "lote" ADD COLUMN "codigo_lote" text;

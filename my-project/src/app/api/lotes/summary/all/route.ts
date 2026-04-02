@@ -41,6 +41,7 @@ export async function GET(request: Request) {
   const rows = await db
     .select({
       id: lote.id,
+      codigoLote: lote.codigoLote,
       conteo: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
       firstTimestamp: sql<Date | null>`MIN(${loteStats.firstTs})`,
       lastTimestamp: sql<Date | null>`MAX(${loteStats.lastTs})`,
@@ -49,7 +50,7 @@ export async function GET(request: Request) {
     .from(lote)
     .leftJoin(loteStats, eq(loteStats.loteId, lote.id))
     .where(inArray(lote.id, uniqueLoteIds))
-    .groupBy(lote.id, lote.createdAt)
+    .groupBy(lote.id, lote.codigoLote, lote.createdAt)
     .orderBy(desc(lote.createdAt));
 
   return NextResponse.json(

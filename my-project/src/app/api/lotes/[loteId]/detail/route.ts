@@ -24,9 +24,11 @@ export async function GET(
   const loteRow = await db
     .select({
       id: lote.id,
+      codigoLote: lote.codigoLote,
       createdAt: lote.createdAt,
       variedadId: lote.variedadId,
       variedadNombre: variedad.nombre,
+      variedadTipo: variedad.tipo,
       productoNombre: producto.nombre,
     })
     .from(lote)
@@ -151,8 +153,10 @@ export async function GET(
 
   return NextResponse.json({
     id: loteInfo.id,
+    codigoLote: loteInfo.codigoLote,
     createdAt: loteInfo.createdAt,
     variedadNombre: loteInfo.variedadNombre,
+    variedadTipo: loteInfo.variedadTipo,
     productoNombre: loteInfo.productoNombre,
     lifecycle: steps,
     activeSessions: activeSessions.map((s) => ({

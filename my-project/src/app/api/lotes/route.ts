@@ -40,9 +40,11 @@ export async function GET(request: Request) {
   const lotes = await db
     .select({
       id: lote.id,
+      codigoLote: lote.codigoLote,
       fechaCreacion: lote.createdAt,
       variedadId: lote.variedadId,
       variedadNombre: variedad.nombre,
+      variedadTipo: variedad.tipo,
       productoNombre: producto.nombre,
     })
     .from(lote)
@@ -55,7 +57,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { servicioId, variedadId } = await request.json();
+  const { servicioId, variedadId, codigoLote } = await request.json();
   if (!servicioId) {
     return NextResponse.json(
       { error: "servicioId is required" },
@@ -67,6 +69,7 @@ export async function POST(request: Request) {
   const [created] = await db
     .insert(lote)
     .values({
+      codigoLote: codigoLote?.trim() || null,
       variedadId: variedadId || null,
       createdAt: new Date(),
     })
@@ -79,7 +82,7 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(
-    { id: created.id, fechaCreacion: created.createdAt },
+    { id: created.id, codigoLote: created.codigoLote, fechaCreacion: created.createdAt },
     { status: 201 }
   );
 }

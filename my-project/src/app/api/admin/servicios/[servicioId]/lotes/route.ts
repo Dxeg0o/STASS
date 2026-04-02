@@ -36,9 +36,11 @@ export async function GET(req: Request, context: RouteContext) {
     const lotes = await db
       .select({
         id: lote.id,
+        codigoLote: lote.codigoLote,
         fechaCreacion: lote.createdAt,
         variedadId: lote.variedadId,
         variedadNombre: variedad.nombre,
+        variedadTipo: variedad.tipo,
         productoNombre: producto.nombre,
       })
       .from(lote)
@@ -65,7 +67,7 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     const { servicioId } = await context.params;
-    const { variedadId, cantidad } = await req.json();
+    const { variedadId, cantidad, codigoLote } = await req.json();
 
     // Validate service exists
     const srv = await db.query.servicio.findFirst({
@@ -80,8 +82,9 @@ export async function POST(req: Request, context: RouteContext) {
 
     const count = Math.min(Math.max(cantidad ?? 1, 1), 500);
 
-    // Build values arrays
-    const loteValues = Array.from({ length: count }, () => ({
+    // Build values arrays (codigoLote only meaningful for individual creation)
+    const loteValues = Array.from({ length: count }, (_, i) => ({
+      codigoLote: count === 1 ? (codigoLote?.trim() || null) : null,
       variedadId: variedadId || null,
       createdAt: new Date(),
     }));
@@ -91,7 +94,7 @@ export async function POST(req: Request, context: RouteContext) {
       const inserted = await tx
         .insert(lote)
         .values(loteValues)
-        .returning({ id: lote.id, fechaCreacion: lote.createdAt });
+        .returning({ id: lote.id, codigoLote: lote.codigoLote, fechaCreacion: lote.createdAt });
 
       await tx.insert(loteServicio).values(
         inserted.map((l) => ({
