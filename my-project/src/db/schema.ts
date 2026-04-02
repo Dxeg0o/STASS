@@ -44,6 +44,8 @@ export const usuario = pgTable("usuario", {
   password: text("password").notNull(),
   isSuperAdmin: boolean("is_super_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  resetPasswordToken: text("reset_password_token"),
+  resetPasswordExpiresAt: timestamp("reset_password_expires_at", { withTimezone: true }),
 });
 
 export const usuarioRelations = relations(usuario, ({ many }) => ({

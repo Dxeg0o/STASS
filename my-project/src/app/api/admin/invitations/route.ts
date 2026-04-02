@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { invitationLink } from "@/db/schema";
+import { invitationLink, empresa } from "@/db/schema";
 import { verifyAdmin } from "@/lib/auth";
 import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
+import { sendEmail } from "@/lib/email";
+import InvitationEmail from "@/emails/InvitationEmail";
+import React from "react";
 
 export async function GET(req: Request) {
   try {
@@ -33,7 +37,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { empresaId, rol, expiresAt } = await req.json();
+    const { empresaId, rol, expiresAt, correoInvitado } = await req.json();
 
     if (!empresaId || !rol) {
       return NextResponse.json(
@@ -43,6 +47,7 @@ export async function POST(req: Request) {
     }
 
     const token = randomUUID();
+    const expiresAtDate = expiresAt ? new Date(expiresAt) : null;
 
     const [invitation] = await db
       .insert(invitationLink)
@@ -50,10 +55,40 @@ export async function POST(req: Request) {
         token,
         empresaId,
         rol,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        expiresAt: expiresAtDate,
         createdBy: admin.id,
       })
       .returning();
+
+    if (correoInvitado) {
+      try {
+        const empresaRow = await db.query.empresa.findFirst({
+          where: eq(empresa.id, empresaId),
+        });
+
+        const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/register?token=${token}`;
+        const expiresLabel = expiresAtDate
+          ? expiresAtDate.toLocaleDateString("es-CL", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })
+          : "sin fecha de expiración";
+
+        await sendEmail({
+          to: correoInvitado,
+          subject: `Invitación a ${empresaRow?.nombre ?? "la plataforma"}`,
+          react: React.createElement(InvitationEmail, {
+            nombreEmpresa: empresaRow?.nombre ?? empresaId,
+            rol,
+            invitationUrl,
+            expiresAt: expiresLabel,
+          }),
+        });
+      } catch (emailError) {
+        console.error("[POST invitations] Error enviando invitación:", emailError);
+      }
+    }
 
     return NextResponse.json(invitation, { status: 201 });
   } catch (error) {

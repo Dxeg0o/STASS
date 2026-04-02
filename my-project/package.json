@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "email": "npx react-email dev --dir src/emails --port 3001"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.1",
@@ -48,15 +49,16 @@
     "lucide-react": "^0.452.0",
     "next": "15.1.11",
     "postgres": "^3.4.8",
-    "react": "^18",
+    "react": "19.0.0",
     "react-chartjs-2": "^5.0.0",
     "react-day-picker": "^8.10.1",
-    "react-dom": "^18",
+    "react-dom": "19.0.0",
     "react-firebase-hooks": "^5.1.1",
     "react-leaflet": "^4.2.1",
     "react-to-pdf": "^1.0.1",
     "react-webcam": "^7.2.0",
     "recharts": "^2.13.0",
+    "resend": "^6.10.0",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.5.3",
     "tailwindcss-animate": "^1.0.7",
@@ -64,6 +66,8 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@react-email/components": "^1.0.11",
+    "@react-email/preview-server": "^5.2.10",
     "@types/bcrypt": "^5.0.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/file-saver": "^2.0.7",
@@ -78,6 +82,7 @@
     "eslint-config-next": "14.2.15",
     "mongoose": "^8.9.0",
     "postcss": "^8.4.47",
+    "react-email": "^5.2.10",
     "tailwindcss": "^3.4.13",
     "typescript": "^5"
   }
