@@ -5,9 +5,11 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Preview,
   Section,
   Text,
+  Hr,
 } from "@react-email/components";
 
 interface ProcessCompletedEmailProps {
@@ -28,109 +30,320 @@ export const ProcessCompletedEmail = ({
   return (
     <Html lang="es">
       <Head />
-      <Preview>Proceso completado: {nombreProceso}</Preview>
+      <Preview>✅ Proceso finalizado: {nombreProceso} — {nombreEmpresa} · QUALIBLICK</Preview>
       <Body style={main}>
+        {/* Header de marca */}
+        <Section style={header}>
+          <Container style={headerInner}>
+            <Img
+              src={`${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/images/qb.png`}
+              alt="QUALIBLICK"
+              width={180}
+              style={logoImg}
+            />
+            <Text style={logoSubtitle}>Gestión inteligente de producción</Text>
+          </Container>
+        </Section>
+
         <Container style={container}>
-          <Section style={badge}>
-            <Text style={badgeText}>✓ Proceso completado</Text>
+          {/* Banner de estado */}
+          <Section style={statusBanner}>
+            <Text style={statusBadge}>✓ &nbsp;PROCESO COMPLETADO</Text>
           </Section>
+
+          {/* Ícono */}
+          <Section style={iconSection}>
+            <Text style={iconCircle}>✦</Text>
+          </Section>
+
           <Heading style={h1}>{nombreProceso}</Heading>
-          <Text style={text}>Hola {nombreAdmin},</Text>
-          <Text style={text}>
-            El proceso <strong>{nombreProceso}</strong> de{" "}
-            <strong>{nombreEmpresa}</strong> ha sido marcado como completado.
+          <Text style={subheading}>
+            Este proceso ha sido marcado como finalizado en QUALIBLICK
           </Text>
+
+          <Hr style={divider} />
+
+          <Text style={text}>
+            Hola <strong style={highlight}>{nombreAdmin}</strong>,
+          </Text>
+          <Text style={text}>
+            Te confirmamos que el proceso{" "}
+            <strong style={highlight}>{nombreProceso}</strong> de la empresa{" "}
+            <strong style={highlight}>{nombreEmpresa}</strong> ha sido
+            completado exitosamente y registrado en el sistema.
+          </Text>
+
+          {/* Detalles del proceso */}
           <Section style={detailsBox}>
+            <Text style={detailsTitle}>Resumen del proceso</Text>
+            <Hr style={innerDivider} />
             <Text style={detailRow}>
-              <span style={label}>Empresa:</span> {nombreEmpresa}
+              <span style={detailIcon}>🏢</span>
+              <span style={detailLabel}>Empresa</span>
+              <span style={detailValue}>{nombreEmpresa}</span>
             </Text>
             <Text style={detailRow}>
-              <span style={label}>Proceso:</span> {nombreProceso}
+              <span style={detailIcon}>⚙</span>
+              <span style={detailLabel}>Proceso</span>
+              <span style={detailValue}>{nombreProceso}</span>
             </Text>
             <Text style={detailRow}>
-              <span style={label}>Fecha de completado:</span> {fechaCompletado}
+              <span style={detailIcon}>📅</span>
+              <span style={detailLabel}>Completado</span>
+              <span style={detailValue}>{fechaCompletado}</span>
+            </Text>
+            <Text style={detailRow}>
+              <span style={detailIcon}>👤</span>
+              <span style={detailLabel}>Notificado a</span>
+              <span style={detailValue}>{nombreAdmin}</span>
             </Text>
             {notas && (
-              <Text style={detailRow}>
-                <span style={label}>Notas:</span> {notas}
-              </Text>
+              <>
+                <Hr style={innerDivider} />
+                <Text style={notasLabel}>Notas adicionales</Text>
+                <Text style={notasText}>{notas}</Text>
+              </>
             )}
           </Section>
+
+          {/* Indicador de éxito */}
+          <Section style={successBar}>
+            <Text style={successBarText}>
+              ✓ &nbsp;Proceso registrado y archivado correctamente
+            </Text>
+          </Section>
+
+          <Hr style={divider} />
+
           <Text style={mutedText}>
-            Este es un correo automático. No es necesario responder.
+            Este es un correo automático generado por QUALIBLICK. No es necesario
+            responder. Si tienes dudas sobre este proceso, contacta al
+            administrador de tu organización.
           </Text>
         </Container>
+
+        {/* Footer */}
+        <Section style={footer}>
+          <Text style={footerText}>
+            © 2026 QUALIBLICK · Gestión inteligente de producción
+          </Text>
+          <Text style={footerSubText}>
+            Este es un correo automático, por favor no respondas a este mensaje.
+          </Text>
+        </Section>
       </Body>
     </Html>
   );
-}
+};
+
+/* ─── Estilos ─────────────────────────────────────────────────────────────── */
 
 const main: React.CSSProperties = {
-  backgroundColor: "#f6f9fc",
-  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  backgroundColor: "#0f172a",
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
+  padding: "20px 0",
+};
+
+const header: React.CSSProperties = {
+  backgroundColor: "#0f172a",
+  textAlign: "center",
+  padding: "32px 0 20px",
+};
+
+const headerInner: React.CSSProperties = {
+  maxWidth: "560px",
+  margin: "0 auto",
+};
+
+const logoImg: React.CSSProperties = {
+  display: "block",
+  margin: "0 auto 4px",
+};
+
+const logoSubtitle: React.CSSProperties = {
+  color: "#64748b",
+  fontSize: "11px",
+  letterSpacing: "2px",
+  textTransform: "uppercase",
+  margin: "4px 0 0",
 };
 
 const container: React.CSSProperties = {
-  backgroundColor: "#ffffff",
-  margin: "40px auto",
+  backgroundColor: "#1e293b",
+  margin: "0 auto",
   padding: "40px",
-  borderRadius: "8px",
+  borderRadius: "12px",
   maxWidth: "560px",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+  border: "1px solid #334155",
 };
 
-const badge: React.CSSProperties = {
-  marginBottom: "16px",
+const statusBanner: React.CSSProperties = {
+  backgroundColor: "#052e16",
+  borderRadius: "8px",
+  padding: "12px 16px",
+  marginBottom: "24px",
+  textAlign: "center",
+  border: "1px solid #14532d",
 };
 
-const badgeText: React.CSSProperties = {
-  display: "inline-block",
-  backgroundColor: "#dcfce7",
-  color: "#15803d",
+const statusBadge: React.CSSProperties = {
+  color: "#4ade80",
   fontSize: "13px",
-  fontWeight: "600",
-  padding: "4px 12px",
-  borderRadius: "999px",
+  fontWeight: "700",
+  letterSpacing: "2px",
+  textTransform: "uppercase",
   margin: "0",
 };
 
+const iconSection: React.CSSProperties = {
+  textAlign: "center",
+  marginBottom: "24px",
+};
+
+const iconCircle: React.CSSProperties = {
+  display: "inline-block",
+  color: "#22d3ee",
+  backgroundColor: "#22d3ee18",
+  border: "2px solid #22d3ee66",
+  borderRadius: "50%",
+  width: "64px",
+  height: "64px",
+  lineHeight: "64px",
+  fontSize: "26px",
+  textAlign: "center",
+  margin: "0 auto",
+};
+
 const h1: React.CSSProperties = {
-  color: "#1a1a1a",
+  color: "#f1f5f9",
   fontSize: "22px",
-  fontWeight: "600",
-  margin: "0 0 20px",
+  fontWeight: "700",
+  margin: "0 0 8px",
+  textAlign: "center",
+};
+
+const subheading: React.CSSProperties = {
+  color: "#94a3b8",
+  fontSize: "14px",
+  textAlign: "center",
+  margin: "0 0 24px",
+};
+
+const divider: React.CSSProperties = {
+  borderColor: "#334155",
+  margin: "24px 0",
+};
+
+const innerDivider: React.CSSProperties = {
+  borderColor: "#1e293b",
+  margin: "12px 0",
 };
 
 const text: React.CSSProperties = {
-  color: "#444",
+  color: "#cbd5e1",
   fontSize: "15px",
-  lineHeight: "24px",
+  lineHeight: "26px",
   margin: "0 0 16px",
 };
 
+const highlight: React.CSSProperties = {
+  color: "#22d3ee",
+};
+
 const detailsBox: React.CSSProperties = {
-  backgroundColor: "#f9fafb",
-  borderRadius: "6px",
-  padding: "16px 20px",
+  backgroundColor: "#0f172a",
+  borderRadius: "10px",
+  padding: "20px 24px",
   margin: "20px 0",
+  border: "1px solid #1e3a5f",
+};
+
+const detailsTitle: React.CSSProperties = {
+  color: "#64748b",
+  fontSize: "11px",
+  fontWeight: "700",
+  letterSpacing: "2px",
+  textTransform: "uppercase",
+  margin: "0 0 4px",
 };
 
 const detailRow: React.CSSProperties = {
-  color: "#444",
+  color: "#94a3b8",
   fontSize: "14px",
-  lineHeight: "22px",
+  lineHeight: "28px",
+  margin: "0",
+};
+
+const detailIcon: React.CSSProperties = {
+  marginRight: "10px",
+};
+
+const detailLabel: React.CSSProperties = {
+  color: "#475569",
+  fontWeight: "600",
+  marginRight: "8px",
+};
+
+const detailValue: React.CSSProperties = {
+  color: "#e2e8f0",
+};
+
+const notasLabel: React.CSSProperties = {
+  color: "#64748b",
+  fontSize: "11px",
+  fontWeight: "700",
+  letterSpacing: "2px",
+  textTransform: "uppercase",
   margin: "0 0 6px",
 };
 
-const label: React.CSSProperties = {
+const notasText: React.CSSProperties = {
+  color: "#cbd5e1",
+  fontSize: "14px",
+  lineHeight: "22px",
+  margin: "0",
+  fontStyle: "italic",
+};
+
+const successBar: React.CSSProperties = {
+  backgroundColor: "#052e16",
+  borderRadius: "8px",
+  padding: "12px 20px",
+  margin: "20px 0 0",
+  border: "1px solid #14532d",
+};
+
+const successBarText: React.CSSProperties = {
+  color: "#4ade80",
+  fontSize: "13px",
   fontWeight: "600",
-  color: "#1a1a1a",
+  margin: "0",
+  textAlign: "center",
 };
 
 const mutedText: React.CSSProperties = {
-  color: "#888",
+  color: "#475569",
   fontSize: "13px",
-  lineHeight: "20px",
-  margin: "24px 0 0",
+  lineHeight: "22px",
+  margin: "0",
+  textAlign: "center",
 };
+
+const footer: React.CSSProperties = {
+  textAlign: "center",
+  padding: "20px 0 32px",
+};
+
+const footerText: React.CSSProperties = {
+  color: "#334155",
+  fontSize: "12px",
+  margin: "0 0 4px",
+};
+
+const footerSubText: React.CSSProperties = {
+  color: "#1e293b",
+  fontSize: "11px",
+  margin: "0",
+};
+
 export default ProcessCompletedEmail;
