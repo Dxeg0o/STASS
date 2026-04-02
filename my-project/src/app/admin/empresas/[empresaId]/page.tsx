@@ -31,7 +31,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { Plus, Trash2, ArrowLeft, Building2, AlertTriangle, StopCircle } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Building2, AlertTriangle, StopCircle, Layers } from "lucide-react";
 
 interface EmpresaDetail {
   id: string;
@@ -958,15 +958,24 @@ export default function EmpresaDetailPage() {
                         {s.fechaFin ? new Date(s.fechaFin).toLocaleDateString("es-CL") : <span className="text-emerald-500 text-xs">Activo</span>}
                       </TableCell>
                       <TableCell className="text-right">
-                        {!s.fechaFin && (
+                        <div className="flex items-center justify-end gap-1">
                           <button
-                            onClick={() => setTerminateServicioId(s.id)}
-                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
-                            title="Terminar servicio"
+                            onClick={() => router.push(`/admin/empresas/${empresaId}/servicios/${s.id}`)}
+                            className="p-1.5 text-slate-500 hover:text-amber-400 hover:bg-amber-400/10 rounded transition-all"
+                            title="Gestionar Lotes"
                           >
-                            <StopCircle className="w-4 h-4" />
+                            <Layers className="w-4 h-4" />
                           </button>
-                        )}
+                          {!s.fechaFin && (
+                            <button
+                              onClick={() => setTerminateServicioId(s.id)}
+                              className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
+                              title="Terminar servicio"
+                            >
+                              <StopCircle className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
