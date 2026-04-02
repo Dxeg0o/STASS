@@ -31,6 +31,7 @@ interface State {
 
 interface AuthState extends State {
   setAuthState?: React.Dispatch<React.SetStateAction<State>>;
+  fetchUser?: (empresaId?: string) => Promise<void>;
   selectEmpresa?: (empresaId: string) => Promise<void>;
   switchEmpresa?: () => void;
 }
@@ -39,6 +40,7 @@ export const AuthenticationContext = createContext<AuthState>({
   loading: false,
   error: null,
   data: null,
+  fetchUser: undefined,
 });
 
 export default function AuthContext({
@@ -152,6 +154,7 @@ export default function AuthContext({
       value={{
         ...authState,
         setAuthState,
+        fetchUser,
         selectEmpresa,
         switchEmpresa,
       }}

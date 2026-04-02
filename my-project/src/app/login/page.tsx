@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Navbar from "@/components/DeepTech/Navbar";
+import { AuthenticationContext } from "@/app/context/AuthContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { fetchUser } = useContext(AuthenticationContext);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,9 +43,11 @@ export default function LoginPage() {
       if (empresas.length === 1 && !isSuperAdmin) {
         // Auto-select the only empresa and go to app
         localStorage.setItem("selectedEmpresaId", empresas[0].empresaId);
+        if (fetchUser) await fetchUser(empresas[0].empresaId);
         router.push("/app");
       } else {
         // Multiple empresas or super admin → show selector
+        if (fetchUser) await fetchUser();
         router.push("/select-empresa");
       }
     } catch (err: unknown) {
