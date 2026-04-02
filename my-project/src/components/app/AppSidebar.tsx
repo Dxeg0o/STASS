@@ -3,7 +3,7 @@
 import axios from "axios";
 import { deleteCookie } from "cookies-next/client";
 import { useRouter, usePathname } from "next/navigation";
-import { useContext } from "react";
+import { useContext, useState, useRef, useEffect } from "react";
 import {
   Home,
   Settings,
@@ -13,8 +13,8 @@ import {
   Package,
   BarChart3,
   Gauge,
-  Building2,
-  ArrowLeftRight,
+  User,
+  ChevronUp,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -28,7 +28,20 @@ interface AppSidebarProps {
 export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { data, setAuthState, switchEmpresa } = useContext(AuthenticationContext);
+  const { data, setAuthState } = useContext(AuthenticationContext);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar el menú al hacer click fuera
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -55,9 +68,6 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
     pathname === url || pathname.startsWith(url + "/");
 
   const isActiveExact = (url: string) => pathname === url;
-
-  const hasMultipleEmpresas =
-    data && (data.empresas.length > 1 || data.isSuperAdmin);
 
   return (
     <aside
@@ -87,30 +97,6 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
           </button>
         )}
       </div>
-
-      {/* Empresa actual */}
-      {data?.empresaNombre && (
-        <div className="px-4 py-3 border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-cyan-400 shrink-0" />
-            <span className="text-sm text-slate-300 truncate">
-              {data.empresaNombre}
-            </span>
-          </div>
-          {hasMultipleEmpresas && (
-            <button
-              onClick={() => {
-                switchEmpresa?.();
-                if (toggleSidebar) toggleSidebar();
-              }}
-              className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-500 hover:text-cyan-400 transition-colors"
-            >
-              <ArrowLeftRight className="w-3 h-3" />
-              <span>Cambiar empresa</span>
-            </button>
-          )}
-        </div>
-      )}
 
       <nav className="flex flex-1 flex-col space-y-6 overflow-y-auto p-4">
         {/* Overview */}
@@ -218,7 +204,7 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
           </ul>
         </div>
 
-        {/* Ajustes */}
+        {/* Ajustes de empresa */}
         <div className="mt-auto">
           <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
             Ajustes
@@ -239,27 +225,62 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
                 <span>Configuraciones</span>
               </Link>
             </li>
-            <li>
-              <button
-                onClick={() => {
-                  handleLogout();
-                  if (toggleSidebar) toggleSidebar();
-                }}
-                className={clsx(
-                  commonLinkClasses,
-                  inactiveLinkClasses,
-                  "w-full"
-                )}
-              >
-                <LogOut className="mr-3 h-5 w-5 shrink-0" strokeWidth={2} />
-                <span className="text-sm font-medium tracking-wide">
-                  Cerrar sesión
-                </span>
-              </button>
-            </li>
           </ul>
         </div>
       </nav>
+
+      {/* Usuario */}
+      <div ref={userMenuRef} className="relative border-t border-white/10">
+        {/* Dropdown menu */}
+        {userMenuOpen && (
+          <div className="absolute bottom-full left-3 right-3 mb-2 bg-slate-800 border border-white/10 rounded-xl shadow-xl overflow-hidden">
+            <Link
+              href="/app/perfil"
+              onClick={() => {
+                setUserMenuOpen(false);
+                if (toggleSidebar) toggleSidebar();
+              }}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+            >
+              <User className="w-4 h-4 text-slate-400" />
+              <span>Configuraciones de usuario</span>
+            </Link>
+            <button
+              onClick={() => {
+                setUserMenuOpen(false);
+                handleLogout();
+                if (toggleSidebar) toggleSidebar();
+              }}
+              className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Cerrar sesión</span>
+            </button>
+          </div>
+        )}
+
+        {/* Botón de usuario */}
+        <button
+          onClick={() => setUserMenuOpen((prev) => !prev)}
+          className="flex items-center gap-3 w-full px-4 py-4 hover:bg-white/5 transition-colors group"
+        >
+          <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0">
+            <span className="text-xs font-semibold text-cyan-400">
+              {data?.name?.charAt(0).toUpperCase() ?? "U"}
+            </span>
+          </div>
+          <div className="flex-1 text-left min-w-0">
+            <p className="text-sm font-medium text-white truncate">{data?.name}</p>
+            <p className="text-xs text-slate-500 truncate">{data?.email}</p>
+          </div>
+          <ChevronUp
+            className={clsx(
+              "w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-all shrink-0",
+              userMenuOpen ? "rotate-0" : "rotate-180"
+            )}
+          />
+        </button>
+      </div>
     </aside>
   );
 }
