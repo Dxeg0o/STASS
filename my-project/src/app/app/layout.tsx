@@ -9,10 +9,22 @@ import ProtectedRoute from "./ProtectedRoute";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar:desktopCollapsed");
+    if (saved === "true") setIsDesktopCollapsed(true);
+  }, []);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const toggleDesktopCollapse = () => {
+    const next = !isDesktopCollapsed;
+    setIsDesktopCollapsed(next);
+    localStorage.setItem("sidebar:desktopCollapsed", String(next));
   };
 
   useEffect(() => {
@@ -37,7 +49,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex flex-1 pt-16 relative z-10 min-h-0">
-            <AppSidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+            <AppSidebar
+              isOpen={isSidebarOpen}
+              toggleSidebar={toggleSidebar}
+              isDesktopCollapsed={isDesktopCollapsed}
+              toggleDesktopCollapse={toggleDesktopCollapse}
+            />
 
             {isSidebarOpen && (
               <div

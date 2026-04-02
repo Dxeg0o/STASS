@@ -9,10 +9,22 @@ import AdminProtectedRoute from "./AdminProtectedRoute";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar:adminDesktopCollapsed");
+    if (saved === "true") setIsDesktopCollapsed(true);
+  }, []);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const toggleDesktopCollapse = () => {
+    const next = !isDesktopCollapsed;
+    setIsDesktopCollapsed(next);
+    localStorage.setItem("sidebar:adminDesktopCollapsed", String(next));
   };
 
   useEffect(() => {
@@ -37,7 +49,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div className="flex flex-1 pt-16 relative z-10 min-h-0">
-            <AdminSidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+            <AdminSidebar
+              isOpen={isSidebarOpen}
+              toggleSidebar={toggleSidebar}
+              isDesktopCollapsed={isDesktopCollapsed}
+              toggleDesktopCollapse={toggleDesktopCollapse}
+            />
 
             {isSidebarOpen && (
               <div

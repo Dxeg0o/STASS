@@ -23,9 +23,16 @@ import { AuthenticationContext } from "../../app/context/AuthContext";
 interface AppSidebarProps {
   isOpen: boolean;
   toggleSidebar?: () => void;
+  isDesktopCollapsed?: boolean;
+  toggleDesktopCollapse?: () => void;
 }
 
-export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
+export function AppSidebar({
+  isOpen,
+  toggleSidebar,
+  isDesktopCollapsed = false,
+  toggleDesktopCollapse,
+}: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { data, setAuthState } = useContext(AuthenticationContext);
@@ -57,40 +64,86 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
     }
   };
 
-  const commonLinkClasses =
-    "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out text-sm font-medium tracking-wide";
-  const activeLinkClasses =
-    "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.15)]";
-  const inactiveLinkClasses =
-    "text-slate-400 hover:bg-white/5 hover:text-white";
-
   const isActive = (url: string) =>
     pathname === url || pathname.startsWith(url + "/");
 
   const isActiveExact = (url: string) => pathname === url;
 
+  const linkClass = (active: boolean) =>
+    clsx(
+      "flex items-center py-3 rounded-lg transition-all duration-200 ease-in-out text-sm font-medium tracking-wide",
+      isDesktopCollapsed
+        ? "justify-center px-3"
+        : "space-x-3 px-4",
+      active
+        ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
+        : "text-slate-400 hover:bg-white/5 hover:text-white"
+    );
+
+  const navItems = [
+    {
+      section: "Overview",
+      items: [
+        { href: "/app", label: "Inicio", icon: Home, exact: true },
+      ],
+    },
+    {
+      section: "Operaciones",
+      items: [
+        { href: "/app/procesos", label: "Procesos", icon: ClipboardList, exact: false },
+        { href: "/app/lotes", label: "Lotes", icon: Package, exact: false },
+      ],
+    },
+    {
+      section: "Inteligencia",
+      items: [
+        { href: "/app/analitica", label: "Analítica", icon: BarChart3, exact: false },
+        { href: "/app/control", label: "Control Operacional", icon: Gauge, exact: false },
+      ],
+    },
+    {
+      section: "Ajustes",
+      items: [
+        { href: "/app/configuraciones", label: "Configuraciones", icon: Settings, exact: false },
+      ],
+    },
+  ];
+
   return (
     <aside
       className={clsx(
-        "bg-slate-900/40 backdrop-blur-xl border-r border-white/10 text-white fixed inset-y-0 left-0 z-30 flex h-screen w-64 transform flex-col transition-transform duration-300 ease-in-out md:relative md:h-full md:translate-x-0",
+        "bg-slate-900/40 backdrop-blur-xl border-r border-white/10 text-white fixed inset-y-0 left-0 z-30 flex h-screen transform flex-col transition-all duration-300 ease-in-out md:relative md:h-full md:translate-x-0",
+        isDesktopCollapsed ? "md:w-14" : "md:w-64",
+        "w-64",
         {
           "translate-x-0 shadow-[0_0_40px_rgba(0,0,0,0.5)]": isOpen,
-          "-translate-x-full": !isOpen,
+          "-translate-x-full md:translate-x-0": !isOpen,
         }
       )}
     >
       {/* Header */}
-      <div className="flex h-16 items-center justify-between border-b border-white/10 px-4 md:px-6 bg-slate-950/20">
-        <Link
-          href="/app"
-          className="text-xl font-bold text-white tracking-tight"
-        >
-          Qualiblick
-        </Link>
+      <div className="flex h-16 items-center justify-between border-b border-white/10 px-4 bg-slate-950/20 overflow-hidden">
+        {!isDesktopCollapsed && (
+          <Link
+            href="/app"
+            className="text-xl font-bold text-white tracking-tight truncate"
+          >
+            Qualiblick
+          </Link>
+        )}
+        {isDesktopCollapsed && (
+          <Link
+            href="/app"
+            className="flex items-center justify-center w-full"
+            title="Qualiblick"
+          >
+            <Home className="h-5 w-5 text-cyan-400" strokeWidth={2} />
+          </Link>
+        )}
         {toggleSidebar && (
           <button
             onClick={toggleSidebar}
-            className="md:hidden text-cyan-400 hover:text-cyan-300 focus:outline-none"
+            className="md:hidden text-cyan-400 hover:text-cyan-300 focus:outline-none shrink-0"
             aria-label="Cerrar menú"
           >
             <ChevronLeft size={24} />
@@ -98,151 +151,62 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
         )}
       </div>
 
-      <nav className="flex flex-1 flex-col space-y-6 overflow-y-auto p-4">
-        {/* Overview */}
-        <div>
-          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Overview
-          </span>
-          <ul className="mt-2 space-y-1">
-            <li>
-              <Link
-                href="/app"
-                className={clsx(
-                  commonLinkClasses,
-                  isActiveExact("/app")
-                    ? activeLinkClasses
-                    : inactiveLinkClasses
-                )}
-                onClick={toggleSidebar}
-              >
-                <Home
-                  className="h-5 w-5 shrink-0"
-                  strokeWidth={isActiveExact("/app") ? 2.5 : 2}
-                />
-                <span>Inicio</span>
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Operaciones */}
-        <div>
-          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Operaciones
-          </span>
-          <ul className="mt-2 space-y-1">
-            <li>
-              <Link
-                href="/app/procesos"
-                className={clsx(
-                  commonLinkClasses,
-                  isActive("/app/procesos")
-                    ? activeLinkClasses
-                    : inactiveLinkClasses
-                )}
-                onClick={toggleSidebar}
-              >
-                <ClipboardList className="h-5 w-5 shrink-0" strokeWidth={2} />
-                <span>Procesos</span>
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/app/lotes"
-                className={clsx(
-                  commonLinkClasses,
-                  isActive("/app/lotes")
-                    ? activeLinkClasses
-                    : inactiveLinkClasses
-                )}
-                onClick={toggleSidebar}
-              >
-                <Package className="h-5 w-5 shrink-0" strokeWidth={2} />
-                <span>Lotes</span>
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Inteligencia */}
-        <div>
-          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Inteligencia
-          </span>
-          <ul className="mt-2 space-y-1">
-            <li>
-              <Link
-                href="/app/analitica"
-                className={clsx(
-                  commonLinkClasses,
-                  isActive("/app/analitica")
-                    ? activeLinkClasses
-                    : inactiveLinkClasses
-                )}
-                onClick={toggleSidebar}
-              >
-                <BarChart3 className="h-5 w-5 shrink-0" strokeWidth={2} />
-                <span>Analítica</span>
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/app/control"
-                className={clsx(
-                  commonLinkClasses,
-                  isActive("/app/control")
-                    ? activeLinkClasses
-                    : inactiveLinkClasses
-                )}
-                onClick={toggleSidebar}
-              >
-                <Gauge className="h-5 w-5 shrink-0" strokeWidth={2} />
-                <span>Control Operacional</span>
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Ajustes de empresa */}
-        <div className="mt-auto">
-          <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Ajustes
-          </span>
-          <ul className="mt-2 space-y-1">
-            <li>
-              <Link
-                href="/app/configuraciones"
-                className={clsx(
-                  commonLinkClasses,
-                  isActive("/app/configuraciones")
-                    ? activeLinkClasses
-                    : inactiveLinkClasses
-                )}
-                onClick={toggleSidebar}
-              >
-                <Settings className="h-5 w-5 shrink-0" strokeWidth={2} />
-                <span>Configuraciones</span>
-              </Link>
-            </li>
-          </ul>
-        </div>
+      {/* Nav */}
+      <nav className="flex flex-1 flex-col space-y-6 overflow-y-auto p-3">
+        {navItems.map(({ section, items }) => (
+          <div key={section}>
+            {!isDesktopCollapsed && (
+              <span className="px-4 text-xs font-semibold uppercase text-slate-500 tracking-wider">
+                {section}
+              </span>
+            )}
+            {isDesktopCollapsed && (
+              <div className="border-t border-white/5 mb-1" />
+            )}
+            <ul className="mt-2 space-y-1">
+              {items.map(({ href, label, icon: Icon, exact }) => {
+                const active = exact ? isActiveExact(href) : isActive(href);
+                return (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      className={linkClass(active)}
+                      title={isDesktopCollapsed ? label : undefined}
+                      onClick={toggleSidebar}
+                    >
+                      <Icon
+                        className="h-5 w-5 shrink-0"
+                        strokeWidth={active ? 2.5 : 2}
+                      />
+                      {!isDesktopCollapsed && <span>{label}</span>}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       {/* Usuario */}
       <div ref={userMenuRef} className="relative border-t border-white/10">
         {/* Dropdown menu */}
         {userMenuOpen && (
-          <div className="absolute bottom-full left-3 right-3 mb-2 bg-slate-800 border border-white/10 rounded-xl shadow-xl overflow-hidden">
+          <div
+            className={clsx(
+              "absolute bottom-full mb-2 bg-slate-800 border border-white/10 rounded-xl shadow-xl overflow-hidden",
+              isDesktopCollapsed ? "left-14 bottom-0 mb-0" : "left-3 right-3"
+            )}
+          >
             <Link
               href="/app/perfil"
               onClick={() => {
                 setUserMenuOpen(false);
                 if (toggleSidebar) toggleSidebar();
               }}
-              className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+              className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors whitespace-nowrap"
             >
-              <User className="w-4 h-4 text-slate-400" />
+              <User className="w-4 h-4 text-slate-400 shrink-0" />
               <span>Configuraciones de usuario</span>
             </Link>
             <button
@@ -251,9 +215,9 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
                 handleLogout();
                 if (toggleSidebar) toggleSidebar();
               }}
-              className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors whitespace-nowrap"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4 shrink-0" />
               <span>Cerrar sesión</span>
             </button>
           </div>
@@ -262,25 +226,50 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
         {/* Botón de usuario */}
         <button
           onClick={() => setUserMenuOpen((prev) => !prev)}
-          className="flex items-center gap-3 w-full px-4 py-4 hover:bg-white/5 transition-colors group"
+          className={clsx(
+            "flex items-center w-full hover:bg-white/5 transition-colors group",
+            isDesktopCollapsed ? "justify-center px-3 py-4" : "gap-3 px-4 py-4"
+          )}
+          title={isDesktopCollapsed ? data?.name ?? "Usuario" : undefined}
         >
           <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0">
             <span className="text-xs font-semibold text-cyan-400">
               {data?.name?.charAt(0).toUpperCase() ?? "U"}
             </span>
           </div>
-          <div className="flex-1 text-left min-w-0">
-            <p className="text-sm font-medium text-white truncate">{data?.name}</p>
-            <p className="text-xs text-slate-500 truncate">{data?.email}</p>
-          </div>
-          <ChevronUp
+          {!isDesktopCollapsed && (
+            <>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-sm font-medium text-white truncate">{data?.name}</p>
+                <p className="text-xs text-slate-500 truncate">{data?.email}</p>
+              </div>
+              <ChevronUp
+                className={clsx(
+                  "w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-all shrink-0",
+                  userMenuOpen ? "rotate-0" : "rotate-180"
+                )}
+              />
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Botón de colapso desktop */}
+      {toggleDesktopCollapse && (
+        <button
+          onClick={toggleDesktopCollapse}
+          className="hidden md:flex items-center justify-center absolute -right-3 bottom-20 w-6 h-6 rounded-full bg-slate-800 border border-white/10 hover:bg-slate-700 transition-colors text-slate-400 hover:text-white shadow-md z-10"
+          aria-label={isDesktopCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+          title={isDesktopCollapsed ? "Expandir" : "Colapsar"}
+        >
+          <ChevronLeft
             className={clsx(
-              "w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-all shrink-0",
-              userMenuOpen ? "rotate-0" : "rotate-180"
+              "w-3.5 h-3.5 transition-transform duration-300",
+              isDesktopCollapsed && "rotate-180"
             )}
           />
         </button>
-      </div>
+      )}
     </aside>
   );
 }
