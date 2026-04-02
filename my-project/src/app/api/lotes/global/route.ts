@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     .select({ loteId: loteServicio.loteId })
     .from(loteServicio)
     .where(inArray(loteServicio.servicioId, servicioIds));
-  let uniqueLoteIds = [...new Set(loteLinks.map((l) => l.loteId))];
+  const uniqueLoteIds = [...new Set(loteLinks.map((l) => l.loteId))];
   if (uniqueLoteIds.length === 0) {
     return NextResponse.json({ data: [], total: 0, page, limit });
   }

@@ -83,7 +83,7 @@ export async function POST(req: Request, context: RouteContext) {
     const count = Math.min(Math.max(cantidad ?? 1, 1), 500);
 
     // Build values arrays (codigoLote only meaningful for individual creation)
-    const loteValues = Array.from({ length: count }, (_, i) => ({
+    const loteValues = Array.from({ length: count }, () => ({
       codigoLote: count === 1 ? (codigoLote?.trim() || null) : null,
       variedadId: variedadId || null,
       createdAt: new Date(),
