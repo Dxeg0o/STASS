@@ -72,7 +72,7 @@ export function AppSidebar({ isOpen, toggleSidebar }: AppSidebarProps) {
   return (
     <aside
       className={clsx(
-        "bg-slate-900/40 backdrop-blur-xl border-r border-white/10 text-white fixed inset-y-0 left-0 z-30 flex h-screen w-64 transform flex-col transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
+        "bg-slate-900/40 backdrop-blur-xl border-r border-white/10 text-white fixed inset-y-0 left-0 z-30 flex h-screen w-64 transform flex-col transition-transform duration-300 ease-in-out md:relative md:h-full md:translate-x-0",
         {
           "translate-x-0 shadow-[0_0_40px_rgba(0,0,0,0.5)]": isOpen,
           "-translate-x-full": !isOpen,
