@@ -43,6 +43,13 @@
       "when": 1774737141909,
       "tag": "0005_public_marten_broadcloak",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775140473267,
+      "tag": "0006_abandoned_mongoose",
+      "breakpoints": true
     }
   ]
 }

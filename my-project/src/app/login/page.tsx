@@ -119,7 +119,7 @@ export default function LoginPage() {
                 >
                     Contraseña
                 </label>
-                <Link href="#" className="text-xs text-slate-400 hover:text-cyan-400 transition-colors">
+                <Link href="/forgot-password" className="text-xs text-slate-400 hover:text-cyan-400 transition-colors">
                     ¿Olvidaste tu contraseña?
                 </Link>
               </div>

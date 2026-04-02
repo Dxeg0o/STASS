@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { proceso } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { proceso, empresa, empresaUsuario, usuario } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
+import { sendEmail } from "@/lib/email";
+import { ProcessCompletedEmail } from "@/emails/ProcessCompletedEmail";
+import React from "react";
 
 export async function GET(
   request: Request,
@@ -56,6 +59,55 @@ export async function PATCH(
 
   if (!updated) {
     return NextResponse.json({ error: "Proceso no encontrado" }, { status: 404 });
+  }
+
+  // Notify empresa admins when a proceso is completed
+  if (body.estado === "completado") {
+    try {
+      const [empresaRow, admins] = await Promise.all([
+        db.query.empresa.findFirst({ where: eq(empresa.id, updated.empresaId) }),
+        db
+          .select({ correo: usuario.correo, nombre: usuario.nombre })
+          .from(empresaUsuario)
+          .innerJoin(usuario, eq(empresaUsuario.usuarioId, usuario.id))
+          .where(
+            and(
+              eq(empresaUsuario.empresaId, updated.empresaId),
+              eq(empresaUsuario.rol, "administrador")
+            )
+          ),
+      ]);
+
+      const nombreEmpresa = empresaRow?.nombre ?? updated.empresaId;
+      const nombreProceso = updated.temporada
+        ? `Proceso ${updated.temporada}`
+        : `Proceso ${updated.id.slice(0, 8)}`;
+      const fechaCompletado = new Date().toLocaleDateString("es-CL", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      await Promise.allSettled(
+        admins.map((admin) =>
+          sendEmail({
+            to: admin.correo,
+            subject: `Proceso completado: ${nombreProceso}`,
+            react: React.createElement(ProcessCompletedEmail, {
+              nombreAdmin: admin.nombre,
+              nombreProceso,
+              nombreEmpresa,
+              fechaCompletado,
+              notas: updated.notas ?? undefined,
+            }),
+          })
+        )
+      );
+    } catch (emailError) {
+      console.error("[PATCH proceso] Error enviando notificaciones:", emailError);
+    }
   }
 
   return NextResponse.json(updated);
