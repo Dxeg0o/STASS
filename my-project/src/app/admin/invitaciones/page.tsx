@@ -54,6 +54,7 @@ export default function InvitacionesPage() {
   const [selectedEmpresaId, setSelectedEmpresaId] = useState("");
   const [selectedRol, setSelectedRol] = useState("usuario");
   const [expiresAt, setExpiresAt] = useState("");
+  const [correoInvitado, setCorreoInvitado] = useState("");
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -89,11 +90,13 @@ export default function InvitacionesPage() {
         empresaId: selectedEmpresaId,
         rol: selectedRol,
         expiresAt: expiresAt || null,
+        correoInvitado: correoInvitado.trim() || null,
       });
       setDialogOpen(false);
       setSelectedEmpresaId("");
       setSelectedRol("usuario");
       setExpiresAt("");
+      setCorreoInvitado("");
       await fetchInvitations();
       toast.success("Invitación creada correctamente");
     } catch (error) {
@@ -191,6 +194,21 @@ export default function InvitacionesPage() {
                     <SelectItem value="administrador" className="text-white hover:bg-slate-800">Administrador</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1.5 block">
+                  Correo del invitado (opcional)
+                </label>
+                <Input
+                  type="email"
+                  value={correoInvitado}
+                  onChange={(e) => setCorreoInvitado(e.target.value)}
+                  placeholder="nombre@empresa.com"
+                  className="bg-slate-800/50 border-white/10 text-white"
+                />
+                <p className="text-xs text-slate-500 mt-2">
+                  Si lo ingresas, enviaremos la invitacion por correo. Si lo dejas vacio, podras copiar el enlace manualmente.
+                </p>
               </div>
               <div>
                 <label className="text-sm text-slate-400 mb-1.5 block">Fecha de Vencimiento (opcional)</label>
