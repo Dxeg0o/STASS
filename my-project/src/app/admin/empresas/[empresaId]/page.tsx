@@ -59,6 +59,14 @@ interface EmpresaDetail {
     fechaInicio: string;
     fechaFin: string | null;
     proceso?: { tipoProceso?: { nombre: string } | null } | null;
+    ubicacion?: { id: string; nombre: string; tipo: string } | null;
+  }>;
+  ubicaciones: Array<{
+    id: string;
+    nombre: string;
+    tipo: string;
+    lat: number | null;
+    lng: number | null;
   }>;
 }
 
@@ -111,8 +119,17 @@ export default function EmpresaDetailPage() {
   const [servicioNombre, setServicioNombre] = useState("");
   const [servicioTipo, setServicioTipo] = useState("");
   const [servicioProcesoId, setServicioProcesoId] = useState("");
+  const [servicioUbicacionId, setServicioUbicacionId] = useState("");
   const [servicioUsaCajas, setServicioUsaCajas] = useState(false);
   const [creatingServicio, setCreatingServicio] = useState(false);
+
+  // Ubicaciones tab state
+  const [addUbicacionDialogOpen, setAddUbicacionDialogOpen] = useState(false);
+  const [ubicacionNombre, setUbicacionNombre] = useState("");
+  const [ubicacionTipo, setUbicacionTipo] = useState("");
+  const [ubicacionLat, setUbicacionLat] = useState("");
+  const [ubicacionLng, setUbicacionLng] = useState("");
+  const [creatingUbicacion, setCreatingUbicacion] = useState(false);
 
   // Terminar proceso state
   const [terminateProcesoId, setTerminateProcesoId] = useState<string | null>(null);
@@ -259,17 +276,51 @@ export default function EmpresaDetailPage() {
         nombre: servicioNombre,
         tipo: servicioTipo,
         usaCajas: servicioUsaCajas,
+        ubicacionId: servicioUbicacionId || undefined,
       });
       setAddServicioDialogOpen(false);
       setServicioNombre("");
       setServicioTipo("");
       setServicioProcesoId("");
+      setServicioUbicacionId("");
       setServicioUsaCajas(false);
       await fetchEmpresa();
     } catch (error) {
       console.error(error);
     } finally {
       setCreatingServicio(false);
+    }
+  };
+
+  const handleCreateUbicacion = async () => {
+    if (!ubicacionNombre.trim() || !ubicacionTipo) return;
+    setCreatingUbicacion(true);
+    try {
+      await axios.post(`/api/admin/empresas/${empresaId}/ubicaciones`, {
+        nombre: ubicacionNombre,
+        tipo: ubicacionTipo,
+        lat: ubicacionLat ? parseFloat(ubicacionLat) : undefined,
+        lng: ubicacionLng ? parseFloat(ubicacionLng) : undefined,
+      });
+      setAddUbicacionDialogOpen(false);
+      setUbicacionNombre("");
+      setUbicacionTipo("");
+      setUbicacionLat("");
+      setUbicacionLng("");
+      await fetchEmpresa();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setCreatingUbicacion(false);
+    }
+  };
+
+  const handleDeleteUbicacion = async (ubicacionId: string) => {
+    try {
+      await axios.delete(`/api/admin/empresas/${empresaId}/ubicaciones/${ubicacionId}`);
+      await fetchEmpresa();
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -371,6 +422,9 @@ export default function EmpresaDetailPage() {
           </TabsTrigger>
           <TabsTrigger value="servicios" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
             Servicios <Badge variant="outline" className="ml-1.5 border-white/10 text-slate-400 text-xs">{empresa.servicios.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="ubicaciones" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
+            Ubicaciones <Badge variant="outline" className="ml-1.5 border-white/10 text-slate-400 text-xs">{empresa.ubicaciones.length}</Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -815,6 +869,21 @@ export default function EmpresaDetailPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div>
+                    <label className="text-sm text-slate-400 mb-1.5 block">Ubicación</label>
+                    <Select value={servicioUbicacionId} onValueChange={setServicioUbicacionId}>
+                      <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                        <SelectValue placeholder="Sin ubicación (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        {empresa.ubicaciones.map((u) => (
+                          <SelectItem key={u.id} value={u.id} className="text-white hover:bg-slate-800">
+                            {u.nombre} <span className="text-slate-500 capitalize ml-1">({u.tipo})</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="flex items-center gap-3">
                     <label className="text-sm text-slate-400">Usa Cajas</label>
                     <button
@@ -853,6 +922,7 @@ export default function EmpresaDetailPage() {
                     <TableHead className="text-slate-400 uppercase text-xs">Nombre</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Tipo</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Proceso</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">Ubicación</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Inicio</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Fin</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs"></TableHead>
@@ -861,7 +931,7 @@ export default function EmpresaDetailPage() {
                 <TableBody>
                   {empresa.servicios.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-slate-500 py-8">
+                      <TableCell colSpan={7} className="text-center text-slate-500 py-8">
                         No hay servicios para esta empresa
                       </TableCell>
                     </TableRow>
@@ -875,6 +945,11 @@ export default function EmpresaDetailPage() {
                       </TableCell>
                       <TableCell className="text-slate-400">
                         {s.proceso?.tipoProceso?.nombre ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-slate-400">
+                        {s.ubicacion ? (
+                          <span className="capitalize">{s.ubicacion.nombre}</span>
+                        ) : "-"}
                       </TableCell>
                       <TableCell className="text-slate-400">
                         {new Date(s.fechaInicio).toLocaleDateString("es-CL")}
@@ -923,6 +998,131 @@ export default function EmpresaDetailPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        </TabsContent>
+
+        {/* UBICACIONES */}
+        <TabsContent value="ubicaciones" className="mt-4 space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="text-slate-400 text-sm">{empresa.ubicaciones.length} ubicación(es) registradas</p>
+            <Dialog open={addUbicacionDialogOpen} onOpenChange={setAddUbicacionDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nueva Ubicación
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-white/10 text-white">
+                <DialogHeader>
+                  <DialogTitle>Nueva Ubicación</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <label className="text-sm text-slate-400 mb-1.5 block">Nombre *</label>
+                    <Input
+                      value={ubicacionNombre}
+                      onChange={(e) => setUbicacionNombre(e.target.value)}
+                      placeholder="Ej: Campo Norte"
+                      className="bg-slate-800/50 border-white/10 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-400 mb-1.5 block">Tipo *</label>
+                    <Select value={ubicacionTipo} onValueChange={setUbicacionTipo}>
+                      <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                        <SelectValue placeholder="Seleccionar tipo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        <SelectItem value="campo" className="text-white hover:bg-slate-800">Campo</SelectItem>
+                        <SelectItem value="bodega" className="text-white hover:bg-slate-800">Bodega</SelectItem>
+                        <SelectItem value="planta" className="text-white hover:bg-slate-800">Planta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm text-slate-400 mb-1.5 block">Latitud</label>
+                      <Input
+                        value={ubicacionLat}
+                        onChange={(e) => setUbicacionLat(e.target.value)}
+                        placeholder="-33.4569"
+                        type="number"
+                        step="any"
+                        className="bg-slate-800/50 border-white/10 text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-400 mb-1.5 block">Longitud</label>
+                      <Input
+                        value={ubicacionLng}
+                        onChange={(e) => setUbicacionLng(e.target.value)}
+                        placeholder="-70.6483"
+                        type="number"
+                        step="any"
+                        className="bg-slate-800/50 border-white/10 text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddUbicacionDialogOpen(false)} className="border-white/10 text-slate-400 hover:text-white">Cancelar</Button>
+                  <Button
+                    onClick={handleCreateUbicacion}
+                    disabled={creatingUbicacion || !ubicacionNombre.trim() || !ubicacionTipo}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+                  >
+                    {creatingUbicacion ? "Creando..." : "Crear"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Card className="bg-slate-900/60 border-white/10">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-white/10 hover:bg-transparent">
+                    <TableHead className="text-slate-400 uppercase text-xs">Nombre</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">Tipo</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">Coordenadas</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {empresa.ubicaciones.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-slate-500 py-8">
+                        No hay ubicaciones registradas para esta empresa
+                      </TableCell>
+                    </TableRow>
+                  ) : empresa.ubicaciones.map((u) => (
+                    <TableRow key={u.id} className="border-white/5 hover:bg-white/[0.02]">
+                      <TableCell className="text-white font-medium">{u.nombre}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="border-white/10 text-slate-300 text-xs capitalize">
+                          {u.tipo}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-slate-400 text-sm">
+                        {u.lat != null && u.lng != null
+                          ? `${u.lat.toFixed(4)}, ${u.lng.toFixed(4)}`
+                          : <span className="text-slate-600">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <button
+                          onClick={() => handleDeleteUbicacion(u.id)}
+                          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
+                          title="Eliminar ubicación"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

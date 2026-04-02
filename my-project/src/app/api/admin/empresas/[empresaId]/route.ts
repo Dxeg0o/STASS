@@ -26,8 +26,12 @@ export async function GET(
           with: { tipoProceso: true, producto: true },
         },
         servicios: {
-          with: { proceso: { with: { tipoProceso: true } } },
+          with: {
+            proceso: { with: { tipoProceso: true } },
+            ubicacion: true,
+          },
         },
+        ubicaciones: true,
       },
     });
 
