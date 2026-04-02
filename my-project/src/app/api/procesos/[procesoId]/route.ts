@@ -61,10 +61,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Proceso no encontrado" }, { status: 404 });
   }
 
-  // Notify empresa admins when a proceso is completed
+  // Notify empresa admins and super admins when a proceso is completed
   if (body.estado === "completado") {
     try {
-      const [empresaRow, admins] = await Promise.all([
+      const [empresaRow, empresaAdmins, superAdmins] = await Promise.all([
         db.query.empresa.findFirst({ where: eq(empresa.id, updated.empresaId) }),
         db
           .select({ correo: usuario.correo, nombre: usuario.nombre })
@@ -76,6 +76,10 @@ export async function PATCH(
               eq(empresaUsuario.rol, "administrador")
             )
           ),
+        db
+          .select({ correo: usuario.correo, nombre: usuario.nombre })
+          .from(usuario)
+          .where(eq(usuario.isSuperAdmin, true)),
       ]);
 
       const nombreEmpresa = empresaRow?.nombre ?? updated.empresaId;
@@ -90,8 +94,16 @@ export async function PATCH(
         minute: "2-digit",
       });
 
+      // Merge and deduplicate by correo
+      const seenCorreos = new Set<string>();
+      const recipients = [...empresaAdmins, ...superAdmins].filter(({ correo }) => {
+        if (seenCorreos.has(correo)) return false;
+        seenCorreos.add(correo);
+        return true;
+      });
+
       await Promise.allSettled(
-        admins.map((admin) =>
+        recipients.map((admin) =>
           sendEmail({
             to: admin.correo,
             subject: `Proceso completado: ${nombreProceso}`,

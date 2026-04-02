@@ -31,7 +31,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { Plus, Trash2, ArrowLeft, Building2, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Building2, AlertTriangle, StopCircle } from "lucide-react";
 
 interface EmpresaDetail {
   id: string;
@@ -48,6 +48,7 @@ interface EmpresaDetail {
     estado: string;
     temporada: string | null;
     fechaInicio: string | null;
+    fechaFin: string | null;
     tipoProceso?: { nombre: string } | null;
     producto?: { nombre: string } | null;
   }>;
@@ -56,6 +57,7 @@ interface EmpresaDetail {
     nombre: string;
     tipo: string;
     fechaInicio: string;
+    fechaFin: string | null;
     proceso?: { tipoProceso?: { nombre: string } | null } | null;
   }>;
 }
@@ -111,6 +113,14 @@ export default function EmpresaDetailPage() {
   const [servicioProcesoId, setServicioProcesoId] = useState("");
   const [servicioUsaCajas, setServicioUsaCajas] = useState(false);
   const [creatingServicio, setCreatingServicio] = useState(false);
+
+  // Terminar proceso state
+  const [terminateProcesoId, setTerminateProcesoId] = useState<string | null>(null);
+  const [terminatingProceso, setTerminatingProceso] = useState(false);
+
+  // Terminar servicio state
+  const [terminateServicioId, setTerminateServicioId] = useState<string | null>(null);
+  const [terminatingServicio, setTerminatingServicio] = useState(false);
 
   // Delete challenge state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -260,6 +270,39 @@ export default function EmpresaDetailPage() {
       console.error(error);
     } finally {
       setCreatingServicio(false);
+    }
+  };
+
+  const handleTerminarProceso = async () => {
+    if (!terminateProcesoId) return;
+    setTerminatingProceso(true);
+    try {
+      await axios.patch(`/api/procesos/${terminateProcesoId}`, {
+        estado: "completado",
+        fechaFin: new Date().toISOString(),
+      });
+      setTerminateProcesoId(null);
+      await fetchEmpresa();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setTerminatingProceso(false);
+    }
+  };
+
+  const handleTerminarServicio = async () => {
+    if (!terminateServicioId) return;
+    setTerminatingServicio(true);
+    try {
+      await axios.patch(`/api/admin/servicios/${terminateServicioId}`, {
+        fechaFin: new Date().toISOString(),
+      });
+      setTerminateServicioId(null);
+      await fetchEmpresa();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setTerminatingServicio(false);
     }
   };
 
@@ -594,11 +637,13 @@ export default function EmpresaDetailPage() {
                     <TableHead className="text-slate-400 uppercase text-xs">Temporada</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Estado</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Inicio</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {empresa.procesos.map((p) => {
                     const ec = estadoConfig[p.estado] ?? estadoConfig.planificado;
+                    const canTerminate = p.estado !== "completado" && p.estado !== "cancelado";
                     return (
                       <TableRow key={p.id} className="border-white/5 hover:bg-white/[0.02]">
                         <TableCell className="text-white font-medium">{p.tipoProceso?.nombre ?? "-"}</TableCell>
@@ -610,6 +655,17 @@ export default function EmpresaDetailPage() {
                         <TableCell className="text-slate-400">
                           {p.fechaInicio ? new Date(p.fechaInicio).toLocaleDateString("es-CL") : "-"}
                         </TableCell>
+                        <TableCell className="text-right">
+                          {canTerminate && (
+                            <button
+                              onClick={() => setTerminateProcesoId(p.id)}
+                              className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
+                              title="Terminar proceso"
+                            >
+                              <StopCircle className="w-4 h-4" />
+                            </button>
+                          )}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -617,6 +673,30 @@ export default function EmpresaDetailPage() {
               </Table>
             </CardContent>
           </Card>
+
+          {/* Diálogo confirmación terminar proceso */}
+          <Dialog open={!!terminateProcesoId} onOpenChange={(open) => { if (!open) setTerminateProcesoId(null); }}>
+            <DialogContent className="bg-slate-900 border-white/10 text-white">
+              <DialogHeader>
+                <DialogTitle className="text-red-400">Terminar Proceso</DialogTitle>
+              </DialogHeader>
+              <p className="text-slate-400 text-sm py-2">
+                ¿Estás seguro de que deseas marcar este proceso como completado? Se notificará a los administradores de la empresa y a los super admins.
+              </p>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setTerminateProcesoId(null)} className="border-white/10 text-slate-400 hover:text-white">
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleTerminarProceso}
+                  disabled={terminatingProceso}
+                  className="bg-red-600 hover:bg-red-500 text-white font-semibold"
+                >
+                  {terminatingProceso ? "Terminando..." : "Terminar Proceso"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* WORKFLOWS */}
@@ -774,12 +854,14 @@ export default function EmpresaDetailPage() {
                     <TableHead className="text-slate-400 uppercase text-xs">Tipo</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Proceso</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Inicio</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">Fin</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {empresa.servicios.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-slate-500 py-8">
+                      <TableCell colSpan={6} className="text-center text-slate-500 py-8">
                         No hay servicios para esta empresa
                       </TableCell>
                     </TableRow>
@@ -797,12 +879,50 @@ export default function EmpresaDetailPage() {
                       <TableCell className="text-slate-400">
                         {new Date(s.fechaInicio).toLocaleDateString("es-CL")}
                       </TableCell>
+                      <TableCell className="text-slate-400">
+                        {s.fechaFin ? new Date(s.fechaFin).toLocaleDateString("es-CL") : <span className="text-emerald-500 text-xs">Activo</span>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {!s.fechaFin && (
+                          <button
+                            onClick={() => setTerminateServicioId(s.id)}
+                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
+                            title="Terminar servicio"
+                          >
+                            <StopCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
+
+          {/* Diálogo confirmación terminar servicio */}
+          <Dialog open={!!terminateServicioId} onOpenChange={(open) => { if (!open) setTerminateServicioId(null); }}>
+            <DialogContent className="bg-slate-900 border-white/10 text-white">
+              <DialogHeader>
+                <DialogTitle className="text-red-400">Terminar Servicio</DialogTitle>
+              </DialogHeader>
+              <p className="text-slate-400 text-sm py-2">
+                ¿Estás seguro de que deseas finalizar este servicio? Se registrará la fecha de cierre y se notificará a los administradores de la empresa y a los super admins.
+              </p>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setTerminateServicioId(null)} className="border-white/10 text-slate-400 hover:text-white">
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleTerminarServicio}
+                  disabled={terminatingServicio}
+                  className="bg-red-600 hover:bg-red-500 text-white font-semibold"
+                >
+                  {terminatingServicio ? "Terminando..." : "Terminar Servicio"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>
