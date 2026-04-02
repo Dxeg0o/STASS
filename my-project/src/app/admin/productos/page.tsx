@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Package, Plus, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 interface Variedad {
   id: string;
@@ -82,8 +83,13 @@ export default function ProductosPage() {
       setProductoDialogOpen(false);
       setLoading(true);
       await fetchProductos();
+      toast.success("Producto creado correctamente");
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error al crear el producto");
+      }
     } finally {
       setCreatingProducto(false);
     }
@@ -105,8 +111,13 @@ export default function ProductosPage() {
       setVariedadDialogOpen(false);
       setLoading(true);
       await fetchProductos();
+      toast.success("Variedad agregada correctamente");
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error al agregar la variedad");
+      }
     } finally {
       setCreatingVariedad(false);
     }
@@ -118,8 +129,13 @@ export default function ProductosPage() {
       await axios.delete(`/api/admin/productos/${productoId}`);
       setLoading(true);
       await fetchProductos();
+      toast.success("Producto eliminado");
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error al eliminar el producto");
+      }
     }
   };
 
@@ -134,8 +150,13 @@ export default function ProductosPage() {
       );
       setLoading(true);
       await fetchProductos();
+      toast.success("Variedad eliminada");
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error al eliminar la variedad");
+      }
     }
   };
 

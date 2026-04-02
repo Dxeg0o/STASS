@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Building2, Plus, Search } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 interface Empresa {
   id: string;
@@ -77,8 +78,13 @@ export default function EmpresasPage() {
       setDialogOpen(false);
       setLoading(true);
       await fetchEmpresas();
+      toast.success("Empresa creada correctamente");
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error al crear la empresa");
+      }
     } finally {
       setCreating(false);
     }

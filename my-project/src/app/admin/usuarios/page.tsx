@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Users, Plus, Search } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 interface UsuarioEmpresa {
   empresa: {
@@ -97,8 +98,13 @@ export default function UsuariosPage() {
       setDialogOpen(false);
       setLoading(true);
       await fetchUsuarios();
+      toast.success("Usuario creado correctamente");
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error al crear el usuario");
+      }
     } finally {
       setCreating(false);
     }

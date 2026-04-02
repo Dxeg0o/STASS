@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Trash2, Link2, Copy, Check } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 interface Invitation {
   id: string;
@@ -94,8 +95,13 @@ export default function InvitacionesPage() {
       setSelectedRol("usuario");
       setExpiresAt("");
       await fetchInvitations();
+      toast.success("Invitación creada correctamente");
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error al crear la invitación");
+      }
     } finally {
       setCreating(false);
     }
@@ -105,8 +111,13 @@ export default function InvitacionesPage() {
     try {
       await axios.delete(`/api/admin/invitations/${id}`);
       await fetchInvitations();
+      toast.success("Invitación eliminada");
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error al eliminar la invitación");
+      }
     }
   };
 
