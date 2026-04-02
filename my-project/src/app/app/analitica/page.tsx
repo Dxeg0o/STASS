@@ -79,6 +79,7 @@ export default function AnaliticaPage() {
   const [selectedLotesComp, setSelectedLotesComp] = useState<string[]>([]);
   const [comparacion, setComparacion] = useState<ComparacionLote[]>([]);
   const [compLoading, setCompLoading] = useState(false);
+  const [compMode, setCompMode] = useState<"cantidad" | "porcentaje">("cantidad");
 
   // Tab 3: Diferencias
   const [selectedLoteDiff, setSelectedLoteDiff] = useState<string>("");
@@ -147,7 +148,6 @@ export default function AnaliticaPage() {
   // Build comparison chart: overlay distributions
   const compChartData = useMemo(() => {
     if (comparacion.length === 0) return [];
-    // Collect all unique calibres
     const calibreSet = new Set<number>();
     for (const l of comparacion) {
       for (const d of l.distribution) calibreSet.add(d.calibre);
@@ -158,11 +158,19 @@ export default function AnaliticaPage() {
       const point: Record<string, string | number> = { calibre: cal.toFixed(1) };
       for (const l of comparacion) {
         const entry = l.distribution.find((d) => d.calibre === cal);
-        point[l.loteId.slice(-8)] = entry?.count ?? 0;
+        const count = entry?.count ?? 0;
+        if (compMode === "porcentaje") {
+          point[l.loteId.slice(-8)] =
+            l.stats.totalCount > 0
+              ? parseFloat(((count / l.stats.totalCount) * 100).toFixed(2))
+              : 0;
+        } else {
+          point[l.loteId.slice(-8)] = count;
+        }
       }
       return point;
     });
-  }, [comparacion]);
+  }, [comparacion, compMode]);
 
   // ── Tab 3: Fetch diff ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -477,9 +485,26 @@ export default function AnaliticaPage() {
               {/* Overlay distribution chart */}
               <Card className="bg-slate-900/40 border-white/10">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-white">
-                    Distribucion de calibre
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base text-white">
+                      Distribucion de calibre
+                    </CardTitle>
+                    <div className="flex gap-1">
+                      {(["cantidad", "porcentaje"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => setCompMode(mode)}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 border ${
+                            compMode === mode
+                              ? "bg-cyan-950/60 text-cyan-400 border-cyan-500/40"
+                              : "bg-slate-900/40 text-slate-400 border-white/10 hover:border-white/20 hover:text-slate-300"
+                          }`}
+                        >
+                          {mode === "cantidad" ? "Cantidad" : "Porcentaje"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={350}>
@@ -494,7 +519,11 @@ export default function AnaliticaPage() {
                       />
                       <YAxis
                         tick={{ fill: "#64748b", fontSize: 10 }}
-                        tickFormatter={(v) => v.toLocaleString("es-CL")}
+                        tickFormatter={(v) =>
+                          compMode === "porcentaje"
+                            ? `${v}%`
+                            : v.toLocaleString("es-CL")
+                        }
                       />
                       <Tooltip
                         contentStyle={{
@@ -503,6 +532,12 @@ export default function AnaliticaPage() {
                           borderRadius: "8px",
                           fontSize: 12,
                         }}
+                        formatter={(value: number, name: string) => [
+                          compMode === "porcentaje"
+                            ? `${value.toFixed(2)}%`
+                            : formatNumber(value),
+                          name,
+                        ]}
                       />
                       <Legend />
                       {comparacion.map((l, idx) => (

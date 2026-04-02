@@ -62,6 +62,7 @@ const RANGE_OPTIONS = [
   { label: "Hoy", value: "today" },
   { label: "Esta semana", value: "week" },
   { label: "Este mes", value: "month" },
+  { label: "Este año", value: "year" },
 ];
 
 function getDateRange(range: string): { desde: Date; hasta: Date } {
@@ -86,6 +87,9 @@ function getDateRange(range: string): { desde: Date; hasta: Date } {
       desde = new Date(now);
       desde.setMonth(desde.getMonth() - 1);
       desde.setHours(0, 0, 0, 0);
+      break;
+    case "year":
+      desde = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
       break;
     default:
       desde = new Date(now);
