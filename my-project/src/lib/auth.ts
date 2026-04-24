@@ -11,12 +11,28 @@ export interface TokenPayload {
 
 const getSecret = () => new TextEncoder().encode(process.env.JWT_SECRET!);
 
+function getTokenFromCookieHeader(req: Request): string | null {
+  const cookieHeader = req.headers.get("cookie");
+  if (!cookieHeader) return null;
+
+  const tokenCookie = cookieHeader
+    .split(";")
+    .map((chunk) => chunk.trim())
+    .find((chunk) => chunk.startsWith("token="));
+
+  if (!tokenCookie) return null;
+  return decodeURIComponent(tokenCookie.slice("token=".length));
+}
+
 export async function verifyToken(req: Request): Promise<TokenPayload | null> {
   try {
     const bearerToken = req.headers.get("authorization");
-    if (!bearerToken) return null;
+    const token =
+      bearerToken?.startsWith("Bearer ")
+        ? bearerToken.split(" ")[1]
+        : getTokenFromCookieHeader(req);
+    if (!token) return null;
 
-    const token = bearerToken.split(" ")[1];
     const { payload } = await jose.jwtVerify(token, getSecret());
     const { id, email, isSuperAdmin } = payload as unknown as TokenPayload;
 

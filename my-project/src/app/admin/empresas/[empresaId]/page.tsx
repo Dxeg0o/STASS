@@ -33,6 +33,13 @@ import {
 } from "@/components/ui/table";
 import { Plus, Trash2, ArrowLeft, Building2, AlertTriangle, StopCircle, Layers } from "lucide-react";
 
+interface TipoProceso {
+  id: string;
+  nombre: string;
+  empresaId: string;
+  createdAt: string;
+}
+
 interface EmpresaDetail {
   id: string;
   nombre: string;
@@ -95,8 +102,13 @@ export default function EmpresaDetailPage() {
   const [selectedRol, setSelectedRol] = useState("usuario");
   const [addingUser, setAddingUser] = useState(false);
 
+  // Tipos de proceso tab state
+  const [tiposProceso, setTiposProceso] = useState<TipoProceso[]>([]);
+  const [tipoDialogOpen, setTipoDialogOpen] = useState(false);
+  const [tipoNombre, setTipoNombre] = useState("");
+  const [creatingTipo, setCreatingTipo] = useState(false);
+
   // Procesos tab state
-  const [tiposProceso, setTiposProceso] = useState<{ id: string; nombre: string }[]>([]);
   const [productos, setProductos] = useState<{ id: string; nombre: string }[]>([]);
   const [addProcesoDialogOpen, setAddProcesoDialogOpen] = useState(false);
   const [procesoTipoId, setProcesoTipoId] = useState("");
@@ -152,14 +164,16 @@ export default function EmpresaDetailPage() {
 
   const fetchEmpresa = async () => {
     try {
-      const [empRes, wfRes] = await Promise.all([
+      const [empRes, wfRes, tiposRes] = await Promise.all([
         axios.get(`/api/admin/empresas/${empresaId}`),
         axios.get(`/api/admin/empresas/${empresaId}/workflows`),
+        axios.get(`/api/admin/empresas/${empresaId}/tipos-proceso`),
       ]);
       setEmpresa(empRes.data);
       setNombre(empRes.data.nombre);
       setPais(empRes.data.pais ?? "");
       setWorkflows(wfRes.data);
+      setTiposProceso(tiposRes.data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -179,13 +193,33 @@ export default function EmpresaDetailPage() {
   const fetchTiposAndProductos = async () => {
     try {
       const [tiposRes, prodRes] = await Promise.all([
-        axios.get(`/api/tipos-proceso?empresaId=${empresaId}`),
+        axios.get(`/api/admin/empresas/${empresaId}/tipos-proceso`),
         axios.get("/api/admin/productos"),
       ]);
       setTiposProceso(tiposRes.data);
       setProductos(prodRes.data);
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleCreateTipo = async () => {
+    const trimmedNombre = tipoNombre.trim();
+    if (!trimmedNombre) return;
+
+    setCreatingTipo(true);
+    try {
+      const res = await axios.post(
+        `/api/admin/empresas/${empresaId}/tipos-proceso`,
+        { nombre: trimmedNombre }
+      );
+      setTiposProceso((prev) => [...prev, res.data]);
+      setTipoNombre("");
+      setTipoDialogOpen(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setCreatingTipo(false);
     }
   };
 
@@ -414,6 +448,9 @@ export default function EmpresaDetailPage() {
           <TabsTrigger value="usuarios" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
             Usuarios <Badge variant="outline" className="ml-1.5 border-white/10 text-slate-400 text-xs">{empresa.empresaUsuarios.length}</Badge>
           </TabsTrigger>
+          <TabsTrigger value="tipos" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
+            Tipos de Proceso <Badge variant="outline" className="ml-1.5 border-white/10 text-slate-400 text-xs">{tiposProceso.length}</Badge>
+          </TabsTrigger>
           <TabsTrigger value="procesos" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
             Procesos <Badge variant="outline" className="ml-1.5 border-white/10 text-slate-400 text-xs">{empresa.procesos.length}</Badge>
           </TabsTrigger>
@@ -609,6 +646,99 @@ export default function EmpresaDetailPage() {
                   ))}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TIPOS DE PROCESO */}
+        <TabsContent value="tipos" className="mt-4 space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="text-slate-400 text-sm">
+              {tiposProceso.length} tipo(s) de proceso definidos
+            </p>
+            <Dialog
+              open={tipoDialogOpen}
+              onOpenChange={(open) => {
+                setTipoDialogOpen(open);
+                if (!open) setTipoNombre("");
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nuevo Tipo
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-white/10 text-white">
+                <DialogHeader>
+                  <DialogTitle>Nuevo Tipo de Proceso</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                  <label className="text-sm text-slate-400 mb-1.5 block">
+                    Nombre
+                  </label>
+                  <Input
+                    value={tipoNombre}
+                    onChange={(e) => setTipoNombre(e.target.value)}
+                    placeholder="Ej: Cosecha"
+                    className="bg-slate-800/50 border-white/10 text-white"
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setTipoDialogOpen(false)}
+                    className="border-white/10 text-slate-400 hover:text-white"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleCreateTipo}
+                    disabled={creatingTipo || !tipoNombre.trim()}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+                  >
+                    {creatingTipo ? "Creando..." : "Crear"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Card className="bg-slate-900/60 border-white/10">
+            <CardContent className="p-0">
+              {tiposProceso.length === 0 ? (
+                <div className="text-center py-10 text-slate-500">
+                  <p>No hay tipos de proceso creados para esta empresa.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-white/10 hover:bg-transparent">
+                      <TableHead className="text-slate-400 uppercase text-xs">
+                        Nombre
+                      </TableHead>
+                      <TableHead className="text-slate-400 uppercase text-xs">
+                        Creado
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tiposProceso.map((tipo) => (
+                      <TableRow
+                        key={tipo.id}
+                        className="border-white/5 hover:bg-white/[0.02]"
+                      >
+                        <TableCell className="text-white font-medium">
+                          {tipo.nombre}
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          {new Date(tipo.createdAt).toLocaleDateString("es-CL")}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
