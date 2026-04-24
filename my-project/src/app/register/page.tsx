@@ -40,7 +40,7 @@ export default function RegisterPage() {
                   ¿Necesitas acceso?
                 </p>
                 <p className="mt-1 text-sm text-slate-400">
-                  Solicita que un administrador o superadmin te envíe una invitación por correo electrónico.
+                  Solicita que un administrador te envíe una invitación por correo electrónico.
                 </p>
               </div>
             </div>
