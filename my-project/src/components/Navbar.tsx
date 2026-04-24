@@ -6,7 +6,6 @@ import { Menu, X } from "lucide-react";
 const navLinks = [
   { href: "/", label: "Inicio" },
   { href: "/login", label: "Iniciar sesión" },
-  { href: "/register", label: "Registrarse" },
 ];
 
 const Navbar: React.FC = () => {

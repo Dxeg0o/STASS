@@ -53,7 +53,6 @@ export default function UsuariosPage() {
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -89,16 +88,15 @@ export default function UsuariosPage() {
         nombre,
         correo,
         password,
-        isSuperAdmin,
+        isSuperAdmin: true,
       });
       setNombre("");
       setCorreo("");
       setPassword("");
-      setIsSuperAdmin(false);
       setDialogOpen(false);
       setLoading(true);
       await fetchUsuarios();
-      toast.success("Usuario creado correctamente");
+      toast.success("Superadmin creado correctamente");
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.data?.error) {
         toast.error(error.response.data.error);
@@ -119,7 +117,7 @@ export default function UsuariosPage() {
             Usuarios
           </h1>
           <p className="text-slate-400 mt-1">
-            Gestiona los usuarios del sistema.
+            Gestiona usuarios e identifica las cuentas con acceso de superadmin.
           </p>
         </div>
 
@@ -127,14 +125,17 @@ export default function UsuariosPage() {
           <DialogTrigger asChild>
             <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold">
               <Plus className="w-4 h-4 mr-2" />
-              Nuevo Usuario
+              Nuevo Superadmin
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-slate-900 border-white/10 text-white">
             <DialogHeader>
-              <DialogTitle>Nuevo Usuario</DialogTitle>
+              <DialogTitle>Nueva Cuenta Superadmin</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              <p className="text-sm text-slate-400">
+                Los usuarios operativos se incorporan solo por invitación. Desde aquí solo se crean cuentas superadmin.
+              </p>
               <div>
                 <label className="text-sm text-slate-400 mb-1.5 block">
                   Nombre
@@ -170,18 +171,6 @@ export default function UsuariosPage() {
                   className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-600"
                 />
               </div>
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="isSuperAdmin"
-                  checked={isSuperAdmin}
-                  onChange={(e) => setIsSuperAdmin(e.target.checked)}
-                  className="w-4 h-4 rounded border-white/20 bg-slate-800 text-amber-500 focus:ring-amber-500/30"
-                />
-                <label htmlFor="isSuperAdmin" className="text-sm text-slate-300">
-                  Super Administrador
-                </label>
-              </div>
             </div>
             <DialogFooter>
               <Button
@@ -201,7 +190,7 @@ export default function UsuariosPage() {
                 }
                 className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
               >
-                {creating ? "Creando..." : "Crear"}
+                {creating ? "Creando..." : "Crear Superadmin"}
               </Button>
             </DialogFooter>
           </DialogContent>

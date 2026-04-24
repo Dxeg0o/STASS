@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { usuario } from "@/db/schema";
 import { verifyAdmin } from "@/lib/auth";
 import bcrypt from "bcrypt";
+import { eq } from "drizzle-orm";
 
 export async function GET(req: Request) {
   try {
@@ -41,10 +42,24 @@ export async function POST(req: Request) {
 
     const { nombre, correo, password, isSuperAdmin } = await req.json();
 
-    if (!nombre || !correo || !password) {
+    if (!nombre || !correo || !password || !isSuperAdmin) {
       return NextResponse.json(
-        { error: "nombre, correo, and password are required" },
+        {
+          error:
+            "Este endpoint solo permite crear cuentas superadmin con nombre, correo y password",
+        },
         { status: 400 }
+      );
+    }
+
+    const existing = await db.query.usuario.findFirst({
+      where: eq(usuario.correo, correo),
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "El correo ya esta registrado" },
+        { status: 409 }
       );
     }
 
@@ -56,7 +71,7 @@ export async function POST(req: Request) {
         nombre,
         correo,
         password: hashedPassword,
-        isSuperAdmin: isSuperAdmin ?? false,
+        isSuperAdmin: true,
       })
       .returning();
 

@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Settings, Plus, ArrowRight, Trash2 } from "lucide-react";
+import { EmpresaInvitationsPanel } from "@/components/app/EmpresaInvitationsPanel";
 
 // ---------- Types ----------
 
@@ -51,6 +52,7 @@ interface Workflow {
 export default function ConfiguracionesPage() {
   const { data: authData, loading: authLoading } = useContext(AuthenticationContext);
   const isAdmin = authData?.rol_usuario === "administrador";
+  const canManageInvitations = isAdmin || !!authData?.isSuperAdmin;
 
   const [tipos, setTipos] = useState<TipoProceso[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -213,6 +215,14 @@ export default function ConfiguracionesPage() {
           >
             Flujos de Trabajo
           </TabsTrigger>
+          {canManageInvitations && (
+            <TabsTrigger
+              value="invitaciones"
+              className="data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-slate-400"
+            >
+              Invitaciones
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ── Tipos de Proceso ─────────────────────────────────────────────── */}
@@ -341,6 +351,17 @@ export default function ConfiguracionesPage() {
             </div>
           )}
         </TabsContent>
+
+        {canManageInvitations && authData.empresaId && (
+          <TabsContent value="invitaciones" className="mt-4">
+            <EmpresaInvitationsPanel
+              empresaId={authData.empresaId}
+              empresaNombre={authData.empresaNombre}
+              canManage={canManageInvitations}
+              isSuperAdmin={authData.isSuperAdmin}
+            />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* ── Dialog: Crear Tipo de Proceso ──────────────────────────────────── */}

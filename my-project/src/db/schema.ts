@@ -549,6 +549,7 @@ export const invitationLink = pgTable("invitation_link", {
     .notNull()
     .references(() => empresa.id, { onDelete: "cascade" }),
   rol: text("rol").notNull(), // 'administrador' | 'usuario'
+  correoInvitado: text("correo_invitado"),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   usedAt: timestamp("used_at", { withTimezone: true }),
   usedByUsuarioId: uuid("used_by_usuario_id").references(() => usuario.id, {

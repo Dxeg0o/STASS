@@ -41,11 +41,6 @@ export default function Footer() {
                                 Ingresar
                             </Link>
                         </li>
-                        <li>
-                            <Link href="/register" className="hover:text-cyan-400 transition-colors">
-                                Registrarse
-                            </Link>
-                        </li>
                     </ul>
                 </div>
 

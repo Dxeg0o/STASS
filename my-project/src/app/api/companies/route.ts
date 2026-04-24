@@ -1,31 +1,16 @@
-import { NextResponse, NextRequest } from "next/server";
-import { db } from "@/db";
-import { empresa } from "@/db/schema";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  try {
-    const companies = await db.select().from(empresa);
-    return NextResponse.json(companies);
-  } catch (error) {
-    console.error("Error fetching companies:", error);
-    return NextResponse.json({ error: "Error fetching companies" }, { status: 500 });
-  }
+  return NextResponse.json(
+    { error: "El registro publico de empresas esta deshabilitado" },
+    { status: 403 }
+  );
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const data = await request.json();
-    const [created] = await db
-      .insert(empresa)
-      .values({
-        nombre: data.nombre,
-        pais: data.pais,
-        createdAt: data.fechaRegistro ? new Date(data.fechaRegistro) : new Date(),
-      })
-      .returning();
-    return NextResponse.json(created);
-  } catch (error) {
-    console.error("Error creating company:", error);
-    return NextResponse.json({ error: "Error creating company" }, { status: 400 });
-  }
+export async function POST(_request: NextRequest) {
+  void _request;
+  return NextResponse.json(
+    { error: "La creacion de empresas solo esta disponible para superadmin" },
+    { status: 403 }
+  );
 }

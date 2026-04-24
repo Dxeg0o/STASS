@@ -150,15 +150,8 @@ export default function LoginPage() {
               ) : "Iniciar Sesión"}
             </button>
           </form>
-
           <p className="mt-8 text-center text-sm text-slate-400">
-            ¿No tienes una cuenta?{" "}
-            <Link
-              href="/register"
-              className="font-medium text-cyan-400 hover:text-cyan-300 transition-colors hover:underline underline-offset-4"
-            >
-              Regístrate aquí
-            </Link>
+            El acceso a la plataforma se habilita solo mediante invitación válida.
           </p>
         </motion.div>
       </main>

@@ -10,6 +10,7 @@
     "email": "npx react-email dev --dir src/emails --port 3001"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@radix-ui/react-accordion": "^1.2.1",
     "@radix-ui/react-dialog": "^1.1.11",
     "@radix-ui/react-icons": "^1.3.0",
@@ -42,6 +43,7 @@
     "firebase": "^10.14.1",
     "firebase-tools": "^13.22.1",
     "framer-motion": "^11.11.8",
+    "gsap": "^3.14.2",
     "jose": "^5.9.6",
     "jsonwebtoken": "^9.0.2",
     "leaflet": "^1.9.4",
