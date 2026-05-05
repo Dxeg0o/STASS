@@ -3,13 +3,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
+import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +33,17 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2, CheckSquare, Square, Layers } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  CheckSquare,
+  Square,
+  Layers,
+  Cpu,
+  Unlink,
+  FileSpreadsheet,
+} from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -50,6 +60,7 @@ interface Lote {
 interface Variedad {
   id: string;
   nombre: string;
+  tipo?: string | null;
 }
 
 interface Producto {
@@ -68,11 +79,64 @@ interface ServicioInfo {
   ubicacion?: { nombre: string; tipo: string } | null;
 }
 
+interface Dispositivo {
+  id: string;
+  nombre: string;
+  tipo: string;
+  activo: boolean | null;
+}
+
+interface ServicioDispositivo {
+  dispositivoId: string;
+  servicioId: string;
+  maquina: string | null;
+  asignadoAt: string | null;
+  dispositivo: Dispositivo;
+}
+
+interface ServicioDispositivosResponse {
+  asignados: ServicioDispositivo[];
+  disponibles: Dispositivo[];
+}
+
 const TIPO_LABELS: Record<string, string> = {
   linea_conteo: "Línea de Conteo",
   maquina_plantacion: "Máquina de Plantación",
   estacion_calidad: "Estación de Calidad",
 };
+
+type CreationMode = "individual" | "excel";
+type ColumnMapping = "ignore" | "codigoLote" | "variedad" | "producto";
+
+interface ExcelRow {
+  rowNumber: number;
+  values: Record<string, string>;
+}
+
+interface ImportPreviewRow {
+  rowNumber: number;
+  codigoLote: string;
+  variedadId: string | null;
+  variedadNombre: string | null;
+  productoNombre: string | null;
+  status: "ready" | "warning" | "skipped";
+  warnings: string[];
+  skipReason?: string;
+}
+
+const MAPPING_LABELS: Record<ColumnMapping, string> = {
+  ignore: "Ignorar",
+  codigoLote: "Código de lote",
+  variedad: "Variedad",
+  producto: "Producto",
+};
+
+const normalizeText = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
 // ── Component ────────────────────────────────────────────────
 
@@ -86,19 +150,25 @@ export default function AdminServicioLotesPage() {
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dispositivosAsignados, setDispositivosAsignados] = useState<ServicioDispositivo[]>([]);
+  const [dispositivosDisponibles, setDispositivosDisponibles] = useState<Dispositivo[]>([]);
+  const [dispositivosLoading, setDispositivosLoading] = useState(true);
 
   // Search
   const [search, setSearch] = useState("");
 
   // Create dialog
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [creationMode, setCreationMode] = useState<"individual" | "masivo">("individual");
+  const [creationMode, setCreationMode] = useState<CreationMode>("individual");
   const [selectedProductoId, setSelectedProductoId] = useState("");
   const [selectedVariedadId, setSelectedVariedadId] = useState("");
-  const [bulkQuantity, setBulkQuantity] = useState(10);
   const [creating, setCreating] = useState(false);
-  const [bulkProgress, setBulkProgress] = useState<number | null>(null);
   const [codigoLoteInput, setCodigoLoteInput] = useState("");
+  const [excelFileName, setExcelFileName] = useState("");
+  const [excelHeaders, setExcelHeaders] = useState<string[]>([]);
+  const [excelRows, setExcelRows] = useState<ExcelRow[]>([]);
+  const [columnMappings, setColumnMappings] = useState<Record<string, ColumnMapping>>({});
+  const [bulkProductoId, setBulkProductoId] = useState("");
 
   // Selection mode
   const [selectionMode, setSelectionMode] = useState(false);
@@ -107,6 +177,13 @@ export default function AdminServicioLotesPage() {
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Device assignment dialog
+  const [deviceDialogOpen, setDeviceDialogOpen] = useState(false);
+  const [selectedDispositivoId, setSelectedDispositivoId] = useState("");
+  const [deviceMaquina, setDeviceMaquina] = useState("");
+  const [assigningDevice, setAssigningDevice] = useState(false);
+  const [unassigningDeviceId, setUnassigningDeviceId] = useState<string | null>(null);
 
   // ── Fetch data ──────────────────────────────────────────────
 
@@ -118,8 +195,11 @@ export default function AdminServicioLotesPage() {
       axios.get(`/api/admin/empresas/${empresaId}`),
       axios.get(`/api/admin/servicios/${servicioId}/lotes`),
       axios.get("/api/admin/productos"),
+      axios.get<ServicioDispositivosResponse>(
+        `/api/admin/servicios/${servicioId}/dispositivos`
+      ),
     ])
-      .then(([empresaRes, lotesRes, productosRes]) => {
+      .then(([empresaRes, lotesRes, productosRes, dispositivosRes]) => {
         // Find the service in empresa data
         const srv = empresaRes.data.servicios?.find(
           (s: ServicioInfo) => s.id === servicioId
@@ -127,9 +207,14 @@ export default function AdminServicioLotesPage() {
         setServicioInfo(srv ?? null);
         setLotes(lotesRes.data);
         setProductos(productosRes.data);
+        setDispositivosAsignados(dispositivosRes.data.asignados);
+        setDispositivosDisponibles(dispositivosRes.data.disponibles);
       })
       .catch(() => toast.error("Error al cargar datos"))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setDispositivosLoading(false);
+      });
   }, [servicioId, empresaId]);
 
   // ── Filtered lotes ──────────────────────────────────────────
@@ -154,6 +239,160 @@ export default function AdminServicioLotesPage() {
     return productos.find((p) => p.id === selectedProductoId)?.variedades ?? [];
   }, [productos, selectedProductoId]);
 
+  const mappedHeaderByType = useMemo(() => {
+    const entries = Object.entries(columnMappings);
+
+    return {
+      codigoLote: entries.find(([, mapping]) => mapping === "codigoLote")?.[0] ?? null,
+      variedad: entries.find(([, mapping]) => mapping === "variedad")?.[0] ?? null,
+      producto: entries.find(([, mapping]) => mapping === "producto")?.[0] ?? null,
+    };
+  }, [columnMappings]);
+
+  const importPreview = useMemo(() => {
+    const existingCodes = new Set(
+      lotes
+        .map((l) => l.codigoLote)
+        .filter((value): value is string => Boolean(value))
+        .map(normalizeText)
+    );
+    const seenCodes = new Set<string>();
+    const productByName = new Map(productos.map((p) => [normalizeText(p.nombre), p]));
+    const varietiesByName = new Map<string, Array<{ variedad: Variedad; producto: Producto }>>();
+
+    productos.forEach((p) => {
+      p.variedades.forEach((v) => {
+        const key = normalizeText(v.nombre);
+        const current = varietiesByName.get(key) ?? [];
+        current.push({ variedad: v, producto: p });
+        varietiesByName.set(key, current);
+      });
+    });
+
+    const manualProduct = bulkProductoId
+      ? productos.find((p) => p.id === bulkProductoId) ?? null
+      : null;
+    const codigoHeader = mappedHeaderByType.codigoLote;
+    const variedadHeader = mappedHeaderByType.variedad;
+    const productoHeader = mappedHeaderByType.producto;
+
+    if (!codigoHeader) {
+      return {
+        rows: [] as ImportPreviewRow[],
+        readyRows: [] as ImportPreviewRow[],
+        skippedCount: 0,
+        warningCount: 0,
+        hasCodigoMapping: false,
+      };
+    }
+
+    const rows = excelRows.map((row) => {
+      const warnings: string[] = [];
+      const codigoLote = (row.values[codigoHeader] ?? "").trim();
+
+      if (!codigoLote) {
+        return {
+          rowNumber: row.rowNumber,
+          codigoLote,
+          variedadId: null,
+          variedadNombre: null,
+          productoNombre: null,
+          status: "skipped" as const,
+          warnings: [],
+          skipReason: "Sin código de lote",
+        };
+      }
+
+      const normalizedCode = normalizeText(codigoLote);
+      if (seenCodes.has(normalizedCode)) {
+        return {
+          rowNumber: row.rowNumber,
+          codigoLote,
+          variedadId: null,
+          variedadNombre: null,
+          productoNombre: null,
+          status: "skipped" as const,
+          warnings: [],
+          skipReason: "Código duplicado en el Excel",
+        };
+      }
+      seenCodes.add(normalizedCode);
+
+      if (existingCodes.has(normalizedCode)) {
+        return {
+          rowNumber: row.rowNumber,
+          codigoLote,
+          variedadId: null,
+          variedadNombre: null,
+          productoNombre: null,
+          status: "skipped" as const,
+          warnings: [],
+          skipReason: "Código ya existe en este servicio",
+        };
+      }
+
+      let productContext = manualProduct;
+      const productValue = productoHeader ? (row.values[productoHeader] ?? "").trim() : "";
+      if (productoHeader) {
+        productContext = productValue
+          ? productByName.get(normalizeText(productValue)) ?? null
+          : null;
+        if (productValue && !productContext) {
+          warnings.push(`Producto no encontrado: ${productValue}`);
+        }
+      }
+
+      let variedadId: string | null = null;
+      let variedadNombre: string | null = null;
+      const variedadValue = variedadHeader ? (row.values[variedadHeader] ?? "").trim() : "";
+
+      if (variedadHeader && variedadValue) {
+        if (productContext) {
+          const match = productContext.variedades.find(
+            (v) => normalizeText(v.nombre) === normalizeText(variedadValue)
+          );
+          if (match) {
+            variedadId = match.id;
+            variedadNombre = match.nombre;
+          } else {
+            warnings.push(`Variedad no encontrada para ${productContext.nombre}: ${variedadValue}`);
+          }
+        } else {
+          const matches = varietiesByName.get(normalizeText(variedadValue)) ?? [];
+          if (matches.length === 1) {
+            variedadId = matches[0].variedad.id;
+            variedadNombre = matches[0].variedad.nombre;
+            productContext = matches[0].producto;
+          } else if (matches.length > 1) {
+            warnings.push(`Variedad ambigua sin producto: ${variedadValue}`);
+          } else {
+            warnings.push(`Variedad no encontrada: ${variedadValue}`);
+          }
+        }
+      } else if (variedadHeader) {
+        warnings.push("Fila sin variedad");
+      }
+
+      return {
+        rowNumber: row.rowNumber,
+        codigoLote,
+        variedadId,
+        variedadNombre,
+        productoNombre: productContext?.nombre ?? null,
+        status: warnings.length > 0 ? ("warning" as const) : ("ready" as const),
+        warnings,
+      };
+    });
+
+    return {
+      rows,
+      readyRows: rows.filter((row) => row.status !== "skipped"),
+      skippedCount: rows.filter((row) => row.status === "skipped").length,
+      warningCount: rows.filter((row) => row.status === "warning").length,
+      hasCodigoMapping: true,
+    };
+  }, [bulkProductoId, excelRows, lotes, mappedHeaderByType, productos]);
+
   // ── Handlers ────────────────────────────────────────────────
 
   const handleProductoChange = (id: string) => {
@@ -161,44 +400,174 @@ export default function AdminServicioLotesPage() {
     setSelectedVariedadId("");
   };
 
+  const resetExcelImport = () => {
+    setExcelFileName("");
+    setExcelHeaders([]);
+    setExcelRows([]);
+    setColumnMappings({});
+    setBulkProductoId("");
+  };
+
   const resetDialog = () => {
     setSelectedProductoId("");
     setSelectedVariedadId("");
-    setBulkQuantity(10);
-    setBulkProgress(null);
     setCreationMode("individual");
     setCodigoLoteInput("");
+    resetExcelImport();
+  };
+
+  const inferColumnMapping = (header: string): ColumnMapping => {
+    const normalized = normalizeText(header);
+    if (
+      normalized.includes("codigo") ||
+      normalized === "lote" ||
+      normalized.includes("cod lote") ||
+      normalized.includes("id lote")
+    ) {
+      return "codigoLote";
+    }
+    if (normalized.includes("variedad")) return "variedad";
+    if (normalized.includes("producto")) return "producto";
+    return "ignore";
+  };
+
+  const handleExcelFile = async (file: File | null) => {
+    if (!file) return;
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+
+      if (!firstSheetName) {
+        toast.error("El Excel no tiene hojas");
+        return;
+      }
+
+      const sheet = workbook.Sheets[firstSheetName];
+      const rows = XLSX.utils.sheet_to_json<Array<string | number | boolean | null>>(
+        sheet,
+        {
+          header: 1,
+          defval: "",
+          blankrows: false,
+        }
+      );
+
+      const headerRow = rows[0] ?? [];
+      const headers = headerRow
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean);
+
+      if (headers.length === 0) {
+        toast.error("No se encontraron cabeceras legibles en la primera fila");
+        return;
+      }
+
+      const parsedRows: ExcelRow[] = rows.slice(1).flatMap((row, index) => {
+        const values = headers.reduce<Record<string, string>>((acc, header, columnIndex) => {
+          acc[header] = String(row[columnIndex] ?? "").trim();
+          return acc;
+        }, {});
+
+        const hasAnyValue = Object.values(values).some((value) => value.trim());
+        if (!hasAnyValue) return [];
+
+        return [{ rowNumber: index + 2, values }];
+      });
+
+      const initialMappings = headers.reduce<Record<string, ColumnMapping>>(
+        (acc, header) => {
+          const inferred = inferColumnMapping(header);
+          const alreadyUsed = Object.values(acc).includes(inferred);
+          acc[header] = inferred !== "ignore" && alreadyUsed ? "ignore" : inferred;
+          return acc;
+        },
+        {}
+      );
+
+      setExcelFileName(file.name);
+      setExcelHeaders(headers);
+      setExcelRows(parsedRows);
+      setColumnMappings(initialMappings);
+      setBulkProductoId("");
+
+      toast.success(`Excel cargado: ${headers.length} cabecera(s), ${parsedRows.length} fila(s)`);
+    } catch {
+      toast.error("No se pudo leer el Excel");
+    }
+  };
+
+  const handleMappingChange = (header: string, mapping: ColumnMapping) => {
+    setColumnMappings((prev) => {
+      const next = { ...prev, [header]: mapping };
+      if (mapping !== "ignore") {
+        Object.keys(next).forEach((key) => {
+          if (key !== header && next[key] === mapping) next[key] = "ignore";
+        });
+      }
+      if (mapping === "producto") setBulkProductoId("");
+      return next;
+    });
   };
 
   const handleCreate = async () => {
-    const cantidad = creationMode === "masivo" ? bulkQuantity : 1;
+    if (creationMode === "excel") {
+      if (!mappedHeaderByType.codigoLote) {
+        toast.error("Debes mapear una columna como Código de lote");
+        return;
+      }
+
+      if (importPreview.readyRows.length === 0) {
+        toast.error("No hay lotes válidos para importar");
+        return;
+      }
+    }
+
     setCreating(true);
-    if (creationMode === "masivo") setBulkProgress(10);
 
     try {
+      if (creationMode === "excel") {
+        const res = await axios.post(`/api/admin/servicios/${servicioId}/lotes`, {
+          lotes: importPreview.readyRows.map((row) => ({
+            codigoLote: row.codigoLote,
+            variedadId: row.variedadId,
+          })),
+        });
+
+        const { created, lotes: newLotes, skippedDuplicates = [] } = res.data;
+        setLotes((prev) => [...newLotes, ...prev]);
+        setDialogOpen(false);
+        resetDialog();
+
+        toast.success(
+          `Se importaron ${created} lote(s)${
+            skippedDuplicates.length ? `; ${skippedDuplicates.length} duplicado(s) omitido(s)` : ""
+          }`
+        );
+        return;
+      }
+
       const res = await axios.post(`/api/admin/servicios/${servicioId}/lotes`, {
         variedadId: selectedVariedadId || undefined,
-        cantidad,
+        cantidad: 1,
         codigoLote: creationMode === "individual" ? (codigoLoteInput.trim() || undefined) : undefined,
       });
-
-      if (creationMode === "masivo") setBulkProgress(90);
 
       const { created, lotes: newLotes } = res.data;
       setLotes((prev) => [...newLotes, ...prev]);
       setDialogOpen(false);
       resetDialog();
 
-      if (cantidad === 1) {
+      if (created === 1) {
         toast.success("Lote creado correctamente");
       } else {
         toast.success(`Se crearon ${created} lotes correctamente`);
       }
     } catch {
-      toast.error("Error al crear lotes");
+      toast.error(creationMode === "excel" ? "Error al importar lotes" : "Error al crear lotes");
     } finally {
       setCreating(false);
-      setBulkProgress(null);
     }
   };
 
@@ -248,6 +617,61 @@ export default function AdminServicioLotesPage() {
       }
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const fetchServicioDispositivos = async () => {
+    setDispositivosLoading(true);
+    try {
+      const res = await axios.get<ServicioDispositivosResponse>(
+        `/api/admin/servicios/${servicioId}/dispositivos`
+      );
+      setDispositivosAsignados(res.data.asignados);
+      setDispositivosDisponibles(res.data.disponibles);
+    } catch {
+      toast.error("Error al cargar dispositivos");
+    } finally {
+      setDispositivosLoading(false);
+    }
+  };
+
+  const resetDeviceDialog = () => {
+    setSelectedDispositivoId("");
+    setDeviceMaquina("");
+  };
+
+  const handleAssignDevice = async () => {
+    if (!selectedDispositivoId) return;
+
+    setAssigningDevice(true);
+    try {
+      await axios.post(`/api/admin/servicios/${servicioId}/dispositivos`, {
+        dispositivoId: selectedDispositivoId,
+        maquina: deviceMaquina.trim() || null,
+      });
+      setDeviceDialogOpen(false);
+      resetDeviceDialog();
+      await fetchServicioDispositivos();
+      toast.success("Dispositivo asignado correctamente");
+    } catch {
+      toast.error("Error al asignar dispositivo");
+    } finally {
+      setAssigningDevice(false);
+    }
+  };
+
+  const handleUnassignDevice = async (dispositivoId: string) => {
+    setUnassigningDeviceId(dispositivoId);
+    try {
+      await axios.delete(`/api/admin/servicios/${servicioId}/dispositivos`, {
+        data: { dispositivoId },
+      });
+      await fetchServicioDispositivos();
+      toast.success("Dispositivo desasignado correctamente");
+    } catch {
+      toast.error("Error al desasignar dispositivo");
+    } finally {
+      setUnassigningDeviceId(null);
     }
   };
 
@@ -316,8 +740,31 @@ export default function AdminServicioLotesPage() {
         </div>
       )}
 
-      {/* Lotes management */}
-      <Card className="bg-slate-900/60 border-white/10">
+      <Tabs defaultValue="lotes" className="space-y-4">
+        <TabsList className="bg-slate-800/50 border border-white/10">
+          <TabsTrigger
+            value="lotes"
+            className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+          >
+            Lotes
+            <Badge variant="outline" className="ml-1.5 border-white/10 text-slate-400 text-xs">
+              {lotes.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger
+            value="dispositivos"
+            className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
+          >
+            Dispositivos
+            <Badge variant="outline" className="ml-1.5 border-white/10 text-slate-400 text-xs">
+              {dispositivosAsignados.length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Lotes management */}
+        <TabsContent value="lotes" className="mt-0">
+          <Card className="bg-slate-900/60 border-white/10">
         <CardHeader>
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <CardTitle className="text-lg text-white">
@@ -387,7 +834,7 @@ export default function AdminServicioLotesPage() {
               <Layers className="w-10 h-10 mx-auto mb-3 opacity-40" />
               <p className="text-lg font-medium">No hay lotes</p>
               <p className="text-sm mt-1">
-                Crea lotes de forma individual o masiva para comenzar
+                Crea lotes de forma individual o importa un Excel para comenzar
               </p>
             </div>
           ) : (
@@ -493,7 +940,136 @@ export default function AdminServicioLotesPage() {
             </div>
           )}
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
+
+        {/* Device management */}
+        <TabsContent value="dispositivos" className="mt-0">
+          <Card className="bg-slate-900/60 border-white/10">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <CardTitle className="text-lg text-white">
+                  Dispositivos del servicio
+                  <span className="text-slate-500 font-normal ml-2 text-sm">
+                    ({dispositivosAsignados.length})
+                  </span>
+                </CardTitle>
+                <Button
+                  size="sm"
+                  disabled={dispositivosDisponibles.length === 0 || dispositivosLoading}
+                  onClick={() => setDeviceDialogOpen(true)}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Asignar Dispositivo
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {dispositivosLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-12 rounded-lg bg-slate-800/70 animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : dispositivosAsignados.length === 0 ? (
+                <div className="text-center py-16 text-slate-500">
+                  <Cpu className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                  <p className="text-lg font-medium">No hay dispositivos asignados</p>
+                  <p className="text-sm mt-1">
+                    Asigna dispositivos desde este servicio para comenzar.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-white/10 hover:bg-transparent">
+                        <TableHead className="text-slate-400 uppercase text-xs">
+                          Nombre
+                        </TableHead>
+                        <TableHead className="text-slate-400 uppercase text-xs">
+                          Tipo
+                        </TableHead>
+                        <TableHead className="text-slate-400 uppercase text-xs">
+                          Máquina
+                        </TableHead>
+                        <TableHead className="text-slate-400 uppercase text-xs">
+                          Asignado
+                        </TableHead>
+                        <TableHead className="text-slate-400 uppercase text-xs text-center">
+                          Estado
+                        </TableHead>
+                        <TableHead className="text-slate-400 uppercase text-xs text-right">
+                          Acciones
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {dispositivosAsignados.map((assignment) => {
+                        const isInactive = assignment.dispositivo.activo === false;
+
+                        return (
+                          <TableRow
+                            key={assignment.dispositivoId}
+                            className="border-white/5 hover:bg-white/[0.02] transition-colors"
+                          >
+                            <TableCell className="text-white font-medium">
+                              {assignment.dispositivo.nombre}
+                            </TableCell>
+                            <TableCell className="text-slate-400">
+                              {assignment.dispositivo.tipo}
+                            </TableCell>
+                            <TableCell className="text-slate-400">
+                              {assignment.maquina || (
+                                <span className="italic text-slate-600">Sin máquina</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-slate-400 text-sm">
+                              {assignment.asignadoAt
+                                ? format(new Date(assignment.asignadoAt), "dd/MM/yyyy HH:mm")
+                                : "—"}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  isInactive
+                                    ? "border-red-500/30 bg-red-950/30 text-red-400"
+                                    : "border-emerald-500/30 bg-emerald-950/30 text-emerald-400"
+                                }
+                              >
+                                {isInactive ? "Inactivo" : "Activo"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={unassigningDeviceId === assignment.dispositivoId}
+                                onClick={() => handleUnassignDevice(assignment.dispositivoId)}
+                                className="border-red-500/20 text-red-400 hover:text-red-300 hover:bg-red-950/30"
+                              >
+                                <Unlink className="w-3 h-3 mr-1" />
+                                {unassigningDeviceId === assignment.dispositivoId
+                                  ? "Quitando..."
+                                  : "Desasignar"}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* ── Create Dialog ──────────────────────────────────────── */}
       <Dialog
@@ -503,14 +1079,14 @@ export default function AdminServicioLotesPage() {
           if (!open) resetDialog();
         }}
       >
-        <DialogContent className="bg-slate-900 border-white/10 text-white sm:max-w-md">
+        <DialogContent className="bg-slate-900 border-white/10 text-white sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">Crear Lotes</DialogTitle>
           </DialogHeader>
 
           <Tabs
             value={creationMode}
-            onValueChange={(v) => setCreationMode(v as "individual" | "masivo")}
+            onValueChange={(v) => setCreationMode(v as CreationMode)}
             className="mt-2"
           >
             <TabsList className="bg-slate-800/60 border border-white/10 w-full">
@@ -521,15 +1097,14 @@ export default function AdminServicioLotesPage() {
                 Individual
               </TabsTrigger>
               <TabsTrigger
-                value="masivo"
+                value="excel"
                 className="flex-1 data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400"
               >
-                Masivo
+                Excel
               </TabsTrigger>
             </TabsList>
 
-            {/* Shared fields */}
-            <div className="space-y-4 mt-4">
+            <TabsContent value="individual" className="mt-4 space-y-4">
               <div>
                 <label className="text-sm text-slate-400 mb-1.5 block">
                   Producto
@@ -583,76 +1158,214 @@ export default function AdminServicioLotesPage() {
                 </Select>
               </div>
 
-              {/* Masivo-specific fields */}
-              <TabsContent value="masivo" className="mt-0 space-y-4">
-                <div>
-                  <label className="text-sm text-slate-400 mb-1.5 block">
-                    Cantidad de lotes
-                  </label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={500}
-                    value={bulkQuantity}
-                    onChange={(e) =>
-                      setBulkQuantity(
-                        Math.min(500, Math.max(1, Number(e.target.value) || 1))
-                      )
-                    }
-                    className="bg-slate-800/50 border-white/10 text-white w-32"
-                  />
-                </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1.5 block">
+                  Código de lote <span className="text-slate-600">(ej. 320.22C.S)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="320.22C.S"
+                  value={codigoLoteInput}
+                  onChange={(e) => setCodigoLoteInput(e.target.value)}
+                  className="w-full px-3 py-2 rounded-md bg-slate-800/50 border border-white/10 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+            </TabsContent>
 
-                {selectedVariedadId && (
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-                    <p className="text-sm text-amber-300">
-                      Se crearán{" "}
-                      <span className="font-bold text-amber-400">
-                        {bulkQuantity}
-                      </span>{" "}
-                      lotes de{" "}
-                      <span className="font-semibold">
-                        {variedadesForSelected.find(
-                          (v) => v.id === selectedVariedadId
-                        )?.nombre ?? ""}
-                      </span>
-                      {selectedProductoId && (
-                        <>
-                          {" "}
-                          (
-                          {productos.find((p) => p.id === selectedProductoId)
-                            ?.nombre ?? ""}
-                          )
-                        </>
-                      )}
-                    </p>
-                  </div>
-                )}
-
-                {bulkProgress !== null && (
-                  <Progress
-                    value={bulkProgress}
-                    className="h-2 bg-slate-800"
-                  />
-                )}
-              </TabsContent>
-
-              {/* Individual-specific fields */}
-              <TabsContent value="individual" className="mt-0 space-y-2">
-                <div>
-                  <label className="text-sm text-slate-400 mb-1.5 block">
-                    Código de lote <span className="text-slate-600">(ej. 320.22C.S)</span>
-                  </label>
+            <TabsContent value="excel" className="mt-4 space-y-5">
+              <div className="rounded-lg border border-dashed border-white/15 bg-slate-950/40 p-4">
+                <label className="flex flex-col sm:flex-row sm:items-center gap-3 cursor-pointer">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/15 text-amber-400">
+                    <FileSpreadsheet className="w-5 h-5" />
+                  </span>
+                  <span className="space-y-1">
+                    <span className="block text-sm font-medium text-white">
+                      {excelFileName || "Subir archivo Excel"}
+                    </span>
+                    <span className="block text-xs text-slate-500">
+                      Se leerá la primera hoja y la primera fila como cabeceras.
+                    </span>
+                  </span>
                   <input
-                    type="text"
-                    placeholder="320.22C.S"
-                    value={codigoLoteInput}
-                    onChange={(e) => setCodigoLoteInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-md bg-slate-800/50 border border-white/10 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    type="file"
+                    accept=".xlsx,.xls"
+                    className="hidden"
+                    onChange={(e) => handleExcelFile(e.target.files?.[0] ?? null)}
                   />
-                </div>
-              </TabsContent>
-            </div>
+                </label>
+              </div>
+
+              {excelHeaders.length > 0 && (
+                <>
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">
+                        Mapear cabeceras
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Asigna manualmente qué columna corresponde a cada atributo.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {excelHeaders.map((header) => (
+                        <div
+                          key={header}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-950/30 p-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm text-white">{header}</p>
+                            <p className="text-xs text-slate-500">
+                              {excelRows[0]?.values[header] || "Sin ejemplo"}
+                            </p>
+                          </div>
+                          <Select
+                            value={columnMappings[header] ?? "ignore"}
+                            onValueChange={(value) =>
+                              handleMappingChange(header, value as ColumnMapping)
+                            }
+                          >
+                            <SelectTrigger className="w-40 shrink-0 bg-slate-800/50 border-white/10 text-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-white/10">
+                              {(Object.keys(MAPPING_LABELS) as ColumnMapping[]).map((value) => (
+                                <SelectItem
+                                  key={value}
+                                  value={value}
+                                  className="text-white hover:bg-slate-800"
+                                >
+                                  {MAPPING_LABELS[value]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {!mappedHeaderByType.producto && (
+                    <div>
+                      <label className="text-sm text-slate-400 mb-1.5 block">
+                        Producto para esta carga
+                      </label>
+                      <Select value={bulkProductoId} onValueChange={setBulkProductoId}>
+                        <SelectTrigger className="bg-slate-800/50 border-white/10 text-white max-w-sm">
+                          <SelectValue placeholder="Opcional: seleccionar producto" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10">
+                          {productos.map((p) => (
+                            <SelectItem
+                              key={p.id}
+                              value={p.id}
+                              className="text-white hover:bg-slate-800"
+                            >
+                              {p.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="rounded-lg border border-white/10 bg-slate-950/30 p-3">
+                      <p className="text-xs text-slate-500">Filas leídas</p>
+                      <p className="text-xl font-semibold text-white">{excelRows.length}</p>
+                    </div>
+                    <div className="rounded-lg border border-emerald-500/20 bg-emerald-950/20 p-3">
+                      <p className="text-xs text-emerald-500">A importar</p>
+                      <p className="text-xl font-semibold text-emerald-300">
+                        {importPreview.readyRows.length}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-3">
+                      <p className="text-xs text-amber-500">Con advertencias</p>
+                      <p className="text-xl font-semibold text-amber-300">
+                        {importPreview.warningCount}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-red-500/20 bg-red-950/20 p-3">
+                      <p className="text-xs text-red-500">Omitidas</p>
+                      <p className="text-xl font-semibold text-red-300">
+                        {importPreview.skippedCount}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!importPreview.hasCodigoMapping ? (
+                    <div className="rounded-lg border border-red-500/20 bg-red-950/20 p-3 text-sm text-red-300">
+                      Debes mapear una columna como Código de lote para importar.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border border-white/10">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-white/10 hover:bg-transparent">
+                            <TableHead className="text-slate-400 uppercase text-xs">
+                              Fila
+                            </TableHead>
+                            <TableHead className="text-slate-400 uppercase text-xs">
+                              Código
+                            </TableHead>
+                            <TableHead className="text-slate-400 uppercase text-xs">
+                              Producto
+                            </TableHead>
+                            <TableHead className="text-slate-400 uppercase text-xs">
+                              Variedad
+                            </TableHead>
+                            <TableHead className="text-slate-400 uppercase text-xs">
+                              Estado
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {importPreview.rows.slice(0, 20).map((row) => (
+                            <TableRow
+                              key={row.rowNumber}
+                              className="border-white/5 hover:bg-white/[0.02]"
+                            >
+                              <TableCell className="text-slate-400">
+                                {row.rowNumber}
+                              </TableCell>
+                              <TableCell className="font-mono text-white">
+                                {row.codigoLote || "—"}
+                              </TableCell>
+                              <TableCell className="text-slate-400">
+                                {row.productoNombre ?? "—"}
+                              </TableCell>
+                              <TableCell className="text-slate-400">
+                                {row.variedadNombre ?? "—"}
+                              </TableCell>
+                              <TableCell>
+                                {row.status === "skipped" ? (
+                                  <Badge className="bg-red-500/15 text-red-300 border-red-500/30">
+                                    {row.skipReason}
+                                  </Badge>
+                                ) : row.status === "warning" ? (
+                                  <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/30">
+                                    {row.warnings.join("; ")}
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+                                    Listo
+                                  </Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {importPreview.rows.length > 20 && (
+                        <p className="border-t border-white/10 px-3 py-2 text-xs text-slate-500">
+                          Mostrando primeras 20 filas de {importPreview.rows.length}.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </TabsContent>
           </Tabs>
 
           <DialogFooter className="mt-4">
@@ -665,13 +1378,17 @@ export default function AdminServicioLotesPage() {
             </Button>
             <Button
               onClick={handleCreate}
-              disabled={creating}
+              disabled={
+                creating ||
+                (creationMode === "excel" &&
+                  (!mappedHeaderByType.codigoLote || importPreview.readyRows.length === 0))
+              }
               className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
             >
               {creating
                 ? "Creando..."
-                : creationMode === "masivo"
-                ? `Crear ${bulkQuantity} lotes`
+                : creationMode === "excel"
+                ? `Importar ${importPreview.readyRows.length} lotes`
                 : "Crear lote"}
             </Button>
           </DialogFooter>
@@ -706,6 +1423,79 @@ export default function AdminServicioLotesPage() {
               className="bg-red-600 hover:bg-red-500 text-white font-semibold"
             >
               {deleting ? "Eliminando..." : `Eliminar ${selectedIds.size} lote(s)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Assign Device Dialog ───────────────────────────────── */}
+      <Dialog
+        open={deviceDialogOpen}
+        onOpenChange={(open) => {
+          setDeviceDialogOpen(open);
+          if (!open) resetDeviceDialog();
+        }}
+      >
+        <DialogContent className="bg-slate-900 border-white/10 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Asignar Dispositivo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm text-slate-400 mb-1.5 block">
+                Dispositivo
+              </label>
+              <Select
+                value={selectedDispositivoId}
+                onValueChange={setSelectedDispositivoId}
+              >
+                <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                  <SelectValue placeholder="Seleccionar dispositivo" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10">
+                  {dispositivosDisponibles.map((d) => {
+                    const isInactive = d.activo === false;
+
+                    return (
+                      <SelectItem
+                        key={d.id}
+                        value={d.id}
+                        className="text-white hover:bg-slate-800"
+                      >
+                        {d.nombre} - {d.tipo}
+                        {isInactive ? " (inactivo)" : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 mb-1.5 block">
+                Máquina (opcional)
+              </label>
+              <Input
+                value={deviceMaquina}
+                onChange={(e) => setDeviceMaquina(e.target.value)}
+                placeholder="Identificador de máquina"
+                className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-600"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeviceDialogOpen(false)}
+              className="border-white/10 text-slate-400 hover:text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAssignDevice}
+              disabled={assigningDevice || !selectedDispositivoId}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+            >
+              {assigningDevice ? "Asignando..." : "Asignar"}
             </Button>
           </DialogFooter>
         </DialogContent>
