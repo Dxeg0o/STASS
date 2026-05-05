@@ -126,6 +126,12 @@ interface ExcelRow {
   values: Record<string, string>;
 }
 
+interface ExcelSheetOption {
+  name: string;
+  headers: string[];
+  rows: ExcelRow[];
+}
+
 interface ImportPreviewRow {
   rowNumber: number;
   codigoLote: string;
@@ -181,6 +187,8 @@ export default function AdminServicioLotesPage() {
   const [creating, setCreating] = useState(false);
   const [codigoLoteInput, setCodigoLoteInput] = useState("");
   const [excelFileName, setExcelFileName] = useState("");
+  const [excelSheets, setExcelSheets] = useState<ExcelSheetOption[]>([]);
+  const [selectedExcelSheetName, setSelectedExcelSheetName] = useState("");
   const [excelHeaders, setExcelHeaders] = useState<string[]>([]);
   const [excelRows, setExcelRows] = useState<ExcelRow[]>([]);
   const [columnMappings, setColumnMappings] = useState<Record<string, ColumnMapping>>({});
@@ -275,6 +283,13 @@ export default function AdminServicioLotesPage() {
       bulkVariedadOptions.find((option) => option.variedad.id === bulkVariedadId) ??
       null,
     [bulkVariedadId, bulkVariedadOptions]
+  );
+
+  const selectedExcelSheet = useMemo(
+    () =>
+      excelSheets.find((sheet) => sheet.name === selectedExcelSheetName) ??
+      null,
+    [excelSheets, selectedExcelSheetName]
   );
 
   const mappedHeaderByType = useMemo(() => {
@@ -483,6 +498,8 @@ export default function AdminServicioLotesPage() {
 
   const resetExcelImport = () => {
     setExcelFileName("");
+    setExcelSheets([]);
+    setSelectedExcelSheetName("");
     setExcelHeaders([]);
     setExcelRows([]);
     setColumnMappings({});
@@ -517,6 +534,64 @@ export default function AdminServicioLotesPage() {
     return "ignore";
   };
 
+  const buildInitialMappings = (headers: string[]) =>
+    headers.reduce<Record<string, ColumnMapping>>((acc, header) => {
+      const inferred = inferColumnMapping(header);
+      const alreadyUsed = Object.values(acc).includes(inferred);
+      acc[header] = inferred !== "ignore" && alreadyUsed ? "ignore" : inferred;
+      return acc;
+    }, {});
+
+  const parseExcelSheet = (
+    name: string,
+    sheet: XLSX.WorkSheet
+  ): ExcelSheetOption => {
+    const rows = XLSX.utils.sheet_to_json<
+      Array<string | number | boolean | null>
+    >(sheet, {
+      header: 1,
+      defval: "",
+      blankrows: false,
+    });
+
+    const headerRow = rows[0] ?? [];
+    const headers = headerRow
+      .map((value) => String(value ?? "").trim())
+      .filter(Boolean);
+
+    const parsedRows: ExcelRow[] = rows.slice(1).flatMap((row, index) => {
+      const values = headers.reduce<Record<string, string>>(
+        (acc, header, columnIndex) => {
+          acc[header] = String(row[columnIndex] ?? "").trim();
+          return acc;
+        },
+        {}
+      );
+
+      const hasAnyValue = Object.values(values).some((value) => value.trim());
+      if (!hasAnyValue) return [];
+
+      return [{ rowNumber: index + 2, values }];
+    });
+
+    return { name, headers, rows: parsedRows };
+  };
+
+  const applyExcelSheet = (sheet: ExcelSheetOption) => {
+    setSelectedExcelSheetName(sheet.name);
+    setExcelHeaders(sheet.headers);
+    setExcelRows(sheet.rows);
+    setColumnMappings(buildInitialMappings(sheet.headers));
+    setBulkProductoId("");
+    setBulkVariedadId("");
+  };
+
+  const handleExcelSheetChange = (sheetName: string) => {
+    const sheet = excelSheets.find((option) => option.name === sheetName);
+    if (!sheet) return;
+    applyExcelSheet(sheet);
+  };
+
   const handleExcelFile = async (file: File | null) => {
     if (!file) return;
 
@@ -530,56 +605,24 @@ export default function AdminServicioLotesPage() {
         return;
       }
 
-      const sheet = workbook.Sheets[firstSheetName];
-      const rows = XLSX.utils.sheet_to_json<Array<string | number | boolean | null>>(
-        sheet,
-        {
-          header: 1,
-          defval: "",
-          blankrows: false,
-        }
+      const sheets = workbook.SheetNames.map((sheetName) =>
+        parseExcelSheet(sheetName, workbook.Sheets[sheetName])
       );
+      const firstReadableSheet =
+        sheets.find((sheet) => sheet.headers.length > 0) ?? sheets[0];
 
-      const headerRow = rows[0] ?? [];
-      const headers = headerRow
-        .map((value) => String(value ?? "").trim())
-        .filter(Boolean);
+      setExcelFileName(file.name);
+      setExcelSheets(sheets);
+      applyExcelSheet(firstReadableSheet);
 
-      if (headers.length === 0) {
+      if (firstReadableSheet.headers.length === 0) {
         toast.error("No se encontraron cabeceras legibles en la primera fila");
         return;
       }
 
-      const parsedRows: ExcelRow[] = rows.slice(1).flatMap((row, index) => {
-        const values = headers.reduce<Record<string, string>>((acc, header, columnIndex) => {
-          acc[header] = String(row[columnIndex] ?? "").trim();
-          return acc;
-        }, {});
-
-        const hasAnyValue = Object.values(values).some((value) => value.trim());
-        if (!hasAnyValue) return [];
-
-        return [{ rowNumber: index + 2, values }];
-      });
-
-      const initialMappings = headers.reduce<Record<string, ColumnMapping>>(
-        (acc, header) => {
-          const inferred = inferColumnMapping(header);
-          const alreadyUsed = Object.values(acc).includes(inferred);
-          acc[header] = inferred !== "ignore" && alreadyUsed ? "ignore" : inferred;
-          return acc;
-        },
-        {}
+      toast.success(
+        `Excel cargado: ${sheets.length} hoja(s), ${firstReadableSheet.rows.length} fila(s) en "${firstReadableSheet.name}"`
       );
-
-      setExcelFileName(file.name);
-      setExcelHeaders(headers);
-      setExcelRows(parsedRows);
-      setColumnMappings(initialMappings);
-      setBulkProductoId("");
-      setBulkVariedadId("");
-
-      toast.success(`Excel cargado: ${headers.length} cabecera(s), ${parsedRows.length} fila(s)`);
     } catch {
       toast.error("No se pudo leer el Excel");
     }
@@ -1299,7 +1342,9 @@ export default function AdminServicioLotesPage() {
                       {excelFileName || "Subir archivo Excel"}
                     </span>
                     <span className="block text-xs text-slate-500">
-                      Se leerá la primera hoja y la primera fila como cabeceras.
+                      {selectedExcelSheet
+                        ? `${selectedExcelSheet.name} · ${selectedExcelSheet.rows.length} fila(s)`
+                        : "Se leerá la primera fila como cabeceras."}
                     </span>
                   </span>
                   <input
@@ -1310,6 +1355,55 @@ export default function AdminServicioLotesPage() {
                   />
                 </label>
               </div>
+
+              {excelSheets.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,360px)_1fr] gap-3">
+                  <div>
+                    <label className="text-sm text-slate-400 mb-1.5 block">
+                      Hoja del Excel
+                    </label>
+                    <Select
+                      value={selectedExcelSheetName}
+                      onValueChange={handleExcelSheetChange}
+                    >
+                      <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                        <SelectValue placeholder="Seleccionar hoja" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        {excelSheets.map((sheet) => (
+                          <SelectItem
+                            key={sheet.name}
+                            value={sheet.name}
+                            className="text-white hover:bg-slate-800"
+                          >
+                            {sheet.name} · {sheet.rows.length} fila(s)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-white/10 bg-slate-950/30 p-3">
+                      <p className="text-xs text-slate-500">Cabeceras</p>
+                      <p className="text-xl font-semibold text-white">
+                        {selectedExcelSheet?.headers.length ?? 0}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-slate-950/30 p-3">
+                      <p className="text-xs text-slate-500">Filas en hoja</p>
+                      <p className="text-xl font-semibold text-white">
+                        {selectedExcelSheet?.rows.length ?? 0}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedExcelSheet && excelHeaders.length === 0 && (
+                <div className="rounded-lg border border-red-500/20 bg-red-950/20 p-3 text-sm text-red-300">
+                  La hoja seleccionada no tiene cabeceras legibles en la primera fila.
+                </div>
+              )}
 
               {excelHeaders.length > 0 && (
                 <>
@@ -1360,51 +1454,71 @@ export default function AdminServicioLotesPage() {
                     </div>
                   </div>
 
-                  {!mappedHeaderByType.producto && (
-                    <div>
-                      <label className="text-sm text-slate-400 mb-1.5 block">
-                        Producto para esta carga
-                      </label>
-                      <Select value={bulkProductoId} onValueChange={handleBulkProductoChange}>
-                        <SelectTrigger className="bg-slate-800/50 border-white/10 text-white max-w-sm">
-                          <SelectValue placeholder="Opcional: seleccionar producto" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-white/10">
-                          {productos.map((p) => (
-                            <SelectItem
-                              key={p.id}
-                              value={p.id}
-                              className="text-white hover:bg-slate-800"
+                  {(!mappedHeaderByType.producto || !mappedHeaderByType.variedad) && (
+                    <div className="rounded-lg border border-white/10 bg-slate-950/30 p-3">
+                      <div className="mb-3">
+                        <h3 className="text-sm font-semibold text-white">
+                          Valores para toda la hoja
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          Se aplican a los lotes cuando el dato no viene mapeado desde una columna.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {!mappedHeaderByType.producto && (
+                          <div>
+                            <label className="text-sm text-slate-400 mb-1.5 block">
+                              Producto
+                            </label>
+                            <Select
+                              value={bulkProductoId}
+                              onValueChange={handleBulkProductoChange}
                             >
-                              {p.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                              <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                                <SelectValue placeholder="Opcional: seleccionar producto" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-slate-900 border-white/10">
+                                {productos.map((p) => (
+                                  <SelectItem
+                                    key={p.id}
+                                    value={p.id}
+                                    className="text-white hover:bg-slate-800"
+                                  >
+                                    {p.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
 
-                  {!mappedHeaderByType.variedad && (
-                    <div>
-                      <label className="text-sm text-slate-400 mb-1.5 block">
-                        Variedad para esta carga
-                      </label>
-                      <Select value={bulkVariedadId} onValueChange={setBulkVariedadId}>
-                        <SelectTrigger className="bg-slate-800/50 border-white/10 text-white max-w-sm">
-                          <SelectValue placeholder="Opcional: seleccionar variedad" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-white/10">
-                          {bulkVariedadOptions.map(({ variedad, producto }) => (
-                            <SelectItem
-                              key={variedad.id}
-                              value={variedad.id}
-                              className="text-white hover:bg-slate-800"
+                        {!mappedHeaderByType.variedad && (
+                          <div>
+                            <label className="text-sm text-slate-400 mb-1.5 block">
+                              Variedad
+                            </label>
+                            <Select
+                              value={bulkVariedadId}
+                              onValueChange={setBulkVariedadId}
                             >
-                              {variedad.nombre} · {producto.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                              <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                                <SelectValue placeholder="Opcional: seleccionar variedad" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-slate-900 border-white/10">
+                                {bulkVariedadOptions.map(({ variedad, producto }) => (
+                                  <SelectItem
+                                    key={variedad.id}
+                                    value={variedad.id}
+                                    className="text-white hover:bg-slate-800"
+                                  >
+                                    {variedad.nombre} · {producto.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
