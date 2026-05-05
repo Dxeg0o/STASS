@@ -72,7 +72,7 @@ export async function POST(req: Request, context: RouteContext) {
 
     const { servicioId } = await context.params;
     const body = await req.json();
-    const { variedadId, cantidad, codigoLote, lotes: lotesInput } = body;
+    const { variedadId, subvariedadId, cantidad, codigoLote, lotes: lotesInput } = body;
 
     // Validate service exists
     const srv = await db.query.servicio.findFirst({
@@ -299,6 +299,7 @@ export async function POST(req: Request, context: RouteContext) {
     const loteValues = Array.from({ length: count }, () => ({
       codigoLote: count === 1 ? (codigoLote?.trim() || null) : null,
       variedadId: variedadId || null,
+      subvariedadId: subvariedadId || null,
       createdAt: new Date(),
     }));
 
@@ -322,6 +323,8 @@ export async function POST(req: Request, context: RouteContext) {
     // If variedad was provided, fetch names for the response
     let variedadNombre: string | null = null;
     let productoNombre: string | null = null;
+    let subvariedadNombre: string | null = null;
+
     if (variedadId) {
       const v = await db.query.variedad.findFirst({
         where: eq(variedad.id, variedadId),
@@ -332,12 +335,23 @@ export async function POST(req: Request, context: RouteContext) {
         productoNombre = v.producto?.nombre ?? null;
       }
     }
+    
+    if (subvariedadId) {
+      const sv = await db.query.subvariedad.findFirst({
+        where: eq(subvariedad.id, subvariedadId),
+      });
+      if (sv) {
+        subvariedadNombre = sv.nombre;
+      }
+    }
 
     const lotesWithNames = createdLotes.map((l) => ({
       ...l,
       variedadId: variedadId || null,
+      subvariedadId: subvariedadId || null,
       variedadNombre,
       productoNombre,
+      subvariedadNombre,
     }));
 
     return NextResponse.json(
