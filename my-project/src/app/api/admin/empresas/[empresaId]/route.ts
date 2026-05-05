@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { empresa } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { dispositivoServicio, empresa } from "@/db/schema";
+import { eq, isNull } from "drizzle-orm";
 import { verifyAdmin } from "@/lib/auth";
 
 export async function GET(
@@ -29,6 +29,9 @@ export async function GET(
           with: {
             proceso: { with: { tipoProceso: true } },
             ubicacion: true,
+            dispositivoServicios: {
+              where: isNull(dispositivoServicio.fechaTermino),
+            },
           },
         },
         ubicaciones: true,

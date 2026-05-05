@@ -223,9 +223,8 @@ export const servicio = pgTable("servicio", {
   procesoId: uuid("proceso_id").references(() => proceso.id),
   usaCajas: boolean("usa_cajas").notNull().default(false),
   tipo: text("tipo").notNull(), // 'linea_conteo' | 'maquina_plantacion' | 'estacion_calidad'
-  fechaInicio: timestamp("fecha_inicio", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  estado: text("estado").notNull().default("planificado"), // planificado|en_curso|completado|cancelado
+  fechaInicio: timestamp("fecha_inicio", { withTimezone: true }),
   fechaFin: timestamp("fecha_fin", { withTimezone: true }),
 });
 
@@ -385,9 +384,7 @@ export const dispositivoServicio = pgTable(
       .references(() => servicio.id, { onDelete: "cascade" }),
     maquina: text("maquina"),
     asignadoAt: timestamp("asignado_at", { withTimezone: true }).defaultNow(),
-    fechaInicio: timestamp("fecha_inicio", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    fechaInicio: timestamp("fecha_inicio", { withTimezone: true }),
     fechaTermino: timestamp("fecha_termino", { withTimezone: true }),
   }
 );

@@ -45,6 +45,7 @@ interface ServicioDetail {
   id: string;
   nombre: string;
   tipo: string;
+  estado: string;
   fechaInicio: string | null;
   fechaFin: string | null;
   totalCount: number;
@@ -65,6 +66,25 @@ const TIPO_LABELS: Record<string, string> = {
   linea_conteo: "Línea de Conteo",
   maquina_plantacion: "Máquina de Plantación",
   estacion_calidad: "Estación de Calidad",
+};
+
+const ESTADO_LABELS: Record<string, { label: string; className: string }> = {
+  planificado: {
+    label: "Planificado",
+    className: "border-slate-600 text-slate-400",
+  },
+  en_curso: {
+    label: "En curso",
+    className: "border-emerald-500/40 text-emerald-400",
+  },
+  completado: {
+    label: "Completado",
+    className: "border-blue-500/40 text-blue-400",
+  },
+  cancelado: {
+    label: "Cancelado",
+    className: "border-red-500/40 text-red-400",
+  },
 };
 
 function tipoLabel(tipo: string): string {
@@ -225,6 +245,12 @@ export default function ServicioDetailPage() {
           >
             {tipoLabel(detail.tipo)}
           </Badge>
+          <Badge
+            variant="outline"
+            className={`text-sm ${ESTADO_LABELS[detail.estado]?.className ?? ESTADO_LABELS.planificado.className}`}
+          >
+            {ESTADO_LABELS[detail.estado]?.label ?? detail.estado}
+          </Badge>
         </div>
         <p className="text-sm text-slate-400">
           {detail.fechaInicio
@@ -232,7 +258,7 @@ export default function ServicioDetailPage() {
             : "Sin fecha de inicio"}
           {detail.fechaFin
             ? ` — Hasta ${format(new Date(detail.fechaFin), "dd/MM/yyyy")}`
-            : " — En curso"}
+            : ` — ${ESTADO_LABELS[detail.estado]?.label ?? detail.estado}`}
         </p>
       </div>
 

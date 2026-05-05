@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/db";
 import {
   cajaLoteSession,
@@ -126,6 +126,7 @@ export async function POST(request: Request) {
     .where(
       and(
         eq(dispositivoServicio.dispositivoId, device.id),
+        isNotNull(dispositivoServicio.fechaInicio),
         lte(dispositivoServicio.fechaInicio, maxTs),
         or(
           isNull(dispositivoServicio.fechaTermino),
@@ -144,6 +145,7 @@ export async function POST(request: Request) {
 
   const rowsWithService = mediciones.map((medicion, index) => {
     const assignment = serviceAssignments.find((candidate) => {
+      if (!candidate.fechaInicio) return false;
       const startsBeforeOrAt = medicion.ts >= candidate.fechaInicio;
       const endsAfter =
         candidate.fechaTermino === null || medicion.ts < candidate.fechaTermino;

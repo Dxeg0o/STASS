@@ -29,6 +29,7 @@ interface ServicioRef {
   id: string;
   nombre: string;
   tipo: string;
+  estado: string;
   empresa?: { nombre: string } | null;
 }
 
@@ -36,6 +37,8 @@ interface DispositivoServicioRef {
   dispositivoId: string;
   servicioId: string;
   maquina: string | null;
+  fechaInicio: string | null;
+  fechaTermino: string | null;
   servicio: ServicioRef;
 }
 
@@ -241,6 +244,7 @@ export default function DispositivosPage() {
                                 className="border-cyan-500/30 bg-cyan-950/20 text-cyan-400 text-xs gap-1"
                               >
                                 {ds.servicio.nombre}
+                                {!ds.fechaInicio && <span className="text-amber-400">Pendiente</span>}
                                 {ds.maquina && <span className="text-cyan-600">({ds.maquina})</span>}
                               </Badge>
                             ))

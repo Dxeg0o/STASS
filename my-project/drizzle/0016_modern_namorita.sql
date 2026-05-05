@@ -1,0 +1,2 @@
+-- Este archivo ha sido vaciado porque Drizzle generó comandos duplicados de migraciones anteriores (0008-0015).
+-- Sirve únicamente para sincronizar el snapshot de Drizzle en meta/0016_snapshot.json.

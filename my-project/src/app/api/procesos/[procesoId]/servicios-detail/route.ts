@@ -25,6 +25,7 @@ export async function GET(
       nombre: servicio.nombre,
       tipo: servicio.tipo,
       usaCajas: servicio.usaCajas,
+      estado: servicio.estado,
       fechaInicio: servicio.fechaInicio,
       fechaFin: servicio.fechaFin,
     })
@@ -151,6 +152,7 @@ export async function GET(
       nombre: s.nombre,
       tipo: s.tipo,
       usaCajas: s.usaCajas,
+      estado: s.estado,
       fechaInicio: s.fechaInicio,
       fechaFin: s.fechaFin,
       deviceCount: deviceCountMap.get(s.id) ?? 0,

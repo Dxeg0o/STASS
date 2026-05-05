@@ -27,6 +27,7 @@ export async function GET(request: Request) {
       tipo: servicio.tipo,
       fechaInicio: servicio.fechaInicio,
       fechaFin: servicio.fechaFin,
+      estado: servicio.estado,
       procesoId: servicio.procesoId,
       usaCajas: servicio.usaCajas,
       tipoProcesoNombre: tipoProceso.nombre,
@@ -59,6 +60,8 @@ export async function POST(request: Request) {
       ubicacionId: ubicacionId || null,
       procesoId: procesoId || null,
       usaCajas: usaCajas ?? false,
+      estado: "planificado",
+      fechaInicio: null,
     })
     .returning();
 

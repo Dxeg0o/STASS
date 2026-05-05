@@ -27,6 +27,7 @@ interface ServicioSummary {
   id: string;
   nombre: string;
   tipo: string;
+  estado: string;
   fechaInicio: string | null;
   fechaFin: string | null;
   procesoId: string | null;
@@ -54,6 +55,25 @@ const TYPE_LABELS: Record<string, string> = {
   linea_conteo: "Línea de Conteo",
   maquina_plantacion: "Máquina de Plantación",
   estacion_calidad: "Estación de Calidad",
+};
+
+const ESTADO_LABELS: Record<string, { label: string; className: string }> = {
+  planificado: {
+    label: "Planificado",
+    className: "border-slate-600 bg-slate-800/60 text-slate-400",
+  },
+  en_curso: {
+    label: "En curso",
+    className: "border-emerald-500/30 bg-emerald-950/20 text-emerald-400",
+  },
+  completado: {
+    label: "Completado",
+    className: "border-blue-500/30 bg-blue-950/20 text-blue-400",
+  },
+  cancelado: {
+    label: "Cancelado",
+    className: "border-red-500/30 bg-red-950/20 text-red-400",
+  },
 };
 
 function formatNumber(n: number): string {
@@ -107,6 +127,12 @@ function ServicioCard({ servicio }: { servicio: ServicioSummary }) {
                 variant="outline"
               >
                 {TYPE_LABELS[servicio.tipo] ?? servicio.tipo}
+              </Badge>
+              <Badge
+                className={`mt-1 ml-1 text-xs ${ESTADO_LABELS[servicio.estado]?.className ?? ESTADO_LABELS.planificado.className}`}
+                variant="outline"
+              >
+                {ESTADO_LABELS[servicio.estado]?.label ?? servicio.estado}
               </Badge>
               {servicio.tipoProcesoNombre && (
                 <Badge
@@ -186,7 +212,7 @@ function ServicioCard({ servicio }: { servicio: ServicioSummary }) {
             <span className="text-xs text-slate-600">
               {servicio.fechaFin
                 ? `Finalizado: ${formatDate(servicio.fechaFin)}`
-                : "En curso"}
+                : ESTADO_LABELS[servicio.estado]?.label ?? servicio.estado}
             </span>
             {servicio.lastActivity && (
               <span className="text-xs text-slate-600">

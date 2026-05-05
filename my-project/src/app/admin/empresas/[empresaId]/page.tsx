@@ -31,7 +31,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { Plus, Trash2, ArrowLeft, Building2, AlertTriangle, StopCircle, Layers } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Building2, AlertTriangle, StopCircle, Layers, PlayCircle, Lock } from "lucide-react";
 
 interface TipoProceso {
   id: string;
@@ -63,10 +63,16 @@ interface EmpresaDetail {
     id: string;
     nombre: string;
     tipo: string;
-    fechaInicio: string;
+    estado: string;
+    fechaInicio: string | null;
     fechaFin: string | null;
-    proceso?: { tipoProceso?: { nombre: string } | null } | null;
+    proceso?: { id: string; estado: string; tipoProceso?: { nombre: string } | null } | null;
     ubicacion?: { id: string; nombre: string; tipo: string } | null;
+    dispositivoServicios?: Array<{
+      id: string;
+      fechaInicio: string | null;
+      fechaTermino: string | null;
+    }>;
   }>;
   ubicaciones: Array<{
     id: string;
@@ -82,6 +88,25 @@ const estadoConfig: Record<string, { label: string; class: string }> = {
   en_curso: { label: "En curso", class: "bg-emerald-500/20 text-emerald-400" },
   completado: { label: "Completado", class: "bg-blue-500/20 text-blue-400" },
   cancelado: { label: "Cancelado", class: "bg-red-500/20 text-red-400" },
+};
+
+const formatDateTime = (iso: string | null | undefined) =>
+  iso
+    ? new Date(iso).toLocaleString("es-CL", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "Pendiente";
+
+const getOpenDeviceSummary = (
+  dispositivos: EmpresaDetail["servicios"][number]["dispositivoServicios"] = []
+) => {
+  const pendientes = dispositivos.filter((d) => !d.fechaInicio).length;
+  const activos = dispositivos.filter((d) => d.fechaInicio && !d.fechaTermino).length;
+  return { pendientes, activos, total: pendientes + activos };
 };
 
 export default function EmpresaDetailPage() {
@@ -146,10 +171,12 @@ export default function EmpresaDetailPage() {
   // Terminar proceso state
   const [terminateProcesoId, setTerminateProcesoId] = useState<string | null>(null);
   const [terminatingProceso, setTerminatingProceso] = useState(false);
+  const [startingProcesoId, setStartingProcesoId] = useState<string | null>(null);
 
   // Terminar servicio state
   const [terminateServicioId, setTerminateServicioId] = useState<string | null>(null);
   const [terminatingServicio, setTerminatingServicio] = useState(false);
+  const [startingServicioId, setStartingServicioId] = useState<string | null>(null);
 
   // Delete challenge state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -358,6 +385,20 @@ export default function EmpresaDetailPage() {
     }
   };
 
+  const handleStartProceso = async (procesoId: string) => {
+    setStartingProcesoId(procesoId);
+    try {
+      await axios.patch(`/api/procesos/${procesoId}`, {
+        estado: "en_curso",
+      });
+      await fetchEmpresa();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setStartingProcesoId(null);
+    }
+  };
+
   const handleTerminarProceso = async () => {
     if (!terminateProcesoId) return;
     setTerminatingProceso(true);
@@ -388,6 +429,20 @@ export default function EmpresaDetailPage() {
       console.error(error);
     } finally {
       setTerminatingServicio(false);
+    }
+  };
+
+  const handleStartServicio = async (servicioId: string) => {
+    setStartingServicioId(servicioId);
+    try {
+      await axios.patch(`/api/admin/servicios/${servicioId}`, {
+        estado: "en_curso",
+      });
+      await fetchEmpresa();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setStartingServicioId(null);
     }
   };
 
@@ -820,14 +875,34 @@ export default function EmpresaDetailPage() {
                     <TableHead className="text-slate-400 uppercase text-xs">Producto</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Temporada</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Estado</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">Servicios</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">Dispositivos</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Inicio</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">Fin</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {empresa.procesos.map((p) => {
                     const ec = estadoConfig[p.estado] ?? estadoConfig.planificado;
-                    const canTerminate = p.estado !== "completado" && p.estado !== "cancelado";
+                    const serviciosProceso = empresa.servicios.filter((s) => s.proceso?.id === p.id);
+                    const serviceCounts = serviciosProceso.reduce(
+                      (acc, s) => {
+                        acc[s.estado as keyof typeof acc] = (acc[s.estado as keyof typeof acc] ?? 0) + 1;
+                        return acc;
+                      },
+                      { planificado: 0, en_curso: 0, completado: 0, cancelado: 0 }
+                    );
+                    const deviceSummary = serviciosProceso.reduce(
+                      (acc, s) => {
+                        const summary = getOpenDeviceSummary(s.dispositivoServicios);
+                        acc.pendientes += summary.pendientes;
+                        acc.activos += summary.activos;
+                        return acc;
+                      },
+                      { pendientes: 0, activos: 0 }
+                    );
+                    const isClosed = p.estado === "completado" || p.estado === "cancelado";
                     return (
                       <TableRow key={p.id} className="border-white/5 hover:bg-white/[0.02]">
                         <TableCell className="text-white font-medium">{p.tipoProceso?.nombre ?? "-"}</TableCell>
@@ -837,18 +912,54 @@ export default function EmpresaDetailPage() {
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ec.class}`}>{ec.label}</span>
                         </TableCell>
                         <TableCell className="text-slate-400">
-                          {p.fechaInicio ? new Date(p.fechaInicio).toLocaleDateString("es-CL") : "-"}
+                          <div className="flex flex-wrap gap-1">
+                            {serviceCounts.planificado > 0 && <Badge variant="outline" className="border-slate-500/30 text-slate-300 text-xs">{serviceCounts.planificado} plan.</Badge>}
+                            {serviceCounts.en_curso > 0 && <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-xs">{serviceCounts.en_curso} curso</Badge>}
+                            {serviceCounts.completado > 0 && <Badge variant="outline" className="border-blue-500/30 text-blue-400 text-xs">{serviceCounts.completado} comp.</Badge>}
+                            {serviciosProceso.length === 0 && <span className="text-slate-600 text-xs">Sin servicios</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          <div className="flex flex-wrap gap-1">
+                            {deviceSummary.pendientes > 0 && <Badge variant="outline" className="border-amber-500/30 text-amber-400 text-xs">{deviceSummary.pendientes} pend.</Badge>}
+                            {deviceSummary.activos > 0 && <Badge variant="outline" className="border-cyan-500/30 text-cyan-400 text-xs">{deviceSummary.activos} act.</Badge>}
+                            {deviceSummary.pendientes + deviceSummary.activos === 0 && <span className="text-slate-600 text-xs">Sin disp.</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          {formatDateTime(p.fechaInicio)}
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          {p.fechaFin ? formatDateTime(p.fechaFin) : "-"}
                         </TableCell>
                         <TableCell className="text-right">
-                          {canTerminate && (
-                            <button
-                              onClick={() => setTerminateProcesoId(p.id)}
-                              className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
-                              title="Terminar proceso"
-                            >
-                              <StopCircle className="w-4 h-4" />
-                            </button>
-                          )}
+                          <div className="flex items-center justify-end gap-1">
+                            {p.estado === "planificado" && (
+                              <button
+                                onClick={() => handleStartProceso(p.id)}
+                                disabled={startingProcesoId === p.id}
+                                className="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded transition-all disabled:opacity-50"
+                                title="Iniciar proceso y servicios"
+                              >
+                                <PlayCircle className="w-4 h-4" />
+                              </button>
+                            )}
+                            {p.estado === "en_curso" && (
+                              <button
+                                onClick={() => setTerminateProcesoId(p.id)}
+                                className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
+                                title="Completar proceso"
+                              >
+                                <StopCircle className="w-4 h-4" />
+                              </button>
+                            )}
+                            {isClosed && (
+                              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                                <Lock className="w-3.5 h-3.5" />
+                                {p.estado === "completado" ? "Completado, no editable" : "Cancelado"}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -862,10 +973,10 @@ export default function EmpresaDetailPage() {
           <Dialog open={!!terminateProcesoId} onOpenChange={(open) => { if (!open) setTerminateProcesoId(null); }}>
             <DialogContent className="bg-slate-900 border-white/10 text-white">
               <DialogHeader>
-                <DialogTitle className="text-red-400">Terminar Proceso</DialogTitle>
+                <DialogTitle className="text-red-400">Completar Proceso</DialogTitle>
               </DialogHeader>
               <p className="text-slate-400 text-sm py-2">
-                ¿Estás seguro de que deseas marcar este proceso como completado? Se notificará a los administradores de la empresa y a los super admins.
+                Esta acción marcará el proceso como completado, completará todos sus servicios abiertos y cerrará las asignaciones activas de dispositivos. Después no se podrá volver a cambiar.
               </p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setTerminateProcesoId(null)} className="border-white/10 text-slate-400 hover:text-white">
@@ -876,7 +987,7 @@ export default function EmpresaDetailPage() {
                   disabled={terminatingProceso}
                   className="bg-red-600 hover:bg-red-500 text-white font-semibold"
                 >
-                  {terminatingProceso ? "Terminando..." : "Terminar Proceso"}
+                  {terminatingProceso ? "Completando..." : "Completar Proceso"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -969,7 +1080,9 @@ export default function EmpresaDetailPage() {
                         <SelectValue placeholder="Seleccionar proceso" />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-900 border-white/10">
-                        {empresa.procesos.map((p) => (
+                        {empresa.procesos
+                          .filter((p) => p.estado !== "completado" && p.estado !== "cancelado")
+                          .map((p) => (
                           <SelectItem key={p.id} value={p.id} className="text-white hover:bg-slate-800">
                             {p.tipoProceso?.nombre ?? "Proceso"} {p.temporada ? `(${p.temporada})` : ""}
                           </SelectItem>
@@ -1051,7 +1164,9 @@ export default function EmpresaDetailPage() {
                   <TableRow className="border-white/10 hover:bg-transparent">
                     <TableHead className="text-slate-400 uppercase text-xs">Nombre</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Tipo</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">Estado</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Proceso</TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">Dispositivos</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Ubicación</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Inicio</TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">Fin</TableHead>
@@ -1061,7 +1176,7 @@ export default function EmpresaDetailPage() {
                 <TableBody>
                   {empresa.servicios.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-slate-500 py-8">
+                      <TableCell colSpan={9} className="text-center text-slate-500 py-8">
                         No hay servicios para esta empresa
                       </TableCell>
                     </TableRow>
@@ -1073,8 +1188,25 @@ export default function EmpresaDetailPage() {
                           {s.tipo.replace(/_/g, " ")}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${(estadoConfig[s.estado] ?? estadoConfig.planificado).class}`}>
+                          {(estadoConfig[s.estado] ?? estadoConfig.planificado).label}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-slate-400">
                         {s.proceso?.tipoProceso?.nombre ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-slate-400">
+                        {(() => {
+                          const summary = getOpenDeviceSummary(s.dispositivoServicios);
+                          return (
+                            <div className="flex flex-wrap gap-1">
+                              {summary.pendientes > 0 && <Badge variant="outline" className="border-amber-500/30 text-amber-400 text-xs">{summary.pendientes} Pendiente</Badge>}
+                              {summary.activos > 0 && <Badge variant="outline" className="border-cyan-500/30 text-cyan-400 text-xs">{summary.activos} Activo</Badge>}
+                              {summary.total === 0 && <span className="text-slate-600 text-xs">Sin dispositivos</span>}
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="text-slate-400">
                         {s.ubicacion ? (
@@ -1082,10 +1214,10 @@ export default function EmpresaDetailPage() {
                         ) : "-"}
                       </TableCell>
                       <TableCell className="text-slate-400">
-                        {new Date(s.fechaInicio).toLocaleDateString("es-CL")}
+                        {formatDateTime(s.fechaInicio)}
                       </TableCell>
                       <TableCell className="text-slate-400">
-                        {s.fechaFin ? new Date(s.fechaFin).toLocaleDateString("es-CL") : <span className="text-emerald-500 text-xs">Activo</span>}
+                        {s.fechaFin ? formatDateTime(s.fechaFin) : <span className="text-slate-500 text-xs">Sin cierre</span>}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -1096,14 +1228,36 @@ export default function EmpresaDetailPage() {
                           >
                             <Layers className="w-4 h-4" />
                           </button>
-                          {!s.fechaFin && (
+                          {s.estado === "planificado" && (
+                            <button
+                              onClick={() => handleStartServicio(s.id)}
+                              disabled={startingServicioId === s.id}
+                              className="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded transition-all disabled:opacity-50"
+                              title="Iniciar servicio"
+                            >
+                              <PlayCircle className="w-4 h-4" />
+                            </button>
+                          )}
+                          {s.estado === "en_curso" && (
                             <button
                               onClick={() => setTerminateServicioId(s.id)}
                               className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
-                              title="Terminar servicio"
+                              title="Completar servicio"
                             >
                               <StopCircle className="w-4 h-4" />
                             </button>
+                          )}
+                          {s.estado === "completado" && (
+                            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                              <Lock className="w-3.5 h-3.5" />
+                              Completado, no editable
+                            </span>
+                          )}
+                          {s.estado === "cancelado" && (
+                            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                              <Lock className="w-3.5 h-3.5" />
+                              Cancelado
+                            </span>
                           )}
                         </div>
                       </TableCell>
@@ -1118,10 +1272,10 @@ export default function EmpresaDetailPage() {
           <Dialog open={!!terminateServicioId} onOpenChange={(open) => { if (!open) setTerminateServicioId(null); }}>
             <DialogContent className="bg-slate-900 border-white/10 text-white">
               <DialogHeader>
-                <DialogTitle className="text-red-400">Terminar Servicio</DialogTitle>
+                <DialogTitle className="text-red-400">Completar Servicio</DialogTitle>
               </DialogHeader>
               <p className="text-slate-400 text-sm py-2">
-                ¿Estás seguro de que deseas finalizar este servicio? Se registrará la fecha de cierre y se notificará a los administradores de la empresa y a los super admins.
+                Esta acción registrará la fecha de cierre, cerrará las asignaciones abiertas de dispositivos y dejará el servicio como no editable.
               </p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setTerminateServicioId(null)} className="border-white/10 text-slate-400 hover:text-white">
@@ -1132,7 +1286,7 @@ export default function EmpresaDetailPage() {
                   disabled={terminatingServicio}
                   className="bg-red-600 hover:bg-red-500 text-white font-semibold"
                 >
-                  {terminatingServicio ? "Terminando..." : "Terminar Servicio"}
+                  {terminatingServicio ? "Completando..." : "Completar Servicio"}
                 </Button>
               </DialogFooter>
             </DialogContent>

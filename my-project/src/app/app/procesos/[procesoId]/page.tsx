@@ -68,6 +68,7 @@ interface ServicioDetail {
   nombre: string;
   tipo: string;
   usaCajas: boolean;
+  estado: string;
   fechaInicio: string | null;
   fechaFin: string | null;
   deviceCount: number;
@@ -99,6 +100,13 @@ const ESTADO_CONFIG: Record<string, { label: string; className: string }> = {
 };
 
 const ESTADOS = ["planificado", "en_curso", "completado", "cancelado"];
+
+const NEXT_ESTADOS: Record<string, string[]> = {
+  planificado: ["planificado", "en_curso", "cancelado"],
+  en_curso: ["en_curso", "completado", "cancelado"],
+  completado: ["completado"],
+  cancelado: ["cancelado"],
+};
 
 const SERVICIO_META: Record<
   string,
@@ -225,9 +233,8 @@ export default function ProcesoDetailPage() {
         body: JSON.stringify({ estado: nuevoEstado }),
       });
       if (!res.ok) throw new Error("Error al actualizar estado");
-      setProceso((prev) =>
-        prev ? { ...prev, estado: nuevoEstado } : prev
-      );
+      const updated = await res.json();
+      setProceso((prev) => (prev ? { ...prev, ...updated } : prev));
     } catch (err) {
       console.error(err);
     } finally {
@@ -301,10 +308,10 @@ export default function ProcesoDetailPage() {
                     <select
                       value={proceso.estado}
                       onChange={(e) => handleEstadoChange(e.target.value)}
-                      disabled={savingEstado}
+                      disabled={savingEstado || proceso.estado === "completado" || proceso.estado === "cancelado"}
                       className="appearance-none pl-3 pr-7 py-1 rounded-md text-xs bg-slate-800/60 text-slate-400 border border-white/10 hover:border-white/20 focus:outline-none focus:border-cyan-500/40 cursor-pointer disabled:opacity-50"
                     >
-                      {ESTADOS.map((e) => (
+                      {(NEXT_ESTADOS[proceso.estado] ?? ESTADOS).map((e) => (
                         <option key={e} value={e}>
                           {ESTADO_CONFIG[e]?.label ?? e}
                         </option>
@@ -399,6 +406,12 @@ export default function ProcesoDetailPage() {
                               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                             </span>
                           )}
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 ${ESTADO_CONFIG[s.estado]?.className ?? ESTADO_CONFIG.planificado.className}`}
+                          >
+                            {ESTADO_CONFIG[s.estado]?.label ?? s.estado}
+                          </Badge>
                         </div>
                         <p className="text-xs text-slate-500">{meta.label}</p>
                       </div>
