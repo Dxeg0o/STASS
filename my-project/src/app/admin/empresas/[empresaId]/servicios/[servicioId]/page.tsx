@@ -217,7 +217,6 @@ export default function AdminServicioLotesPage() {
   const [columnMappings, setColumnMappings] = useState<Record<string, ColumnMapping>>({});
   const [bulkProductoId, setBulkProductoId] = useState("");
   const [bulkVariedadId, setBulkVariedadId] = useState("");
-  const [bulkSubvariedadId, setBulkSubvariedadId] = useState("");
 
   // Selection mode
   const [selectionMode, setSelectionMode] = useState(false);
@@ -312,28 +311,6 @@ export default function AdminServicioLotesPage() {
       bulkVariedadOptions.find((option) => option.variedad.id === bulkVariedadId) ??
       null,
     [bulkVariedadId, bulkVariedadOptions]
-  );
-
-  const bulkSubvariedadOptions = useMemo(() => {
-    const sourceVarieties = bulkVariedadId
-      ? bulkVariedadOptions.filter((v) => v.variedad.id === bulkVariedadId)
-      : bulkVariedadOptions;
-
-    return sourceVarieties.flatMap(({ variedad, producto }) =>
-      (variedad.subvariedades ?? []).map((s) => ({
-        subvariedad: s,
-        variedad,
-        producto,
-      }))
-    );
-  }, [bulkVariedadId, bulkVariedadOptions]);
-
-  const bulkSubvariedadSelection = useMemo(
-    () =>
-      bulkSubvariedadOptions.find(
-        (option) => option.subvariedad.id === bulkSubvariedadId
-      ) ?? null,
-    [bulkSubvariedadId, bulkSubvariedadOptions]
   );
 
   const selectedExcelSheet = useMemo(
@@ -512,13 +489,8 @@ export default function AdminServicioLotesPage() {
           if (match) {
             subvariedadId = match.id;
             subvariedadNombre = match.nombre;
-          } else {
-            warnings.push(`Subvariedad se creará: ${subvariedadValue}`);
           }
         }
-      } else if (bulkSubvariedadSelection) {
-        subvariedadId = bulkSubvariedadSelection.subvariedad.id;
-        subvariedadNombre = bulkSubvariedadSelection.subvariedad.nombre;
       }
 
       return {
@@ -541,7 +513,7 @@ export default function AdminServicioLotesPage() {
       warningCount: rows.filter((row) => row.status === "warning").length,
       hasCodigoMapping: true,
     };
-  }, [bulkProductoId, bulkVariedadSelection, bulkSubvariedadSelection, excelRows, lotes, mappedHeaderByType, productos]);
+  }, [bulkProductoId, bulkVariedadSelection, excelRows, lotes, mappedHeaderByType, productos]);
 
   // ── Handlers ────────────────────────────────────────────────
 
@@ -565,7 +537,6 @@ export default function AdminServicioLotesPage() {
     setColumnMappings({});
     setBulkProductoId("");
     setBulkVariedadId("");
-    setBulkSubvariedadId("");
   };
 
   const resetDialog = () => {
@@ -646,7 +617,6 @@ export default function AdminServicioLotesPage() {
     setColumnMappings(buildInitialMappings(sheet.headers));
     setBulkProductoId("");
     setBulkVariedadId("");
-    setBulkSubvariedadId("");
   };
 
   const handleExcelSheetChange = (sheetName: string) => {
@@ -701,7 +671,6 @@ export default function AdminServicioLotesPage() {
       }
       if (mapping === "producto") setBulkProductoId("");
       if (mapping === "variedad") setBulkVariedadId("");
-      if (mapping === "subvariedad") setBulkSubvariedadId("");
       return next;
     });
   };
@@ -717,7 +686,6 @@ export default function AdminServicioLotesPage() {
       );
 
       if (!belongsToSelectedProduct) {
-        setBulkSubvariedadId("");
         return "";
       }
       return currentVariedadId;
@@ -726,15 +694,6 @@ export default function AdminServicioLotesPage() {
 
   const handleBulkVariedadChange = (variedadId: string) => {
     setBulkVariedadId(variedadId);
-    setBulkSubvariedadId((currentSubvariedadId) => {
-      if (!currentSubvariedadId) return "";
-      
-      const isSubvariedadValid = bulkSubvariedadOptions.some(
-        (option) => option.subvariedad.id === currentSubvariedadId && option.variedad.id === variedadId
-      );
-      
-      return isSubvariedadValid ? currentSubvariedadId : "";
-    });
   };
 
   const handleCreate = async () => {
@@ -1583,7 +1542,7 @@ export default function AdminServicioLotesPage() {
                     </div>
                   </div>
 
-                  {(!mappedHeaderByType.producto || !mappedHeaderByType.variedad || !mappedHeaderByType.subvariedad) && (
+                  {(!mappedHeaderByType.producto || !mappedHeaderByType.variedad) && (
                     <div className="rounded-lg border border-white/10 bg-slate-950/30 p-3">
                       <div className="mb-3">
                         <h3 className="text-sm font-semibold text-white">
@@ -1641,33 +1600,6 @@ export default function AdminServicioLotesPage() {
                                     className="text-white hover:bg-slate-800"
                                   >
                                     {variedad.nombre} · {producto.nombre}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-
-                        {!mappedHeaderByType.subvariedad && (
-                          <div>
-                            <label className="text-sm text-slate-400 mb-1.5 block">
-                              Subvariedad
-                            </label>
-                            <Select
-                              value={bulkSubvariedadId}
-                              onValueChange={setBulkSubvariedadId}
-                            >
-                              <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
-                                <SelectValue placeholder="Opcional: seleccionar subvariedad" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-slate-900 border-white/10">
-                                {bulkSubvariedadOptions.map(({ subvariedad, variedad }) => (
-                                  <SelectItem
-                                    key={subvariedad.id}
-                                    value={subvariedad.id}
-                                    className="text-white hover:bg-slate-800"
-                                  >
-                                    {subvariedad.nombre} · {variedad.nombre}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
