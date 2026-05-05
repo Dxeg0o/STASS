@@ -335,6 +335,7 @@ export const dispositivo = pgTable("dispositivo", {
   nombre: text("nombre").unique().notNull(),
   tipo: text("tipo").notNull().default("nvidia_agx"),
   activo: boolean("activo").default(true),
+  apiKeyHash: text("api_key_hash"),
 });
 
 export const dispositivoRelations = relations(dispositivo, ({ many }) => ({
@@ -539,6 +540,21 @@ export const conteo = pgTable(
     index("idx_conteo_dispositivo").on(t.dispositivoId, t.ts),
   ]
 );
+
+// ─── Conteo Archive Index ─────────────────────────────────
+
+export const conteoArchiveIndex = pgTable("conteo_archive_index", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  date: timestamp("date", { withTimezone: false, mode: "date" })
+    .notNull()
+    .unique(),
+  filePath: text("file_path").notNull(),
+  rowCount: integer("row_count").notNull(),
+  checksum: text("checksum"),
+  archivedAt: timestamp("archived_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 // ─── Invitation Link ──────────────────────────────────────
 

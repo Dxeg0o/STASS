@@ -64,6 +64,20 @@
       "when": 1777046400000,
       "tag": "0008_invitation_email",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778000000000,
+      "tag": "0009_device_ingestion_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778001000000,
+      "tag": "0010_conteo_archive",
+      "breakpoints": true
     }
   ]
 }
