@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { dispositivoServicio } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { verifyAdmin } from "@/lib/auth";
 
 export async function POST(req: Request) {
@@ -20,10 +20,31 @@ export async function POST(req: Request) {
       );
     }
 
-    const [assignment] = await db
-      .insert(dispositivoServicio)
-      .values({ dispositivoId, servicioId, maquina: maquina || null })
-      .returning();
+    const now = new Date();
+
+    const [assignment] = await db.transaction(async (tx) => {
+      await tx
+        .update(dispositivoServicio)
+        .set({ fechaTermino: now })
+        .where(
+          and(
+            eq(dispositivoServicio.dispositivoId, dispositivoId),
+            isNull(dispositivoServicio.fechaTermino)
+          )
+        );
+
+      return tx
+        .insert(dispositivoServicio)
+        .values({
+          dispositivoId,
+          servicioId,
+          maquina: maquina || null,
+          asignadoAt: now,
+          fechaInicio: now,
+          fechaTermino: null,
+        })
+        .returning();
+    });
 
     return NextResponse.json(assignment, { status: 201 });
   } catch (error) {
@@ -52,11 +73,13 @@ export async function DELETE(req: Request) {
     }
 
     const [removed] = await db
-      .delete(dispositivoServicio)
+      .update(dispositivoServicio)
+      .set({ fechaTermino: new Date() })
       .where(
         and(
           eq(dispositivoServicio.dispositivoId, dispositivoId),
-          eq(dispositivoServicio.servicioId, servicioId)
+          eq(dispositivoServicio.servicioId, servicioId),
+          isNull(dispositivoServicio.fechaTermino)
         )
       )
       .returning();

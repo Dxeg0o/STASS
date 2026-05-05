@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/db";
-import { conteo, loteServicio, loteSession } from "@/db/schema";
+import {
+  cajaLoteSession,
+  conteo,
+  dispositivoServicio,
+  loteServicio,
+  loteSession,
+  servicio,
+} from "@/db/schema";
 import { verifyDeviceKey } from "@/lib/device-auth";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -77,19 +84,17 @@ export async function POST(request: Request) {
   }
   const mediciones = validation.data;
 
-  // 3. Resolver sesión activa y servicio en una sola query con JOIN.
-  //    lote_session → lote_servicio (más reciente) da el servicio_id correcto.
+  // 3. Resolver sesión activa del dispositivo.
   const [activeSession] = await db
     .select({
+      id: loteSession.id,
       loteId: loteSession.loteId,
-      servicioId: loteServicio.servicioId,
     })
     .from(loteSession)
-    .innerJoin(loteServicio, eq(loteServicio.loteId, loteSession.loteId))
     .where(
       and(eq(loteSession.dispositivoId, device.id), isNull(loteSession.endTime))
     )
-    .orderBy(desc(loteServicio.asignadoAt))
+    .orderBy(desc(loteSession.startTime))
     .limit(1);
 
   if (!activeSession) {
@@ -99,18 +104,133 @@ export async function POST(request: Request) {
     );
   }
 
-  // 4. Bulk INSERT — un solo statement para N filas.
+  // 4. Resolver servicios por intervalo temporal del dispositivo.
+  const minTs = mediciones.reduce(
+    (min, medicion) => (medicion.ts < min ? medicion.ts : min),
+    mediciones[0].ts
+  );
+  const maxTs = mediciones.reduce(
+    (max, medicion) => (medicion.ts > max ? medicion.ts : max),
+    mediciones[0].ts
+  );
+
+  const serviceAssignments = await db
+    .select({
+      servicioId: servicio.id,
+      usaCajas: servicio.usaCajas,
+      fechaInicio: dispositivoServicio.fechaInicio,
+      fechaTermino: dispositivoServicio.fechaTermino,
+    })
+    .from(dispositivoServicio)
+    .innerJoin(servicio, eq(servicio.id, dispositivoServicio.servicioId))
+    .where(
+      and(
+        eq(dispositivoServicio.dispositivoId, device.id),
+        lte(dispositivoServicio.fechaInicio, maxTs),
+        or(
+          isNull(dispositivoServicio.fechaTermino),
+          gt(dispositivoServicio.fechaTermino, minTs)
+        )
+      )
+    )
+    .orderBy(desc(dispositivoServicio.fechaInicio));
+
+  if (serviceAssignments.length === 0) {
+    return NextResponse.json(
+      { error: "No hay asignación de servicio vigente para este dispositivo" },
+      { status: 409 }
+    );
+  }
+
+  const rowsWithService = mediciones.map((medicion, index) => {
+    const assignment = serviceAssignments.find((candidate) => {
+      const startsBeforeOrAt = medicion.ts >= candidate.fechaInicio;
+      const endsAfter =
+        candidate.fechaTermino === null || medicion.ts < candidate.fechaTermino;
+      return startsBeforeOrAt && endsAfter;
+    });
+
+    if (!assignment) {
+      return { index, medicion, assignment: null };
+    }
+
+    return { index, medicion, assignment };
+  });
+
+  const missingAssignment = rowsWithService.find((row) => !row.assignment);
+  if (missingAssignment) {
+    return NextResponse.json(
+      {
+        error: `medicion[${missingAssignment.index}]: no calza con una asignación temporal del dispositivo`,
+      },
+      { status: 409 }
+    );
+  }
+
+  const resolvedServicioIds = [
+    ...new Set(
+      rowsWithService.map((row) => row.assignment!.servicioId)
+    ),
+  ];
+
+  const loteAssignments = await db
+    .select({ servicioId: loteServicio.servicioId })
+    .from(loteServicio)
+    .where(
+      and(
+        eq(loteServicio.loteId, activeSession.loteId),
+        inArray(loteServicio.servicioId, resolvedServicioIds)
+      )
+    );
+  const loteServicioIds = new Set(
+    loteAssignments.map((assignment) => assignment.servicioId)
+  );
+  const missingLoteServicioId = resolvedServicioIds.find(
+    (servicioId) => !loteServicioIds.has(servicioId)
+  );
+
+  if (missingLoteServicioId) {
+    return NextResponse.json(
+      {
+        error: "El lote activo no está asignado al servicio resuelto para el dispositivo",
+        servicioId: missingLoteServicioId,
+      },
+      { status: 409 }
+    );
+  }
+
+  let activeCajaLoteSessionId: string | null = null;
+  const anyServiceUsesCajas = rowsWithService.some(
+    (row) => row.assignment?.usaCajas
+  );
+  if (anyServiceUsesCajas) {
+    const [activeCaja] = await db
+      .select({ id: cajaLoteSession.id })
+      .from(cajaLoteSession)
+      .where(
+        and(
+          eq(cajaLoteSession.loteSessionId, activeSession.id),
+          isNull(cajaLoteSession.retiradoAt)
+        )
+      )
+      .orderBy(desc(cajaLoteSession.asignadoAt))
+      .limit(1);
+
+    activeCajaLoteSessionId = activeCaja?.id ?? null;
+  }
+
+  // 5. Bulk INSERT — un solo statement para N filas.
   //    El trigger STATEMENT-level (migración 0009) dispara UNA vez
-  //    y agrega todo el batch en un único UPSERT a lote_stats.
+  //    y agrega todo el batch a lote_stats; caja_stats solo si hay caja activa.
   await db.insert(conteo).values(
-    mediciones.map((m) => ({
-      ts: m.ts,
+    rowsWithService.map(({ medicion, assignment }) => ({
+      ts: medicion.ts,
       loteId: activeSession.loteId,
-      servicioId: activeSession.servicioId,
+      servicioId: assignment!.servicioId,
       dispositivoId: device.id,
-      cajaLoteSessionId: null as string | null,
-      perimeter: m.perimeter,
-      direction: m.direction,
+      cajaLoteSessionId: assignment!.usaCajas ? activeCajaLoteSessionId : null,
+      perimeter: medicion.perimeter,
+      direction: medicion.direction,
     }))
   );
 

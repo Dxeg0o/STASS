@@ -1,8 +1,13 @@
 // app/api/lotes/activity/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { loteSession, loteServicio, dispositivoServicio } from "@/db/schema";
-import { eq, isNull, and, desc } from "drizzle-orm";
+import {
+  cajaLoteSession,
+  loteSession,
+  loteServicio,
+  dispositivoServicio,
+} from "@/db/schema";
+import { eq, isNull, and, desc, inArray } from "drizzle-orm";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -28,9 +33,31 @@ export async function POST(request: Request) {
   let dispositivoId = bodyDispositivoId;
   if (!dispositivoId) {
     const ds = await db.query.dispositivoServicio.findFirst({
-      where: eq(dispositivoServicio.servicioId, latestAssignment.servicioId),
+      where: and(
+        eq(dispositivoServicio.servicioId, latestAssignment.servicioId),
+        isNull(dispositivoServicio.fechaTermino)
+      ),
     });
     dispositivoId = ds?.dispositivoId;
+  } else {
+    const [deviceAssignment] = await db
+      .select({ dispositivoId: dispositivoServicio.dispositivoId })
+      .from(dispositivoServicio)
+      .where(
+        and(
+          eq(dispositivoServicio.servicioId, latestAssignment.servicioId),
+          eq(dispositivoServicio.dispositivoId, dispositivoId),
+          isNull(dispositivoServicio.fechaTermino)
+        )
+      )
+      .limit(1);
+
+    if (!deviceAssignment) {
+      return NextResponse.json(
+        { error: "Device is not assigned to this service" },
+        { status: 400 }
+      );
+    }
   }
   if (!dispositivoId) {
     return NextResponse.json(
@@ -42,6 +69,24 @@ export async function POST(request: Request) {
   const now = new Date();
 
   // Cerrar sesiones abiertas del dispositivo
+  const openSessions = await db
+    .select({ id: loteSession.id })
+    .from(loteSession)
+    .where(and(eq(loteSession.dispositivoId, dispositivoId), isNull(loteSession.endTime)));
+  const openSessionIds = openSessions.map((session) => session.id);
+
+  if (openSessionIds.length > 0) {
+    await db
+      .update(cajaLoteSession)
+      .set({ retiradoAt: now })
+      .where(
+        and(
+          inArray(cajaLoteSession.loteSessionId, openSessionIds),
+          isNull(cajaLoteSession.retiradoAt)
+        )
+      );
+  }
+
   await db
     .update(loteSession)
     .set({ endTime: now })
@@ -50,7 +95,12 @@ export async function POST(request: Request) {
   // Abrir nueva sesion
   const [session] = await db
     .insert(loteSession)
-    .values({ loteId, dispositivoId, startTime: now, endTime: null })
+    .values({
+      loteId,
+      dispositivoId,
+      startTime: now,
+      endTime: null,
+    })
     .returning();
 
   return NextResponse.json(session, { status: 201 });

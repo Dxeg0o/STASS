@@ -105,7 +105,6 @@ export async function GET(request: Request) {
   }[] = [];
 
   if (servicioIds.length > 0) {
-    // Get loteIds via loteServicio
     const loteIdsRows = await db
       .select({ loteId: loteServicio.loteId, servicioId: loteServicio.servicioId })
       .from(loteServicio)
@@ -114,51 +113,54 @@ export async function GET(request: Request) {
     const loteIds = [...new Set(loteIdsRows.map((l) => l.loteId))];
     const loteToServicioMap = new Map(loteIdsRows.map((l) => [l.loteId, l.servicioId]));
 
-    if (loteIds.length > 0) {
-      const sessionRows = await db
-        .select({
-          loteId: loteSession.loteId,
-          dispositivoNombre: dispositivo.nombre,
-          startTime: loteSession.startTime,
-        })
-        .from(loteSession)
-        .innerJoin(dispositivo, eq(dispositivo.id, loteSession.dispositivoId))
-        .where(and(isNull(loteSession.endTime), inArray(loteSession.loteId, loteIds)))
-        .orderBy(desc(loteSession.startTime))
-        .limit(10);
+    const sessionRows = loteIds.length > 0 ? await db
+      .select({
+        loteId: loteSession.loteId,
+        dispositivoNombre: dispositivo.nombre,
+        startTime: loteSession.startTime,
+      })
+      .from(loteSession)
+      .innerJoin(dispositivo, eq(dispositivo.id, loteSession.dispositivoId))
+      .where(
+        and(
+          isNull(loteSession.endTime),
+          inArray(loteSession.loteId, loteIds)
+        )
+      )
+      .orderBy(desc(loteSession.startTime))
+      .limit(10) : [];
 
-      const servicioNameMap = new Map(servicios.map((s) => [s.id, s.nombre]));
+    const servicioNameMap = new Map(servicios.map((s) => [s.id, s.nombre]));
 
-      // Get variedad/producto info for active lotes
-      const activeLoteIds = sessionRows.map((r) => r.loteId);
-      const activeLoteInfo =
-        activeLoteIds.length > 0
-          ? await db
-              .select({
-                id: lote.id,
-                variedadNombre: variedad.nombre,
-                productoNombre: producto.nombre,
-              })
-              .from(lote)
-              .leftJoin(variedad, eq(variedad.id, lote.variedadId))
-              .leftJoin(producto, eq(producto.id, variedad.productoId))
-              .where(inArray(lote.id, activeLoteIds))
-          : [];
-      const loteInfoMap = new Map(activeLoteInfo.map((l) => [l.id, l]));
+    // Get variedad/producto info for active lotes
+    const activeLoteIds = sessionRows.map((r) => r.loteId);
+    const activeLoteInfo =
+      activeLoteIds.length > 0
+        ? await db
+            .select({
+              id: lote.id,
+              variedadNombre: variedad.nombre,
+              productoNombre: producto.nombre,
+            })
+            .from(lote)
+            .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+            .leftJoin(producto, eq(producto.id, variedad.productoId))
+            .where(inArray(lote.id, activeLoteIds))
+        : [];
+    const loteInfoMap = new Map(activeLoteInfo.map((l) => [l.id, l]));
 
-      activeSessions = sessionRows.map((r) => {
-        const sId = loteToServicioMap.get(r.loteId) ?? "";
-        const info = loteInfoMap.get(r.loteId);
-        return {
-          loteId: r.loteId,
-          servicioNombre: servicioNameMap.get(sId) ?? "",
-          dispositivoNombre: r.dispositivoNombre,
-          startTime: new Date(r.startTime).toISOString(),
-          variedadNombre: info?.variedadNombre ?? null,
-          productoNombre: info?.productoNombre ?? null,
-        };
-      });
-    }
+    activeSessions = sessionRows.map((r) => {
+      const sId = loteToServicioMap.get(r.loteId) ?? "";
+      const info = loteInfoMap.get(r.loteId);
+      return {
+        loteId: r.loteId,
+        servicioNombre: servicioNameMap.get(sId) ?? "",
+        dispositivoNombre: r.dispositivoNombre,
+        startTime: new Date(r.startTime).toISOString(),
+        variedadNombre: info?.variedadNombre ?? null,
+        productoNombre: info?.productoNombre ?? null,
+      };
+    });
   }
 
   // 5. Get recent lotes
@@ -183,7 +185,13 @@ export async function GET(request: Request) {
       .from(loteServicio)
       .innerJoin(lote, eq(lote.id, loteServicio.loteId))
       .innerJoin(servicio, eq(servicio.id, loteServicio.servicioId))
-      .leftJoin(loteStats, eq(loteStats.loteId, loteServicio.loteId))
+      .leftJoin(
+        loteStats,
+        and(
+          eq(loteStats.loteId, loteServicio.loteId),
+          eq(loteStats.servicioId, loteServicio.servicioId)
+        )
+      )
       .where(inArray(loteServicio.servicioId, servicioIds))
       .groupBy(
         loteServicio.loteId,

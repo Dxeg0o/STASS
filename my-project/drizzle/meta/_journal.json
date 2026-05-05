@@ -92,6 +92,20 @@
       "when": 1778003000000,
       "tag": "0012_lote_subvariedad",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1778004000000,
+      "tag": "0013_stats_caja_dual_path",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1778005000000,
+      "tag": "0014_dispositivo_servicio_temporal",
+      "breakpoints": true
     }
   ]
 }

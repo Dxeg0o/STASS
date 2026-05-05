@@ -54,7 +54,12 @@ export async function GET(
     })
     .from(dispositivoServicio)
     .innerJoin(dispositivo, eq(dispositivo.id, dispositivoServicio.dispositivoId))
-    .where(eq(dispositivoServicio.servicioId, servicioId));
+    .where(
+      and(
+        eq(dispositivoServicio.servicioId, servicioId),
+        isNull(dispositivoServicio.fechaTermino)
+      )
+    );
 
   // 3. Get lotes via loteServicio, with stats
   const loteIdsRows = await db
@@ -84,7 +89,10 @@ export async function GET(
         productoNombre: producto.nombre,
       })
       .from(lote)
-      .leftJoin(loteStats, eq(loteStats.loteId, lote.id))
+      .leftJoin(
+        loteStats,
+        and(eq(loteStats.loteId, lote.id), eq(loteStats.servicioId, servicioId))
+      )
       .leftJoin(variedad, eq(variedad.id, lote.variedadId))
       .leftJoin(producto, eq(producto.id, variedad.productoId))
       .where(inArray(lote.id, loteIds))
@@ -99,7 +107,12 @@ export async function GET(
     const activeSessions = await db
       .select({ loteId: loteSession.loteId })
       .from(loteSession)
-      .where(and(inArray(loteSession.loteId, loteIds), isNull(loteSession.endTime)))
+      .where(
+        and(
+          inArray(loteSession.loteId, loteIds),
+          isNull(loteSession.endTime)
+        )
+      )
       .limit(1);
 
     if (activeSessions.length > 0) {
@@ -116,7 +129,12 @@ export async function GET(
         totalCount: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
       })
       .from(loteStats)
-      .where(inArray(loteStats.loteId, loteIds));
+      .where(
+        and(
+          inArray(loteStats.loteId, loteIds),
+          eq(loteStats.servicioId, servicioId)
+        )
+      );
     totalCount = totalRow?.totalCount ?? 0;
   }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { dispositivo, dispositivoServicio, servicio } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { verifyAdmin } from "@/lib/auth";
 
 interface RouteContext {
@@ -30,7 +30,10 @@ export async function GET(req: Request, context: RouteContext) {
 
     const [asignados, todos] = await Promise.all([
       db.query.dispositivoServicio.findMany({
-        where: eq(dispositivoServicio.servicioId, servicioId),
+        where: and(
+          eq(dispositivoServicio.servicioId, servicioId),
+          isNull(dispositivoServicio.fechaTermino)
+        ),
         with: { dispositivo: true },
       }),
       db.query.dispositivo.findMany(),
@@ -87,14 +90,31 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const [assignment] = await db
-      .insert(dispositivoServicio)
-      .values({
-        dispositivoId,
-        servicioId,
-        maquina: maquina?.trim() || null,
-      })
-      .returning();
+    const now = new Date();
+
+    const [assignment] = await db.transaction(async (tx) => {
+      await tx
+        .update(dispositivoServicio)
+        .set({ fechaTermino: now })
+        .where(
+          and(
+            eq(dispositivoServicio.dispositivoId, dispositivoId),
+            isNull(dispositivoServicio.fechaTermino)
+          )
+        );
+
+      return tx
+        .insert(dispositivoServicio)
+        .values({
+          dispositivoId,
+          servicioId,
+          maquina: maquina?.trim() || null,
+          asignadoAt: now,
+          fechaInicio: now,
+          fechaTermino: null,
+        })
+        .returning();
+    });
 
     return NextResponse.json(assignment, { status: 201 });
   } catch (error) {
@@ -124,11 +144,13 @@ export async function DELETE(req: Request, context: RouteContext) {
     }
 
     const [removed] = await db
-      .delete(dispositivoServicio)
+      .update(dispositivoServicio)
+      .set({ fechaTermino: new Date() })
       .where(
         and(
           eq(dispositivoServicio.dispositivoId, dispositivoId),
-          eq(dispositivoServicio.servicioId, servicioId)
+          eq(dispositivoServicio.servicioId, servicioId),
+          isNull(dispositivoServicio.fechaTermino)
         )
       )
       .returning();

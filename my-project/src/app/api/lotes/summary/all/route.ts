@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { lote, loteStats, loteServicio, servicio } from "@/db/schema";
-import { eq, inArray, desc, sql } from "drizzle-orm";
+import { and, eq, inArray, desc, sql } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -48,7 +48,12 @@ export async function GET(request: Request) {
       createdAt: lote.createdAt,
     })
     .from(lote)
-    .leftJoin(loteStats, eq(loteStats.loteId, lote.id))
+    .leftJoin(
+      loteStats,
+      servicioId
+        ? and(eq(loteStats.loteId, lote.id), eq(loteStats.servicioId, servicioId))
+        : eq(loteStats.loteId, lote.id)
+    )
     .where(inArray(lote.id, uniqueLoteIds))
     .groupBy(lote.id, lote.codigoLote, lote.createdAt)
     .orderBy(desc(lote.createdAt));

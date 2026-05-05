@@ -81,7 +81,12 @@ export async function GET(request: Request) {
       deviceCount: sql<number>`COUNT(*)::int`,
     })
     .from(dispositivoServicio)
-    .where(inArray(dispositivoServicio.servicioId, servicioIds))
+    .where(
+      and(
+        inArray(dispositivoServicio.servicioId, servicioIds),
+        isNull(dispositivoServicio.fechaTermino)
+      )
+    )
     .groupBy(dispositivoServicio.servicioId);
 
   const deviceCountMap = new Map(

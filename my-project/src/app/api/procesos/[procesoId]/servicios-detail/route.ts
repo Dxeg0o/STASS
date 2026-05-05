@@ -109,7 +109,12 @@ export async function GET(
       count: sql<number>`count(*)::int`,
     })
     .from(dispositivoServicio)
-    .where(inArray(dispositivoServicio.servicioId, servicioIds))
+    .where(
+      and(
+        inArray(dispositivoServicio.servicioId, servicioIds),
+        isNull(dispositivoServicio.fechaTermino)
+      )
+    )
     .groupBy(dispositivoServicio.servicioId);
 
   const deviceCountMap = new Map(deviceCounts.map((d) => [d.servicioId, d.count]));

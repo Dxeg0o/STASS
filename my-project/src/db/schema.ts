@@ -376,6 +376,7 @@ export const dispositivoRelations = relations(dispositivo, ({ many }) => ({
 export const dispositivoServicio = pgTable(
   "dispositivo_servicio",
   {
+    id: uuid("id").primaryKey().defaultRandom(),
     dispositivoId: uuid("dispositivo_id")
       .notNull()
       .references(() => dispositivo.id, { onDelete: "cascade" }),
@@ -384,8 +385,11 @@ export const dispositivoServicio = pgTable(
       .references(() => servicio.id, { onDelete: "cascade" }),
     maquina: text("maquina"),
     asignadoAt: timestamp("asignado_at", { withTimezone: true }).defaultNow(),
-  },
-  (t) => [primaryKey({ columns: [t.dispositivoId, t.servicioId] })]
+    fechaInicio: timestamp("fecha_inicio", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    fechaTermino: timestamp("fecha_termino", { withTimezone: true }),
+  }
 );
 
 export const dispositivoServicioRelations = relations(

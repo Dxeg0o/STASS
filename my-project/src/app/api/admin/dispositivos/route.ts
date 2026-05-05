@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { dispositivo } from "@/db/schema";
+import { dispositivo, dispositivoServicio } from "@/db/schema";
 import { verifyAdmin } from "@/lib/auth";
+import { isNull } from "drizzle-orm";
 
 export async function GET(req: Request) {
   try {
@@ -13,6 +14,7 @@ export async function GET(req: Request) {
     const dispositivos = await db.query.dispositivo.findMany({
       with: {
         dispositivoServicios: {
+          where: isNull(dispositivoServicio.fechaTermino),
           with: { servicio: true },
         },
       },
