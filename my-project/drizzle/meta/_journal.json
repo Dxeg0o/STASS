@@ -120,6 +120,13 @@
       "when": 1778019097239,
       "tag": "0016_modern_namorita",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1778021117131,
+      "tag": "0017_strange_peter_quill",
+      "breakpoints": true
     }
   ]
 }

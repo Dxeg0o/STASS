@@ -21,7 +21,7 @@ interface RawMedicion {
 
 interface ValidMedicion {
   ts: Date;
-  perimeter: number;
+  perimeter: number | null;
   direction: 0 | 1;
 }
 
@@ -49,13 +49,15 @@ function validateMediciones(
     if (isNaN(ts.getTime()))
       return { error: `medicion[${i}].ts: fecha inválida` };
 
-    if (typeof m.perimeter !== "number" || m.perimeter <= 0)
-      return { error: `medicion[${i}].perimeter: debe ser número positivo` };
+    if (typeof m.perimeter !== "number" || m.perimeter < 0)
+      return { error: `medicion[${i}].perimeter: debe ser número no negativo` };
+
+    const perimeterValue = m.perimeter === 0 ? null : m.perimeter;
 
     if (m.direction !== 0 && m.direction !== 1)
       return { error: `medicion[${i}].direction: debe ser 0 (in) o 1 (out)` };
 
-    validated.push({ ts, perimeter: m.perimeter, direction: m.direction });
+    validated.push({ ts, perimeter: perimeterValue, direction: m.direction });
   }
 
   return { data: validated };

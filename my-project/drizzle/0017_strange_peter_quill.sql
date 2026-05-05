@@ -1,0 +1,1 @@
+ALTER TABLE "conteo" ALTER COLUMN "perimeter" DROP NOT NULL;

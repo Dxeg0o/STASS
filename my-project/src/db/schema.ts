@@ -561,7 +561,7 @@ export const conteo = pgTable(
     cajaLoteSessionId: uuid("caja_lote_session_id").references(
       () => cajaLoteSession.id
     ),
-    perimeter: real("perimeter").notNull(),
+    perimeter: real("perimeter"),
     direction: smallint("direction").notNull(), // 0 = in, 1 = out
   },
   (t) => [
