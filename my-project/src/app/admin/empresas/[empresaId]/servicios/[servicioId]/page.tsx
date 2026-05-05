@@ -81,7 +81,8 @@ interface ServicioInfo {
   id: string;
   nombre: string;
   tipo: string;
-  fechaInicio: string;
+  estado: string;
+  fechaInicio: string | null;
   fechaFin: string | null;
   proceso?: { tipoProceso?: { nombre: string } | null } | null;
   ubicacion?: { nombre: string; tipo: string } | null;
@@ -99,6 +100,8 @@ interface ServicioDispositivo {
   servicioId: string;
   maquina: string | null;
   asignadoAt: string | null;
+  fechaInicio: string | null;
+  fechaTermino: string | null;
   dispositivo: Dispositivo;
 }
 
@@ -111,6 +114,25 @@ const TIPO_LABELS: Record<string, string> = {
   linea_conteo: "Línea de Conteo",
   maquina_plantacion: "Máquina de Plantación",
   estacion_calidad: "Estación de Calidad",
+};
+
+const ESTADO_LABELS: Record<string, { label: string; className: string }> = {
+  planificado: {
+    label: "Planificado",
+    className: "bg-slate-500/20 text-slate-300 border-slate-500/40",
+  },
+  en_curso: {
+    label: "En curso",
+    className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
+  },
+  completado: {
+    label: "Completado",
+    className: "bg-blue-500/20 text-blue-400 border-blue-500/40",
+  },
+  cancelado: {
+    label: "Cancelado",
+    className: "bg-red-500/20 text-red-400 border-red-500/40",
+  },
 };
 
 type CreationMode = "individual" | "excel";
@@ -862,11 +884,12 @@ export default function AdminServicioLotesPage() {
             >
               {TIPO_LABELS[servicioInfo.tipo] ?? servicioInfo.tipo}
             </Badge>
-            {!servicioInfo.fechaFin && (
-              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-xs">
-                Activo
-              </Badge>
-            )}
+            <Badge
+              variant="outline"
+              className={`text-xs ${ESTADO_LABELS[servicioInfo.estado]?.className ?? ESTADO_LABELS.planificado.className}`}
+            >
+              {ESTADO_LABELS[servicioInfo.estado]?.label ?? servicioInfo.estado}
+            </Badge>
           </div>
           <div className="flex items-center gap-4 text-sm text-slate-400">
             {servicioInfo.proceso?.tipoProceso?.nombre && (
@@ -878,7 +901,7 @@ export default function AdminServicioLotesPage() {
               </span>
             )}
             <span>
-              Desde {format(new Date(servicioInfo.fechaInicio), "dd/MM/yyyy")}
+              Inicio {servicioInfo.fechaInicio ? format(new Date(servicioInfo.fechaInicio), "dd/MM/yyyy") : "pendiente"}
               {servicioInfo.fechaFin
                 ? ` — Hasta ${format(new Date(servicioInfo.fechaFin), "dd/MM/yyyy")}`
                 : ""}
@@ -1115,7 +1138,12 @@ export default function AdminServicioLotesPage() {
                 </CardTitle>
                 <Button
                   size="sm"
-                  disabled={dispositivosDisponibles.length === 0 || dispositivosLoading}
+                  disabled={
+                    dispositivosDisponibles.length === 0 ||
+                    dispositivosLoading ||
+                    servicioInfo?.estado === "completado" ||
+                    servicioInfo?.estado === "cancelado"
+                  }
                   onClick={() => setDeviceDialogOpen(true)}
                   className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
                 >
@@ -1170,6 +1198,11 @@ export default function AdminServicioLotesPage() {
                     <TableBody>
                       {dispositivosAsignados.map((assignment) => {
                         const isInactive = assignment.dispositivo.activo === false;
+                        const assignmentStatus = assignment.fechaTermino
+                          ? "cerrado"
+                          : assignment.fechaInicio
+                            ? "activo"
+                            : "pendiente";
 
                         return (
                           <TableRow
@@ -1196,12 +1229,20 @@ export default function AdminServicioLotesPage() {
                               <Badge
                                 variant="outline"
                                 className={
-                                  isInactive
-                                    ? "border-red-500/30 bg-red-950/30 text-red-400"
-                                    : "border-emerald-500/30 bg-emerald-950/30 text-emerald-400"
+                                  assignmentStatus === "pendiente"
+                                    ? "border-amber-500/30 bg-amber-950/30 text-amber-400"
+                                    : assignmentStatus === "cerrado" || isInactive
+                                      ? "border-red-500/30 bg-red-950/30 text-red-400"
+                                      : "border-emerald-500/30 bg-emerald-950/30 text-emerald-400"
                                 }
                               >
-                                {isInactive ? "Inactivo" : "Activo"}
+                                {assignmentStatus === "pendiente"
+                                  ? "Pendiente"
+                                  : assignmentStatus === "cerrado"
+                                    ? "Cerrado"
+                                    : isInactive
+                                      ? "Inactivo"
+                                      : "Activo"}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">

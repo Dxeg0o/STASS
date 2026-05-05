@@ -1,0 +1,1926 @@
+{
+  "id": "f4ae5d04-4275-4cb2-a54a-a67e7c56479c",
+  "prevId": "03bdc2d7-9f67-417b-9e42-a8d3ea6565a2",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.caja": {
+      "name": "caja",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "codigo": {
+          "name": "codigo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "empresa_id": {
+          "name": "empresa_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'reutilizable'"
+        },
+        "capacidad": {
+          "name": "capacidad",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "activa": {
+          "name": "activa",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "caja_empresa_id_empresa_id_fk": {
+          "name": "caja_empresa_id_empresa_id_fk",
+          "tableFrom": "caja",
+          "tableTo": "empresa",
+          "columnsFrom": [
+            "empresa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "caja_codigo_unique": {
+          "name": "caja_codigo_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "codigo"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.caja_lote_session": {
+      "name": "caja_lote_session",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "caja_id": {
+          "name": "caja_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lote_session_id": {
+          "name": "lote_session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asignado_at": {
+          "name": "asignado_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "retirado_at": {
+          "name": "retirado_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "caja_lote_session_caja_id_caja_id_fk": {
+          "name": "caja_lote_session_caja_id_caja_id_fk",
+          "tableFrom": "caja_lote_session",
+          "tableTo": "caja",
+          "columnsFrom": [
+            "caja_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "caja_lote_session_lote_session_id_lote_session_id_fk": {
+          "name": "caja_lote_session_lote_session_id_lote_session_id_fk",
+          "tableFrom": "caja_lote_session",
+          "tableTo": "lote_session",
+          "columnsFrom": [
+            "lote_session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.caja_stats": {
+      "name": "caja_stats",
+      "schema": "",
+      "columns": {
+        "caja_lote_session_id": {
+          "name": "caja_lote_session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dispositivo_id": {
+          "name": "dispositivo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "calibre": {
+          "name": "calibre",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "count_in": {
+          "name": "count_in",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "count_out": {
+          "name": "count_out",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "first_ts": {
+          "name": "first_ts",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_ts": {
+          "name": "last_ts",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "caja_stats_caja_lote_session_id_caja_lote_session_id_fk": {
+          "name": "caja_stats_caja_lote_session_id_caja_lote_session_id_fk",
+          "tableFrom": "caja_stats",
+          "tableTo": "caja_lote_session",
+          "columnsFrom": [
+            "caja_lote_session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "caja_stats_dispositivo_id_dispositivo_id_fk": {
+          "name": "caja_stats_dispositivo_id_dispositivo_id_fk",
+          "tableFrom": "caja_stats",
+          "tableTo": "dispositivo",
+          "columnsFrom": [
+            "dispositivo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "caja_stats_caja_lote_session_id_dispositivo_id_calibre_pk": {
+          "name": "caja_stats_caja_lote_session_id_dispositivo_id_calibre_pk",
+          "columns": [
+            "caja_lote_session_id",
+            "dispositivo_id",
+            "calibre"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.conteo": {
+      "name": "conteo",
+      "schema": "",
+      "columns": {
+        "ts": {
+          "name": "ts",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "servicio_id": {
+          "name": "servicio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lote_id": {
+          "name": "lote_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dispositivo_id": {
+          "name": "dispositivo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "caja_lote_session_id": {
+          "name": "caja_lote_session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "perimeter": {
+          "name": "perimeter",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_conteo_lote": {
+          "name": "idx_conteo_lote",
+          "columns": [
+            {
+              "expression": "lote_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ts",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_conteo_servicio": {
+          "name": "idx_conteo_servicio",
+          "columns": [
+            {
+              "expression": "servicio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ts",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_conteo_dispositivo": {
+          "name": "idx_conteo_dispositivo",
+          "columns": [
+            {
+              "expression": "dispositivo_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ts",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "conteo_servicio_id_servicio_id_fk": {
+          "name": "conteo_servicio_id_servicio_id_fk",
+          "tableFrom": "conteo",
+          "tableTo": "servicio",
+          "columnsFrom": [
+            "servicio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "conteo_lote_id_lote_id_fk": {
+          "name": "conteo_lote_id_lote_id_fk",
+          "tableFrom": "conteo",
+          "tableTo": "lote",
+          "columnsFrom": [
+            "lote_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "conteo_dispositivo_id_dispositivo_id_fk": {
+          "name": "conteo_dispositivo_id_dispositivo_id_fk",
+          "tableFrom": "conteo",
+          "tableTo": "dispositivo",
+          "columnsFrom": [
+            "dispositivo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "conteo_caja_lote_session_id_caja_lote_session_id_fk": {
+          "name": "conteo_caja_lote_session_id_caja_lote_session_id_fk",
+          "tableFrom": "conteo",
+          "tableTo": "caja_lote_session",
+          "columnsFrom": [
+            "caja_lote_session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.conteo_archive_index": {
+      "name": "conteo_archive_index",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "date": {
+          "name": "date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "row_count": {
+          "name": "row_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "checksum": {
+          "name": "checksum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "conteo_archive_index_date_unique": {
+          "name": "conteo_archive_index_date_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "date"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dispositivo": {
+      "name": "dispositivo",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nvidia_agx'"
+        },
+        "activo": {
+          "name": "activo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "api_key_hash": {
+          "name": "api_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dispositivo_nombre_unique": {
+          "name": "dispositivo_nombre_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nombre"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dispositivo_servicio": {
+      "name": "dispositivo_servicio",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "dispositivo_id": {
+          "name": "dispositivo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "servicio_id": {
+          "name": "servicio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "maquina": {
+          "name": "maquina",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "asignado_at": {
+          "name": "asignado_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "fecha_inicio": {
+          "name": "fecha_inicio",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fecha_termino": {
+          "name": "fecha_termino",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dispositivo_servicio_dispositivo_id_dispositivo_id_fk": {
+          "name": "dispositivo_servicio_dispositivo_id_dispositivo_id_fk",
+          "tableFrom": "dispositivo_servicio",
+          "tableTo": "dispositivo",
+          "columnsFrom": [
+            "dispositivo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "dispositivo_servicio_servicio_id_servicio_id_fk": {
+          "name": "dispositivo_servicio_servicio_id_servicio_id_fk",
+          "tableFrom": "dispositivo_servicio",
+          "tableTo": "servicio",
+          "columnsFrom": [
+            "servicio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.empresa": {
+      "name": "empresa",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pais": {
+          "name": "pais",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.empresa_usuario": {
+      "name": "empresa_usuario",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "usuario_id": {
+          "name": "usuario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "empresa_id": {
+          "name": "empresa_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rol": {
+          "name": "rol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "empresa_usuario_usuario_id_usuario_id_fk": {
+          "name": "empresa_usuario_usuario_id_usuario_id_fk",
+          "tableFrom": "empresa_usuario",
+          "tableTo": "usuario",
+          "columnsFrom": [
+            "usuario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "empresa_usuario_empresa_id_empresa_id_fk": {
+          "name": "empresa_usuario_empresa_id_empresa_id_fk",
+          "tableFrom": "empresa_usuario",
+          "tableTo": "empresa",
+          "columnsFrom": [
+            "empresa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "empresa_usuario_usuario_id_empresa_id_unique": {
+          "name": "empresa_usuario_usuario_id_empresa_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "usuario_id",
+            "empresa_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.invitation_link": {
+      "name": "invitation_link",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "empresa_id": {
+          "name": "empresa_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rol": {
+          "name": "rol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "correo_invitado": {
+          "name": "correo_invitado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "used_at": {
+          "name": "used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "used_by_usuario_id": {
+          "name": "used_by_usuario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "invitation_link_empresa_id_empresa_id_fk": {
+          "name": "invitation_link_empresa_id_empresa_id_fk",
+          "tableFrom": "invitation_link",
+          "tableTo": "empresa",
+          "columnsFrom": [
+            "empresa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "invitation_link_used_by_usuario_id_usuario_id_fk": {
+          "name": "invitation_link_used_by_usuario_id_usuario_id_fk",
+          "tableFrom": "invitation_link",
+          "tableTo": "usuario",
+          "columnsFrom": [
+            "used_by_usuario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "invitation_link_created_by_usuario_id_fk": {
+          "name": "invitation_link_created_by_usuario_id_fk",
+          "tableFrom": "invitation_link",
+          "tableTo": "usuario",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "invitation_link_token_unique": {
+          "name": "invitation_link_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.lote": {
+      "name": "lote",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "codigo_lote": {
+          "name": "codigo_lote",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "variedad_id": {
+          "name": "variedad_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subvariedad_id": {
+          "name": "subvariedad_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "lote_variedad_id_variedad_id_fk": {
+          "name": "lote_variedad_id_variedad_id_fk",
+          "tableFrom": "lote",
+          "tableTo": "variedad",
+          "columnsFrom": [
+            "variedad_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "lote_subvariedad_id_subvariedad_id_fk": {
+          "name": "lote_subvariedad_id_subvariedad_id_fk",
+          "tableFrom": "lote",
+          "tableTo": "subvariedad",
+          "columnsFrom": [
+            "subvariedad_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.lote_servicio": {
+      "name": "lote_servicio",
+      "schema": "",
+      "columns": {
+        "lote_id": {
+          "name": "lote_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "servicio_id": {
+          "name": "servicio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asignado_at": {
+          "name": "asignado_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "lote_servicio_lote_id_lote_id_fk": {
+          "name": "lote_servicio_lote_id_lote_id_fk",
+          "tableFrom": "lote_servicio",
+          "tableTo": "lote",
+          "columnsFrom": [
+            "lote_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lote_servicio_servicio_id_servicio_id_fk": {
+          "name": "lote_servicio_servicio_id_servicio_id_fk",
+          "tableFrom": "lote_servicio",
+          "tableTo": "servicio",
+          "columnsFrom": [
+            "servicio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "lote_servicio_lote_id_servicio_id_pk": {
+          "name": "lote_servicio_lote_id_servicio_id_pk",
+          "columns": [
+            "lote_id",
+            "servicio_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.lote_session": {
+      "name": "lote_session",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "lote_id": {
+          "name": "lote_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dispositivo_id": {
+          "name": "dispositivo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_time": {
+          "name": "start_time",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "end_time": {
+          "name": "end_time",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "lote_session_lote_id_lote_id_fk": {
+          "name": "lote_session_lote_id_lote_id_fk",
+          "tableFrom": "lote_session",
+          "tableTo": "lote",
+          "columnsFrom": [
+            "lote_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lote_session_dispositivo_id_dispositivo_id_fk": {
+          "name": "lote_session_dispositivo_id_dispositivo_id_fk",
+          "tableFrom": "lote_session",
+          "tableTo": "dispositivo",
+          "columnsFrom": [
+            "dispositivo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.lote_stats": {
+      "name": "lote_stats",
+      "schema": "",
+      "columns": {
+        "lote_id": {
+          "name": "lote_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "servicio_id": {
+          "name": "servicio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dispositivo_id": {
+          "name": "dispositivo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "calibre": {
+          "name": "calibre",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "count_in": {
+          "name": "count_in",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "count_out": {
+          "name": "count_out",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "first_ts": {
+          "name": "first_ts",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_ts": {
+          "name": "last_ts",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "lote_stats_lote_id_lote_id_fk": {
+          "name": "lote_stats_lote_id_lote_id_fk",
+          "tableFrom": "lote_stats",
+          "tableTo": "lote",
+          "columnsFrom": [
+            "lote_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lote_stats_servicio_id_servicio_id_fk": {
+          "name": "lote_stats_servicio_id_servicio_id_fk",
+          "tableFrom": "lote_stats",
+          "tableTo": "servicio",
+          "columnsFrom": [
+            "servicio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "lote_stats_dispositivo_id_dispositivo_id_fk": {
+          "name": "lote_stats_dispositivo_id_dispositivo_id_fk",
+          "tableFrom": "lote_stats",
+          "tableTo": "dispositivo",
+          "columnsFrom": [
+            "dispositivo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "lote_stats_lote_id_servicio_id_dispositivo_id_calibre_pk": {
+          "name": "lote_stats_lote_id_servicio_id_dispositivo_id_calibre_pk",
+          "columns": [
+            "lote_id",
+            "servicio_id",
+            "dispositivo_id",
+            "calibre"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.proceso": {
+      "name": "proceso",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tipo_proceso_id": {
+          "name": "tipo_proceso_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "empresa_id": {
+          "name": "empresa_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "producto_id": {
+          "name": "producto_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "temporada": {
+          "name": "temporada",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estado": {
+          "name": "estado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'planificado'"
+        },
+        "fecha_inicio": {
+          "name": "fecha_inicio",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fecha_fin": {
+          "name": "fecha_fin",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notas": {
+          "name": "notas",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "proceso_tipo_proceso_id_tipo_proceso_id_fk": {
+          "name": "proceso_tipo_proceso_id_tipo_proceso_id_fk",
+          "tableFrom": "proceso",
+          "tableTo": "tipo_proceso",
+          "columnsFrom": [
+            "tipo_proceso_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "proceso_empresa_id_empresa_id_fk": {
+          "name": "proceso_empresa_id_empresa_id_fk",
+          "tableFrom": "proceso",
+          "tableTo": "empresa",
+          "columnsFrom": [
+            "empresa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "proceso_producto_id_producto_id_fk": {
+          "name": "proceso_producto_id_producto_id_fk",
+          "tableFrom": "proceso",
+          "tableTo": "producto",
+          "columnsFrom": [
+            "producto_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.producto": {
+      "name": "producto",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "producto_nombre_unique": {
+          "name": "producto_nombre_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nombre"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.servicio": {
+      "name": "servicio",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "empresa_id": {
+          "name": "empresa_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ubicacion_id": {
+          "name": "ubicacion_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "proceso_id": {
+          "name": "proceso_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usa_cajas": {
+          "name": "usa_cajas",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "estado": {
+          "name": "estado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'planificado'"
+        },
+        "fecha_inicio": {
+          "name": "fecha_inicio",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fecha_fin": {
+          "name": "fecha_fin",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "servicio_empresa_id_empresa_id_fk": {
+          "name": "servicio_empresa_id_empresa_id_fk",
+          "tableFrom": "servicio",
+          "tableTo": "empresa",
+          "columnsFrom": [
+            "empresa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "servicio_ubicacion_id_ubicacion_id_fk": {
+          "name": "servicio_ubicacion_id_ubicacion_id_fk",
+          "tableFrom": "servicio",
+          "tableTo": "ubicacion",
+          "columnsFrom": [
+            "ubicacion_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "servicio_proceso_id_proceso_id_fk": {
+          "name": "servicio_proceso_id_proceso_id_fk",
+          "tableFrom": "servicio",
+          "tableTo": "proceso",
+          "columnsFrom": [
+            "proceso_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.subvariedad": {
+      "name": "subvariedad",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "variedad_id": {
+          "name": "variedad_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "subvariedad_variedad_id_variedad_id_fk": {
+          "name": "subvariedad_variedad_id_variedad_id_fk",
+          "tableFrom": "subvariedad",
+          "tableTo": "variedad",
+          "columnsFrom": [
+            "variedad_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "subvariedad_nombre_variedad_id_unique": {
+          "name": "subvariedad_nombre_variedad_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nombre",
+            "variedad_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tipo_proceso": {
+      "name": "tipo_proceso",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "empresa_id": {
+          "name": "empresa_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tipo_proceso_empresa_id_empresa_id_fk": {
+          "name": "tipo_proceso_empresa_id_empresa_id_fk",
+          "tableFrom": "tipo_proceso",
+          "tableTo": "empresa",
+          "columnsFrom": [
+            "empresa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ubicacion": {
+      "name": "ubicacion",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "empresa_id": {
+          "name": "empresa_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lat": {
+          "name": "lat",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lng": {
+          "name": "lng",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "boundaries": {
+          "name": "boundaries",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ubicacion_empresa_id_empresa_id_fk": {
+          "name": "ubicacion_empresa_id_empresa_id_fk",
+          "tableFrom": "ubicacion",
+          "tableTo": "empresa",
+          "columnsFrom": [
+            "empresa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.usuario": {
+      "name": "usuario",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "correo": {
+          "name": "correo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_super_admin": {
+          "name": "is_super_admin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "reset_password_token": {
+          "name": "reset_password_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reset_password_expires_at": {
+          "name": "reset_password_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "usuario_correo_unique": {
+          "name": "usuario_correo_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "correo"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.variedad": {
+      "name": "variedad",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "producto_id": {
+          "name": "producto_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "variedad_producto_id_producto_id_fk": {
+          "name": "variedad_producto_id_producto_id_fk",
+          "tableFrom": "variedad",
+          "tableTo": "producto",
+          "columnsFrom": [
+            "producto_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "variedad_nombre_producto_id_unique": {
+          "name": "variedad_nombre_producto_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nombre",
+            "producto_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.workflow_empresa": {
+      "name": "workflow_empresa",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "empresa_id": {
+          "name": "empresa_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "workflow_empresa_empresa_id_empresa_id_fk": {
+          "name": "workflow_empresa_empresa_id_empresa_id_fk",
+          "tableFrom": "workflow_empresa",
+          "tableTo": "empresa",
+          "columnsFrom": [
+            "empresa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.workflow_paso": {
+      "name": "workflow_paso",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "workflow_empresa_id": {
+          "name": "workflow_empresa_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo_proceso_id": {
+          "name": "tipo_proceso_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "orden": {
+          "name": "orden",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "workflow_paso_workflow_empresa_id_workflow_empresa_id_fk": {
+          "name": "workflow_paso_workflow_empresa_id_workflow_empresa_id_fk",
+          "tableFrom": "workflow_paso",
+          "tableTo": "workflow_empresa",
+          "columnsFrom": [
+            "workflow_empresa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "workflow_paso_tipo_proceso_id_tipo_proceso_id_fk": {
+          "name": "workflow_paso_tipo_proceso_id_tipo_proceso_id_fk",
+          "tableFrom": "workflow_paso",
+          "tableTo": "tipo_proceso",
+          "columnsFrom": [
+            "tipo_proceso_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "workflow_paso_workflow_empresa_id_orden_unique": {
+          "name": "workflow_paso_workflow_empresa_id_orden_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "workflow_empresa_id",
+            "orden"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

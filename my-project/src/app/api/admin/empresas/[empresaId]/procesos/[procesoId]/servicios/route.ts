@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { servicio } from "@/db/schema";
+import { proceso, servicio } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifyAdmin } from "@/lib/auth";
 
@@ -55,6 +55,31 @@ export async function POST(
       );
     }
 
+    const parentProceso = await db.query.proceso.findFirst({
+      where: eq(proceso.id, procesoId),
+    });
+
+    if (!parentProceso) {
+      return NextResponse.json(
+        { error: "Proceso no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    if (parentProceso.estado === "completado" || parentProceso.estado === "cancelado") {
+      return NextResponse.json(
+        { error: "No se pueden agregar servicios a un proceso cerrado" },
+        { status: 409 }
+      );
+    }
+
+    const startsActive = parentProceso.estado === "en_curso";
+    const serviceStart = startsActive
+      ? fechaInicio
+        ? new Date(fechaInicio)
+        : new Date()
+      : null;
+
     const [newServicio] = await db
       .insert(servicio)
       .values({
@@ -64,7 +89,8 @@ export async function POST(
         tipo,
         ubicacionId: ubicacionId || null,
         usaCajas: usaCajas ?? false,
-        fechaInicio: fechaInicio ? new Date(fechaInicio) : new Date(),
+        estado: startsActive ? "en_curso" : "planificado",
+        fechaInicio: serviceStart,
       })
       .returning();
 

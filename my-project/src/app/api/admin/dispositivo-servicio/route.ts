@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { dispositivoServicio } from "@/db/schema";
+import { dispositivoServicio, servicio } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { verifyAdmin } from "@/lib/auth";
 
@@ -21,6 +21,23 @@ export async function POST(req: Request) {
     }
 
     const now = new Date();
+    const srv = await db.query.servicio.findFirst({
+      where: eq(servicio.id, servicioId),
+    });
+
+    if (!srv) {
+      return NextResponse.json(
+        { error: "Servicio no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    if (srv.estado === "completado" || srv.estado === "cancelado") {
+      return NextResponse.json(
+        { error: "No se pueden asignar dispositivos a un servicio cerrado" },
+        { status: 409 }
+      );
+    }
 
     const [assignment] = await db.transaction(async (tx) => {
       await tx
@@ -40,7 +57,7 @@ export async function POST(req: Request) {
           servicioId,
           maquina: maquina || null,
           asignadoAt: now,
-          fechaInicio: now,
+          fechaInicio: srv.estado === "en_curso" ? now : null,
           fechaTermino: null,
         })
         .returning();

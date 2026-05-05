@@ -83,6 +83,13 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
+    if (srv.estado === "completado" || srv.estado === "cancelado") {
+      return NextResponse.json(
+        { error: "No se pueden asignar dispositivos a un servicio cerrado" },
+        { status: 409 }
+      );
+    }
+
     if (!device) {
       return NextResponse.json(
         { error: "Dispositivo no encontrado" },
@@ -110,7 +117,7 @@ export async function POST(req: Request, context: RouteContext) {
           servicioId,
           maquina: maquina?.trim() || null,
           asignadoAt: now,
-          fechaInicio: now,
+          fechaInicio: srv.estado === "en_curso" ? now : null,
           fechaTermino: null,
         })
         .returning();

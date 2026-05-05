@@ -7,7 +7,7 @@ import {
   loteServicio,
   dispositivoServicio,
 } from "@/db/schema";
-import { eq, isNull, and, desc, inArray } from "drizzle-orm";
+import { eq, isNotNull, isNull, and, desc, inArray } from "drizzle-orm";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -35,6 +35,7 @@ export async function POST(request: Request) {
     const ds = await db.query.dispositivoServicio.findFirst({
       where: and(
         eq(dispositivoServicio.servicioId, latestAssignment.servicioId),
+        isNotNull(dispositivoServicio.fechaInicio),
         isNull(dispositivoServicio.fechaTermino)
       ),
     });
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
         and(
           eq(dispositivoServicio.servicioId, latestAssignment.servicioId),
           eq(dispositivoServicio.dispositivoId, dispositivoId),
+          isNotNull(dispositivoServicio.fechaInicio),
           isNull(dispositivoServicio.fechaTermino)
         )
       )
