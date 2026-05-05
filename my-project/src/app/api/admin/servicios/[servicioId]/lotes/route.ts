@@ -443,3 +443,65 @@ export async function DELETE(req: Request, context: RouteContext) {
     );
   }
 }
+
+export async function PATCH(req: Request, context: RouteContext) {
+  try {
+    const admin = await verifyAdmin(req);
+    if (!admin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await context.params; // consume params
+    const { loteId, codigoLote, variedadId, subvariedadId } = await req.json();
+
+    if (!loteId) {
+      return NextResponse.json(
+        { error: "loteId is required" },
+        { status: 400 }
+      );
+    }
+
+    const updatedLote = await db
+      .update(lote)
+      .set({
+        codigoLote: codigoLote || null,
+        variedadId: variedadId || null,
+        subvariedadId: subvariedadId || null,
+      })
+      .where(eq(lote.id, loteId))
+      .returning();
+
+    if (updatedLote.length === 0) {
+      return NextResponse.json(
+        { error: "Lote no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    const [enriched] = await db
+      .select({
+        id: lote.id,
+        codigoLote: lote.codigoLote,
+        fechaCreacion: lote.createdAt,
+        variedadId: lote.variedadId,
+        variedadNombre: variedad.nombre,
+        variedadTipo: variedad.tipo,
+        subvariedadId: lote.subvariedadId,
+        subvariedadNombre: subvariedad.nombre,
+        productoNombre: producto.nombre,
+      })
+      .from(lote)
+      .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+      .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
+      .leftJoin(producto, eq(producto.id, variedad.productoId))
+      .where(eq(lote.id, loteId));
+
+    return NextResponse.json(enriched);
+  } catch (error) {
+    console.error("Error updating lote:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

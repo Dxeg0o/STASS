@@ -43,6 +43,7 @@ import {
   Cpu,
   Unlink,
   FileSpreadsheet,
+  Edit2,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────
@@ -227,6 +228,14 @@ export default function AdminServicioLotesPage() {
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Edit dialog
+  const [editingLote, setEditingLote] = useState<Lote | null>(null);
+  const [editProductoId, setEditProductoId] = useState("");
+  const [editVariedadId, setEditVariedadId] = useState("");
+  const [editSubvariedadId, setEditSubvariedadId] = useState("");
+  const [editCodigoLote, setEditCodigoLote] = useState("");
+  const [updating, setUpdating] = useState(false);
+
   // Device assignment dialog
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false);
   const [selectedDispositivoId, setSelectedDispositivoId] = useState("");
@@ -293,6 +302,18 @@ export default function AdminServicioLotesPage() {
     if (!selectedVariedadId) return [];
     return variedadesForSelected.find((v) => v.id === selectedVariedadId)?.subvariedades ?? [];
   }, [variedadesForSelected, selectedVariedadId]);
+
+  // ── Edit Varieties ──────────────────────────────────────────
+
+  const editVariedadesForSelected = useMemo(() => {
+    if (!editProductoId) return [];
+    return productos.find((p) => p.id === editProductoId)?.variedades ?? [];
+  }, [productos, editProductoId]);
+
+  const editSubvariedadesForSelected = useMemo(() => {
+    if (!editVariedadId) return [];
+    return editVariedadesForSelected.find((v) => v.id === editVariedadId)?.subvariedades ?? [];
+  }, [editVariedadesForSelected, editVariedadId]);
 
   const bulkVariedadOptions = useMemo(() => {
     const sourceProducts = bulkProductoId
@@ -529,6 +550,30 @@ export default function AdminServicioLotesPage() {
     setSelectedSubvariedadId("");
   };
 
+  const handleOpenEdit = (lote: Lote) => {
+    setEditingLote(lote);
+    setEditCodigoLote(lote.codigoLote ?? "");
+    if (lote.variedadId) {
+      const p = productos.find(p => p.variedades.some(v => v.id === lote.variedadId));
+      setEditProductoId(p?.id ?? "");
+    } else {
+      setEditProductoId("");
+    }
+    setEditVariedadId(lote.variedadId ?? "");
+    setEditSubvariedadId(lote.subvariedadId ?? "");
+  };
+
+  const handleEditProductoChange = (id: string) => {
+    setEditProductoId(id);
+    setEditVariedadId("");
+    setEditSubvariedadId("");
+  };
+
+  const handleEditVariedadChange = (id: string) => {
+    setEditVariedadId(id);
+    setEditSubvariedadId("");
+  };
+
   const resetExcelImport = () => {
     setExcelFileName("");
     setExcelSheets([]);
@@ -757,6 +802,29 @@ export default function AdminServicioLotesPage() {
       toast.error(creationMode === "excel" ? "Error al importar lotes" : "Error al crear lotes");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingLote) return;
+    setUpdating(true);
+    try {
+      const res = await axios.patch(`/api/admin/servicios/${servicioId}/lotes`, {
+        loteId: editingLote.id,
+        codigoLote: editCodigoLote.trim() || undefined,
+        variedadId: editVariedadId || undefined,
+        subvariedadId: editSubvariedadId || undefined,
+      });
+
+      setLotes((prev) =>
+        prev.map((l) => (l.id === editingLote.id ? res.data : l))
+      );
+      setEditingLote(null);
+      toast.success("Lote actualizado correctamente");
+    } catch {
+      toast.error("Error al actualizar lote");
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -1101,6 +1169,9 @@ export default function AdminServicioLotesPage() {
                     <TableHead className="text-slate-400 uppercase text-xs">
                       Creado
                     </TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs text-right">
+                      Acciones
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1170,6 +1241,16 @@ export default function AdminServicioLotesPage() {
                         </TableCell>
                         <TableCell className="text-slate-400 text-sm">
                           {format(new Date(l.fechaCreacion), "dd/MM/yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-amber-400"
+                            onClick={() => handleOpenEdit(l)}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -1842,6 +1923,129 @@ export default function AdminServicioLotesPage() {
               className="bg-red-600 hover:bg-red-500 text-white font-semibold"
             >
               {deleting ? "Eliminando..." : "Sí, eliminar todos"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit Dialog ────────────────────────────────────────── */}
+      <Dialog
+        open={!!editingLote}
+        onOpenChange={(open) => {
+          if (!open) setEditingLote(null);
+        }}
+      >
+        <DialogContent className="bg-slate-900 border-white/10 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">Editar Lote</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm text-slate-400 mb-1.5 block">
+                Producto
+              </label>
+              <Select
+                value={editProductoId}
+                onValueChange={handleEditProductoChange}
+              >
+                <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                  <SelectValue placeholder="Seleccionar producto..." />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10">
+                  {productos.map((p) => (
+                    <SelectItem
+                      key={p.id}
+                      value={p.id}
+                      className="text-white hover:bg-slate-800"
+                    >
+                      {p.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-400 mb-1.5 block">
+                Variedad
+              </label>
+              <Select
+                value={editVariedadId}
+                onValueChange={handleEditVariedadChange}
+                disabled={!editProductoId || editVariedadesForSelected.length === 0}
+              >
+                <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                  <SelectValue placeholder="Seleccionar variedad..." />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10">
+                  {editVariedadesForSelected.map((v) => (
+                    <SelectItem
+                      key={v.id}
+                      value={v.id}
+                      className="text-white hover:bg-slate-800"
+                    >
+                      {v.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-400 mb-1.5 block">
+                Subvariedad
+              </label>
+              <Select
+                value={editSubvariedadId}
+                onValueChange={setEditSubvariedadId}
+                disabled={!editVariedadId || editSubvariedadesForSelected.length === 0}
+              >
+                <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                  <SelectValue placeholder="Opcional: seleccionar subvariedad..." />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10">
+                  {editSubvariedadesForSelected.map((s) => (
+                    <SelectItem
+                      key={s.id}
+                      value={s.id}
+                      className="text-white hover:bg-slate-800"
+                    >
+                      {s.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-400 mb-1.5 block">
+                Código de lote
+              </label>
+              <input
+                type="text"
+                placeholder="320.22C.S"
+                value={editCodigoLote}
+                onChange={(e) => setEditCodigoLote(e.target.value)}
+                className="w-full px-3 py-2 rounded-md bg-slate-800/50 border border-white/10 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditingLote(null)}
+              className="border-white/10 text-slate-400 hover:text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleUpdate}
+              disabled={updating}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+            >
+              {updating ? "Guardando..." : "Guardar cambios"}
             </Button>
           </DialogFooter>
         </DialogContent>
