@@ -11,7 +11,13 @@ export async function GET(req: Request) {
     }
 
     const productos = await db.query.producto.findMany({
-      with: { variedades: true },
+      with: {
+        variedades: {
+          with: {
+            subvariedades: true,
+          },
+        },
+      },
     });
 
     return NextResponse.json(productos);

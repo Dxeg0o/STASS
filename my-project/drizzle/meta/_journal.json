@@ -78,6 +78,20 @@
       "when": 1778001000000,
       "tag": "0010_conteo_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1778002000000,
+      "tag": "0011_subvariedades",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1778003000000,
+      "tag": "0012_lote_subvariedad",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type ChangeEvent } from "react";
 import axios from "axios";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,14 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Package, Plus, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import {
+  Package,
+  Plus,
+  ChevronDown,
+  ChevronRight,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -22,6 +29,12 @@ interface Variedad {
   id: string;
   nombre: string;
   tipo: string | null;
+  subvariedades: Subvariedad[];
+}
+
+interface Subvariedad {
+  id: string;
+  nombre: string;
 }
 
 interface Producto {
@@ -34,6 +47,7 @@ export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // New producto dialog
   const [productoDialogOpen, setProductoDialogOpen] = useState(false);
@@ -46,6 +60,17 @@ export default function ProductosPage() {
   const [newVariedadNombre, setNewVariedadNombre] = useState("");
   const [newVariedadTipo, setNewVariedadTipo] = useState("");
   const [creatingVariedad, setCreatingVariedad] = useState(false);
+
+  // New subvariedad dialog
+  const [subvariedadDialogOpen, setSubvariedadDialogOpen] = useState(false);
+  const [subvariedadProductoId, setSubvariedadProductoId] = useState("");
+  const [subvariedadVariedadId, setSubvariedadVariedadId] = useState("");
+  const [subvariedadVariedadNombre, setSubvariedadVariedadNombre] =
+    useState("");
+  const [newSubvariedadNombre, setNewSubvariedadNombre] = useState("");
+  const [creatingSubvariedad, setCreatingSubvariedad] = useState(false);
+
+  const [importingProductos, setImportingProductos] = useState(false);
 
   useEffect(() => {
     fetchProductos();
@@ -123,6 +148,66 @@ export default function ProductosPage() {
     }
   };
 
+  const handleCreateSubvariedad = async () => {
+    if (
+      !newSubvariedadNombre.trim() ||
+      !subvariedadProductoId ||
+      !subvariedadVariedadId
+    ) {
+      return;
+    }
+
+    setCreatingSubvariedad(true);
+    try {
+      await axios.post(
+        `/api/admin/productos/${subvariedadProductoId}/variedades/${subvariedadVariedadId}/subvariedades`,
+        { nombre: newSubvariedadNombre }
+      );
+      setNewSubvariedadNombre("");
+      setSubvariedadDialogOpen(false);
+      setLoading(true);
+      await fetchProductos();
+      toast.success("Subvariedad agregada correctamente");
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error al agregar la subvariedad");
+      }
+    } finally {
+      setCreatingSubvariedad(false);
+    }
+  };
+
+  const handleImportProductos = async (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImportingProductos(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await axios.post("/api/admin/productos/import", formData);
+      setLoading(true);
+      await fetchProductos();
+      toast.success(
+        `Excel importado: ${res.data.productosCreados} productos, ${res.data.variedadesCreadas} variedades y ${res.data.subvariedadesCreadas} subvariedades nuevas`
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error al importar el Excel");
+      }
+    } finally {
+      setImportingProductos(false);
+      event.target.value = "";
+    }
+  };
+
   const handleDeleteProducto = async (productoId: string) => {
     if (!confirm("¿Estás seguro de eliminar este producto?")) return;
     try {
@@ -160,11 +245,45 @@ export default function ProductosPage() {
     }
   };
 
+  const handleDeleteSubvariedad = async (
+    productoId: string,
+    variedadId: string,
+    subvariedadId: string
+  ) => {
+    if (!confirm("¿Estás seguro de eliminar esta subvariedad?")) return;
+    try {
+      await axios.delete(
+        `/api/admin/productos/${productoId}/variedades/${variedadId}/subvariedades/${subvariedadId}`
+      );
+      setLoading(true);
+      await fetchProductos();
+      toast.success("Subvariedad eliminada");
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Error al eliminar la subvariedad");
+      }
+    }
+  };
+
   const openVariedadDialog = (productoId: string) => {
     setVariedadProductoId(productoId);
     setNewVariedadNombre("");
     setNewVariedadTipo("");
     setVariedadDialogOpen(true);
+  };
+
+  const openSubvariedadDialog = (
+    productoId: string,
+    variedadId: string,
+    variedadNombre: string
+  ) => {
+    setSubvariedadProductoId(productoId);
+    setSubvariedadVariedadId(variedadId);
+    setSubvariedadVariedadNombre(variedadNombre);
+    setNewSubvariedadNombre("");
+    setSubvariedadDialogOpen(true);
   };
 
   return (
@@ -176,52 +295,71 @@ export default function ProductosPage() {
             Productos y Variedades
           </h1>
           <p className="text-slate-400 mt-1">
-            Gestiona los productos y sus variedades.
+            Gestiona productos, variedades y subvariedades.
           </p>
         </div>
 
-        <Dialog open={productoDialogOpen} onOpenChange={setProductoDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold">
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Producto
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-slate-900 border-white/10 text-white">
-            <DialogHeader>
-              <DialogTitle>Nuevo Producto</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div>
-                <label className="text-sm text-slate-400 mb-1.5 block">
-                  Nombre
-                </label>
-                <Input
-                  value={newProductoNombre}
-                  onChange={(e) => setNewProductoNombre(e.target.value)}
-                  placeholder="Nombre del producto"
-                  className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-600"
-                />
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={handleImportProductos}
+          />
+          <Button
+            variant="outline"
+            disabled={importingProductos}
+            className="border-white/10 text-slate-300 hover:text-white"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            {importingProductos ? "Importando..." : "Importar Excel"}
+          </Button>
+
+          <Dialog open={productoDialogOpen} onOpenChange={setProductoDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold">
+                <Plus className="w-4 h-4 mr-2" />
+                Nuevo Producto
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-slate-900 border-white/10 text-white">
+              <DialogHeader>
+                <DialogTitle>Nuevo Producto</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <label className="text-sm text-slate-400 mb-1.5 block">
+                    Nombre
+                  </label>
+                  <Input
+                    value={newProductoNombre}
+                    onChange={(e) => setNewProductoNombre(e.target.value)}
+                    placeholder="Nombre del producto"
+                    className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-600"
+                  />
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setProductoDialogOpen(false)}
-                className="border-white/10 text-slate-400 hover:text-white"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleCreateProducto}
-                disabled={creatingProducto || !newProductoNombre.trim()}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
-              >
-                {creatingProducto ? "Creando..." : "Crear"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setProductoDialogOpen(false)}
+                  className="border-white/10 text-slate-400 hover:text-white"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleCreateProducto}
+                  disabled={creatingProducto || !newProductoNombre.trim()}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+                >
+                  {creatingProducto ? "Creando..." : "Crear"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Variedad Dialog */}
@@ -273,6 +411,57 @@ export default function ProductosPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Subvariedad Dialog */}
+      <Dialog
+        open={subvariedadDialogOpen}
+        onOpenChange={setSubvariedadDialogOpen}
+      >
+        <DialogContent className="bg-slate-900 border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle>Agregar Subvariedad</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm text-slate-400 mb-1.5 block">
+                Variedad
+              </label>
+              <Input
+                value={subvariedadVariedadNombre}
+                disabled
+                className="bg-slate-800/50 border-white/10 text-slate-400"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 mb-1.5 block">
+                Nombre
+              </label>
+              <Input
+                value={newSubvariedadNombre}
+                onChange={(e) => setNewSubvariedadNombre(e.target.value)}
+                placeholder="Nombre de la subvariedad"
+                className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-600"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSubvariedadDialogOpen(false)}
+              className="border-white/10 text-slate-400 hover:text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateSubvariedad}
+              disabled={creatingSubvariedad || !newSubvariedadNombre.trim()}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+            >
+              {creatingSubvariedad ? "Agregando..." : "Agregar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Productos List */}
       {loading ? (
         <div className="space-y-4">
@@ -295,6 +484,11 @@ export default function ProductosPage() {
         <div className="space-y-3">
           {productos.map((producto) => {
             const isExpanded = expandedIds.has(producto.id);
+            const subvariedadesCount = producto.variedades.reduce(
+              (total, variedad) =>
+                total + (variedad.subvariedades?.length ?? 0),
+              0
+            );
             return (
               <motion.div
                 key={producto.id}
@@ -326,6 +520,15 @@ export default function ProductosPage() {
                             {producto.variedades.length === 1
                               ? "variedad"
                               : "variedades"}
+                            {subvariedadesCount > 0 && (
+                              <>
+                                {" "}
+                                · {subvariedadesCount}{" "}
+                                {subvariedadesCount === 1
+                                  ? "subvariedad"
+                                  : "subvariedades"}
+                              </>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -371,34 +574,93 @@ export default function ProductosPage() {
                               {producto.variedades.map((variedad) => (
                                 <div
                                   key={variedad.id}
-                                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-800/30 border border-white/5"
+                                  className="flex flex-col gap-3 py-3 px-3 rounded-lg bg-slate-800/30 border border-white/5 sm:flex-row sm:items-start sm:justify-between"
                                 >
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm text-slate-300">
-                                      {variedad.nombre}
-                                    </span>
-                                    {variedad.tipo && (
+                                  <div className="min-w-0 flex-1 space-y-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="text-sm text-slate-300">
+                                        {variedad.nombre}
+                                      </span>
+                                      {variedad.tipo && (
+                                        <Badge
+                                          variant="outline"
+                                          className="border-white/10 text-slate-500 text-xs"
+                                        >
+                                          {variedad.tipo}
+                                        </Badge>
+                                      )}
                                       <Badge
                                         variant="outline"
-                                        className="border-white/10 text-slate-500 text-xs"
+                                        className="border-amber-500/20 text-amber-300/80 text-xs"
                                       >
-                                        {variedad.tipo}
+                                        {variedad.subvariedades?.length ?? 0}{" "}
+                                        {(variedad.subvariedades?.length ??
+                                          0) === 1
+                                          ? "subvariedad"
+                                          : "subvariedades"}
                                       </Badge>
+                                    </div>
+
+                                    {variedad.subvariedades?.length > 0 && (
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {variedad.subvariedades.map(
+                                          (subvariedad) => (
+                                            <span
+                                              key={subvariedad.id}
+                                              className="inline-flex max-w-full items-center gap-1 rounded-md border border-white/10 bg-slate-900/70 px-2 py-1 text-xs text-slate-300"
+                                            >
+                                              <span className="truncate">
+                                                {subvariedad.nombre}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                className="text-slate-500 transition-colors hover:text-red-300"
+                                                onClick={() =>
+                                                  handleDeleteSubvariedad(
+                                                    producto.id,
+                                                    variedad.id,
+                                                    subvariedad.id
+                                                  )
+                                                }
+                                              >
+                                                <Trash2 className="w-3 h-3" />
+                                              </button>
+                                            </span>
+                                          )
+                                        )}
+                                      </div>
                                     )}
                                   </div>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-950/30 h-7 w-7 p-0"
-                                    onClick={() =>
-                                      handleDeleteVariedad(
-                                        producto.id,
-                                        variedad.id
-                                      )
-                                    }
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
+                                  <div className="flex items-center gap-2 sm:pt-0.5">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-white/10 text-slate-400 hover:text-white text-xs"
+                                      onClick={() =>
+                                        openSubvariedadDialog(
+                                          producto.id,
+                                          variedad.id,
+                                          variedad.nombre
+                                        )
+                                      }
+                                    >
+                                      <Plus className="w-3 h-3 mr-1" />
+                                      Subvariedad
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-red-400 hover:text-red-300 hover:bg-red-950/30 h-7 w-7 p-0"
+                                      onClick={() =>
+                                        handleDeleteVariedad(
+                                          producto.id,
+                                          variedad.id
+                                        )
+                                      }
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
                                 </div>
                               ))}
                             </div>

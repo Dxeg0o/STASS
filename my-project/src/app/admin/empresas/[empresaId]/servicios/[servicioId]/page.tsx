@@ -54,13 +54,21 @@ interface Lote {
   variedadId?: string | null;
   variedadNombre?: string | null;
   variedadTipo?: string | null;
+  subvariedadId?: string | null;
+  subvariedadNombre?: string | null;
   productoNombre?: string | null;
+}
+
+interface Subvariedad {
+  id: string;
+  nombre: string;
 }
 
 interface Variedad {
   id: string;
   nombre: string;
   tipo?: string | null;
+  subvariedades?: Subvariedad[];
 }
 
 interface Producto {
@@ -106,7 +114,12 @@ const TIPO_LABELS: Record<string, string> = {
 };
 
 type CreationMode = "individual" | "excel";
-type ColumnMapping = "ignore" | "codigoLote" | "variedad" | "producto";
+type ColumnMapping =
+  | "ignore"
+  | "codigoLote"
+  | "variedad"
+  | "subvariedad"
+  | "producto";
 
 interface ExcelRow {
   rowNumber: number;
@@ -118,6 +131,8 @@ interface ImportPreviewRow {
   codigoLote: string;
   variedadId: string | null;
   variedadNombre: string | null;
+  subvariedadId: string | null;
+  subvariedadNombre: string | null;
   productoNombre: string | null;
   status: "ready" | "warning" | "skipped";
   warnings: string[];
@@ -128,6 +143,7 @@ const MAPPING_LABELS: Record<ColumnMapping, string> = {
   ignore: "Ignorar",
   codigoLote: "Código de lote",
   variedad: "Variedad",
+  subvariedad: "Subvariedad",
   producto: "Producto",
 };
 
@@ -228,6 +244,7 @@ export default function AdminServicioLotesPage() {
         (l.codigoLote ?? "").toLowerCase().includes(term) ||
         (l.variedadTipo ?? "").toLowerCase().includes(term) ||
         l.variedadNombre?.toLowerCase().includes(term) ||
+        l.subvariedadNombre?.toLowerCase().includes(term) ||
         l.productoNombre?.toLowerCase().includes(term)
     );
   }, [lotes, search]);
@@ -245,6 +262,7 @@ export default function AdminServicioLotesPage() {
     return {
       codigoLote: entries.find(([, mapping]) => mapping === "codigoLote")?.[0] ?? null,
       variedad: entries.find(([, mapping]) => mapping === "variedad")?.[0] ?? null,
+      subvariedad: entries.find(([, mapping]) => mapping === "subvariedad")?.[0] ?? null,
       producto: entries.find(([, mapping]) => mapping === "producto")?.[0] ?? null,
     };
   }, [columnMappings]);
@@ -274,6 +292,7 @@ export default function AdminServicioLotesPage() {
       : null;
     const codigoHeader = mappedHeaderByType.codigoLote;
     const variedadHeader = mappedHeaderByType.variedad;
+    const subvariedadHeader = mappedHeaderByType.subvariedad;
     const productoHeader = mappedHeaderByType.producto;
 
     if (!codigoHeader) {
@@ -296,6 +315,8 @@ export default function AdminServicioLotesPage() {
           codigoLote,
           variedadId: null,
           variedadNombre: null,
+          subvariedadId: null,
+          subvariedadNombre: null,
           productoNombre: null,
           status: "skipped" as const,
           warnings: [],
@@ -310,6 +331,8 @@ export default function AdminServicioLotesPage() {
           codigoLote,
           variedadId: null,
           variedadNombre: null,
+          subvariedadId: null,
+          subvariedadNombre: null,
           productoNombre: null,
           status: "skipped" as const,
           warnings: [],
@@ -324,6 +347,8 @@ export default function AdminServicioLotesPage() {
           codigoLote,
           variedadId: null,
           variedadNombre: null,
+          subvariedadId: null,
+          subvariedadNombre: null,
           productoNombre: null,
           status: "skipped" as const,
           warnings: [],
@@ -344,6 +369,7 @@ export default function AdminServicioLotesPage() {
 
       let variedadId: string | null = null;
       let variedadNombre: string | null = null;
+      let matchedVariedad: Variedad | null = null;
       const variedadValue = variedadHeader ? (row.values[variedadHeader] ?? "").trim() : "";
 
       if (variedadHeader && variedadValue) {
@@ -354,6 +380,7 @@ export default function AdminServicioLotesPage() {
           if (match) {
             variedadId = match.id;
             variedadNombre = match.nombre;
+            matchedVariedad = match;
           } else {
             warnings.push(`Variedad no encontrada para ${productContext.nombre}: ${variedadValue}`);
           }
@@ -362,6 +389,7 @@ export default function AdminServicioLotesPage() {
           if (matches.length === 1) {
             variedadId = matches[0].variedad.id;
             variedadNombre = matches[0].variedad.nombre;
+            matchedVariedad = matches[0].variedad;
             productContext = matches[0].producto;
           } else if (matches.length > 1) {
             warnings.push(`Variedad ambigua sin producto: ${variedadValue}`);
@@ -373,11 +401,37 @@ export default function AdminServicioLotesPage() {
         warnings.push("Fila sin variedad");
       }
 
+      let subvariedadId: string | null = null;
+      let subvariedadNombre: string | null = null;
+      const subvariedadValue = subvariedadHeader
+        ? (row.values[subvariedadHeader] ?? "").trim()
+        : "";
+
+      if (subvariedadHeader && subvariedadValue) {
+        subvariedadNombre = subvariedadValue;
+        if (!matchedVariedad) {
+          warnings.push("Subvariedad sin variedad identificada");
+        } else {
+          const match = matchedVariedad.subvariedades?.find(
+            (s) => normalizeText(s.nombre) === normalizeText(subvariedadValue)
+          );
+
+          if (match) {
+            subvariedadId = match.id;
+            subvariedadNombre = match.nombre;
+          } else {
+            warnings.push(`Subvariedad se creará: ${subvariedadValue}`);
+          }
+        }
+      }
+
       return {
         rowNumber: row.rowNumber,
         codigoLote,
         variedadId,
         variedadNombre,
+        subvariedadId,
+        subvariedadNombre,
         productoNombre: productContext?.nombre ?? null,
         status: warnings.length > 0 ? ("warning" as const) : ("ready" as const),
         warnings,
@@ -418,6 +472,7 @@ export default function AdminServicioLotesPage() {
 
   const inferColumnMapping = (header: string): ColumnMapping => {
     const normalized = normalizeText(header);
+    const compact = normalized.replace(/[^a-z0-9]/g, "");
     if (
       normalized.includes("codigo") ||
       normalized === "lote" ||
@@ -425,6 +480,9 @@ export default function AdminServicioLotesPage() {
       normalized.includes("id lote")
     ) {
       return "codigoLote";
+    }
+    if (compact.includes("subvariedad")) {
+      return "subvariedad";
     }
     if (normalized.includes("variedad")) return "variedad";
     if (normalized.includes("producto")) return "producto";
@@ -532,6 +590,8 @@ export default function AdminServicioLotesPage() {
           lotes: importPreview.readyRows.map((row) => ({
             codigoLote: row.codigoLote,
             variedadId: row.variedadId,
+            subvariedadId: row.subvariedadId,
+            subvariedadNombre: row.subvariedadNombre,
           })),
         });
 
@@ -869,6 +929,9 @@ export default function AdminServicioLotesPage() {
                       Variedad
                     </TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">
+                      Subvariedad
+                    </TableHead>
+                    <TableHead className="text-slate-400 uppercase text-xs">
                       Creado
                     </TableHead>
                   </TableRow>
@@ -924,6 +987,15 @@ export default function AdminServicioLotesPage() {
                           {l.variedadNombre ? (
                             <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/30 text-xs">
                               {l.variedadNombre}
+                            </Badge>
+                          ) : (
+                            <span className="italic text-slate-600">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {l.subvariedadNombre ? (
+                            <Badge className="bg-cyan-500/15 text-cyan-300 border-cyan-500/30 text-xs">
+                              {l.subvariedadNombre}
                             </Badge>
                           ) : (
                             <span className="italic text-slate-600">—</span>
@@ -1315,6 +1387,9 @@ export default function AdminServicioLotesPage() {
                               Variedad
                             </TableHead>
                             <TableHead className="text-slate-400 uppercase text-xs">
+                              Subvariedad
+                            </TableHead>
+                            <TableHead className="text-slate-400 uppercase text-xs">
                               Estado
                             </TableHead>
                           </TableRow>
@@ -1336,6 +1411,9 @@ export default function AdminServicioLotesPage() {
                               </TableCell>
                               <TableCell className="text-slate-400">
                                 {row.variedadNombre ?? "—"}
+                              </TableCell>
+                              <TableCell className="text-slate-400">
+                                {row.subvariedadNombre ?? "—"}
                               </TableCell>
                               <TableCell>
                                 {row.status === "skipped" ? (

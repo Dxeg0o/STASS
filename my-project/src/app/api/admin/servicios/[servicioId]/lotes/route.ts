@@ -5,6 +5,7 @@ import {
   loteServicio,
   loteSession,
   variedad,
+  subvariedad,
   producto,
   servicio,
 } from "@/db/schema";
@@ -41,10 +42,13 @@ export async function GET(req: Request, context: RouteContext) {
         variedadId: lote.variedadId,
         variedadNombre: variedad.nombre,
         variedadTipo: variedad.tipo,
+        subvariedadId: lote.subvariedadId,
+        subvariedadNombre: subvariedad.nombre,
         productoNombre: producto.nombre,
       })
       .from(lote)
       .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+      .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
       .leftJoin(producto, eq(producto.id, variedad.productoId))
       .where(inArray(lote.id, loteIds))
       .orderBy(desc(lote.createdAt));
@@ -97,6 +101,86 @@ export async function POST(req: Request, context: RouteContext) {
       }
 
       const normalizeCode = (value: string) => value.trim().toLowerCase();
+      const normalizeName = (value: string) =>
+        value
+          .trim()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+
+      const getOrCreateSubvariedad = async (
+        nombre: string,
+        variedadId: string
+      ) => {
+        const cleanName = nombre.trim();
+        if (!cleanName) return null;
+
+        const existing = await db
+          .select({ id: subvariedad.id, nombre: subvariedad.nombre })
+          .from(subvariedad)
+          .where(eq(subvariedad.variedadId, variedadId));
+
+        const match = existing.find(
+          (item) => normalizeName(item.nombre) === normalizeName(cleanName)
+        );
+        if (match) return match.id;
+
+        const [created] = await db
+          .insert(subvariedad)
+          .values({ nombre: cleanName, variedadId })
+          .onConflictDoNothing()
+          .returning({ id: subvariedad.id });
+
+        if (created) return created.id;
+
+        const fallback = await db
+          .select({ id: subvariedad.id, nombre: subvariedad.nombre })
+          .from(subvariedad)
+          .where(eq(subvariedad.variedadId, variedadId));
+
+        return (
+          fallback.find(
+            (item) => normalizeName(item.nombre) === normalizeName(cleanName)
+          )?.id ?? null
+        );
+      };
+
+      const resolveSubvariedadId = async (item: {
+        variedadId?: unknown;
+        subvariedadId?: unknown;
+        subvariedadNombre?: unknown;
+      }) => {
+        const itemVariedadId =
+          typeof item.variedadId === "string" && item.variedadId
+            ? item.variedadId
+            : null;
+
+        if (!itemVariedadId) return null;
+
+        if (typeof item.subvariedadId === "string" && item.subvariedadId) {
+          const [existing] = await db
+            .select({ id: subvariedad.id })
+            .from(subvariedad)
+            .where(
+              and(
+                eq(subvariedad.id, item.subvariedadId),
+                eq(subvariedad.variedadId, itemVariedadId)
+              )
+            )
+            .limit(1);
+
+          if (existing) return existing.id;
+        }
+
+        if (
+          typeof item.subvariedadNombre === "string" &&
+          item.subvariedadNombre.trim()
+        ) {
+          return getOrCreateSubvariedad(item.subvariedadNombre, itemVariedadId);
+        }
+
+        return null;
+      };
       const existingRows = await db
         .select({ codigoLote: lote.codigoLote })
         .from(loteServicio)
@@ -112,32 +196,43 @@ export async function POST(req: Request, context: RouteContext) {
 
       const seenCodes = new Set<string>();
       const skippedDuplicates: string[] = [];
-      const loteValues = lotesInput.flatMap(
-        (item: { codigoLote?: unknown; variedadId?: unknown }) => {
+      const loteValues: Array<{
+        codigoLote: string;
+        variedadId: string | null;
+        subvariedadId: string | null;
+        createdAt: Date;
+      }> = [];
+
+      for (const item of lotesInput as Array<{
+        codigoLote?: unknown;
+        variedadId?: unknown;
+        subvariedadId?: unknown;
+        subvariedadNombre?: unknown;
+      }>) {
           const code =
             typeof item.codigoLote === "string" ? item.codigoLote.trim() : "";
-          if (!code) return [];
+          if (!code) continue;
 
           const normalizedCode = normalizeCode(code);
           if (seenCodes.has(normalizedCode) || existingCodes.has(normalizedCode)) {
             skippedDuplicates.push(code);
-            return [];
+            continue;
           }
 
           seenCodes.add(normalizedCode);
 
-          return [
-            {
-              codigoLote: code,
-              variedadId:
-                typeof item.variedadId === "string" && item.variedadId
-                  ? item.variedadId
-                  : null,
-              createdAt: new Date(),
-            },
-          ];
+          const itemVariedadId =
+            typeof item.variedadId === "string" && item.variedadId
+              ? item.variedadId
+              : null;
+
+          loteValues.push({
+            codigoLote: code,
+            variedadId: itemVariedadId,
+            subvariedadId: await resolveSubvariedadId(item),
+            createdAt: new Date(),
+          });
         }
-      );
 
       if (loteValues.length === 0) {
         return NextResponse.json({
@@ -156,6 +251,7 @@ export async function POST(req: Request, context: RouteContext) {
             codigoLote: lote.codigoLote,
             fechaCreacion: lote.createdAt,
             variedadId: lote.variedadId,
+            subvariedadId: lote.subvariedadId,
           });
 
         await tx.insert(loteServicio).values(
@@ -177,10 +273,13 @@ export async function POST(req: Request, context: RouteContext) {
           variedadId: lote.variedadId,
           variedadNombre: variedad.nombre,
           variedadTipo: variedad.tipo,
+          subvariedadId: lote.subvariedadId,
+          subvariedadNombre: subvariedad.nombre,
           productoNombre: producto.nombre,
         })
         .from(lote)
         .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+        .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
         .leftJoin(producto, eq(producto.id, variedad.productoId))
         .where(inArray(lote.id, createdIds));
 

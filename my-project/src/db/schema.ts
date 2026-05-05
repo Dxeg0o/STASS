@@ -280,6 +280,30 @@ export const variedadRelations = relations(variedad, ({ one, many }) => ({
     fields: [variedad.productoId],
     references: [producto.id],
   }),
+  subvariedades: many(subvariedad),
+  lotes: many(lote),
+}));
+
+// ─── Subvariedad ───────────────────────────────────────────
+
+export const subvariedad = pgTable(
+  "subvariedad",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nombre: text("nombre").notNull(),
+    variedadId: uuid("variedad_id")
+      .notNull()
+      .references(() => variedad.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [unique().on(t.nombre, t.variedadId)]
+);
+
+export const subvariedadRelations = relations(subvariedad, ({ one, many }) => ({
+  variedad: one(variedad, {
+    fields: [subvariedad.variedadId],
+    references: [variedad.id],
+  }),
   lotes: many(lote),
 }));
 
@@ -289,6 +313,7 @@ export const lote = pgTable("lote", {
   id: uuid("id").primaryKey().defaultRandom(),
   codigoLote: text("codigo_lote"), // ID de empresa, ej. "320.22C.S"
   variedadId: uuid("variedad_id").references(() => variedad.id),
+  subvariedadId: uuid("subvariedad_id").references(() => subvariedad.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -296,6 +321,10 @@ export const loteRelations = relations(lote, ({ one, many }) => ({
   variedad: one(variedad, {
     fields: [lote.variedadId],
     references: [variedad.id],
+  }),
+  subvariedad: one(subvariedad, {
+    fields: [lote.subvariedadId],
+    references: [subvariedad.id],
   }),
   loteServicios: many(loteServicio),
   loteSessions: many(loteSession),
