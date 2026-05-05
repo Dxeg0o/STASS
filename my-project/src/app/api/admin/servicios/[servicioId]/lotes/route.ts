@@ -375,20 +375,38 @@ export async function DELETE(req: Request, context: RouteContext) {
     }
 
     await context.params; // consume params
-    const { loteIds } = await req.json();
+    const { servicioId } = await context.params;
+    const { loteIds, deleteAll } = await req.json();
 
-    if (!Array.isArray(loteIds) || loteIds.length === 0) {
-      return NextResponse.json(
-        { error: "loteIds array is required" },
-        { status: 400 }
-      );
-    }
+    let targetIds: string[] = [];
 
-    if (loteIds.length > 500) {
-      return NextResponse.json(
-        { error: "Maximum 500 lotes per request" },
-        { status: 400 }
-      );
+    if (deleteAll) {
+      const junctionRows = await db
+        .select({ loteId: loteServicio.loteId })
+        .from(loteServicio)
+        .where(eq(loteServicio.servicioId, servicioId));
+      
+      targetIds = junctionRows.map((r) => r.loteId);
+
+      if (targetIds.length === 0) {
+        return NextResponse.json({ deleted: 0 });
+      }
+    } else {
+      if (!Array.isArray(loteIds) || loteIds.length === 0) {
+        return NextResponse.json(
+          { error: "loteIds array is required" },
+          { status: 400 }
+        );
+      }
+
+      if (loteIds.length > 500) {
+        return NextResponse.json(
+          { error: "Maximum 500 lotes per request" },
+          { status: 400 }
+        );
+      }
+      
+      targetIds = loteIds;
     }
 
     // Check for active sessions
@@ -397,7 +415,7 @@ export async function DELETE(req: Request, context: RouteContext) {
       .from(loteSession)
       .where(
         and(
-          inArray(loteSession.loteId, loteIds),
+          inArray(loteSession.loteId, targetIds),
           isNull(loteSession.endTime)
         )
       );
@@ -414,9 +432,9 @@ export async function DELETE(req: Request, context: RouteContext) {
     }
 
     // Delete lotes (cascade handles lote_servicio, lote_session, lote_stats)
-    await db.delete(lote).where(inArray(lote.id, loteIds));
+    await db.delete(lote).where(inArray(lote.id, targetIds));
 
-    return NextResponse.json({ deleted: loteIds.length });
+    return NextResponse.json({ deleted: targetIds.length });
   } catch (error) {
     console.error("Error deleting lotes:", error);
     return NextResponse.json(

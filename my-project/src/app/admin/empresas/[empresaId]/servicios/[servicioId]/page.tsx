@@ -224,6 +224,7 @@ export default function AdminServicioLotesPage() {
 
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   // Device assignment dialog
@@ -808,6 +809,32 @@ export default function AdminServicioLotesPage() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    setDeleting(true);
+    try {
+      await axios.delete(`/api/admin/servicios/${servicioId}/lotes`, {
+        data: { deleteAll: true },
+      });
+      setLotes([]);
+      setSelectedIds(new Set());
+      setDeleteAllDialogOpen(false);
+      setSelectionMode(false);
+      toast.success("Se eliminaron todos los lotes");
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number; data?: { blockedLoteIds?: string[] } } };
+      if (error.response?.status === 409) {
+        const blocked = error.response.data?.blockedLoteIds ?? [];
+        toast.error(
+          `${blocked.length} lote(s) tienen sesiones activas y no pueden eliminarse`
+        );
+      } else {
+        toast.error("Error al eliminar los lotes");
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const fetchServicioDispositivos = async () => {
     setDispositivosLoading(true);
     try {
@@ -986,14 +1013,25 @@ export default function AdminServicioLotesPage() {
               ) : (
                 <>
                   {lotes.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectionMode(true)}
-                      className="border-white/10 text-slate-400 hover:text-white"
-                    >
-                      Gestionar
-                    </Button>
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDeleteAllDialogOpen(true)}
+                        className="border-red-500/20 text-red-400 hover:text-red-300 hover:bg-red-950/30"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1.5" />
+                        Borrar Todos
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectionMode(true)}
+                        className="border-white/10 text-slate-400 hover:text-white"
+                      >
+                        Gestionar
+                      </Button>
+                    </>
                   )}
                   <Button
                     size="sm"
@@ -1771,6 +1809,39 @@ export default function AdminServicioLotesPage() {
               className="bg-red-600 hover:bg-red-500 text-white font-semibold"
             >
               {deleting ? "Eliminando..." : `Eliminar ${selectedIds.size} lote(s)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete All Confirmation Dialog ─────────────────────── */}
+      <Dialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+        <DialogContent className="bg-slate-900 border-white/10 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-400">Eliminar TODOS los lotes</DialogTitle>
+          </DialogHeader>
+          <p className="text-slate-400 text-sm py-2">
+            ¿Estás seguro de que deseas eliminar{" "}
+            <span className="text-white font-semibold">
+              todos los lotes
+            </span>{" "}
+            de este servicio? Esta acción no se puede deshacer. Se eliminarán también
+            todas las estadísticas y sesiones asociadas a ellos.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteAllDialogOpen(false)}
+              className="border-white/10 text-slate-400 hover:text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleDeleteAll}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-500 text-white font-semibold"
+            >
+              {deleting ? "Eliminando..." : "Sí, eliminar todos"}
             </Button>
           </DialogFooter>
         </DialogContent>
