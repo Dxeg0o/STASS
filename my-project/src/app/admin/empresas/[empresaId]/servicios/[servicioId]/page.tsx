@@ -185,6 +185,7 @@ export default function AdminServicioLotesPage() {
   const [excelRows, setExcelRows] = useState<ExcelRow[]>([]);
   const [columnMappings, setColumnMappings] = useState<Record<string, ColumnMapping>>({});
   const [bulkProductoId, setBulkProductoId] = useState("");
+  const [bulkVariedadId, setBulkVariedadId] = useState("");
 
   // Selection mode
   const [selectionMode, setSelectionMode] = useState(false);
@@ -256,6 +257,26 @@ export default function AdminServicioLotesPage() {
     return productos.find((p) => p.id === selectedProductoId)?.variedades ?? [];
   }, [productos, selectedProductoId]);
 
+  const bulkVariedadOptions = useMemo(() => {
+    const sourceProducts = bulkProductoId
+      ? productos.filter((p) => p.id === bulkProductoId)
+      : productos;
+
+    return sourceProducts.flatMap((p) =>
+      p.variedades.map((v) => ({
+        variedad: v,
+        producto: p,
+      }))
+    );
+  }, [bulkProductoId, productos]);
+
+  const bulkVariedadSelection = useMemo(
+    () =>
+      bulkVariedadOptions.find((option) => option.variedad.id === bulkVariedadId) ??
+      null,
+    [bulkVariedadId, bulkVariedadOptions]
+  );
+
   const mappedHeaderByType = useMemo(() => {
     const entries = Object.entries(columnMappings);
 
@@ -290,6 +311,7 @@ export default function AdminServicioLotesPage() {
     const manualProduct = bulkProductoId
       ? productos.find((p) => p.id === bulkProductoId) ?? null
       : null;
+    const manualVariety = bulkVariedadSelection;
     const codigoHeader = mappedHeaderByType.codigoLote;
     const variedadHeader = mappedHeaderByType.variedad;
     const subvariedadHeader = mappedHeaderByType.subvariedad;
@@ -399,6 +421,11 @@ export default function AdminServicioLotesPage() {
         }
       } else if (variedadHeader) {
         warnings.push("Fila sin variedad");
+      } else if (manualVariety) {
+        variedadId = manualVariety.variedad.id;
+        variedadNombre = manualVariety.variedad.nombre;
+        matchedVariedad = manualVariety.variedad;
+        productContext = manualVariety.producto;
       }
 
       let subvariedadId: string | null = null;
@@ -445,7 +472,7 @@ export default function AdminServicioLotesPage() {
       warningCount: rows.filter((row) => row.status === "warning").length,
       hasCodigoMapping: true,
     };
-  }, [bulkProductoId, excelRows, lotes, mappedHeaderByType, productos]);
+  }, [bulkProductoId, bulkVariedadSelection, excelRows, lotes, mappedHeaderByType, productos]);
 
   // ── Handlers ────────────────────────────────────────────────
 
@@ -460,6 +487,7 @@ export default function AdminServicioLotesPage() {
     setExcelRows([]);
     setColumnMappings({});
     setBulkProductoId("");
+    setBulkVariedadId("");
   };
 
   const resetDialog = () => {
@@ -549,6 +577,7 @@ export default function AdminServicioLotesPage() {
       setExcelRows(parsedRows);
       setColumnMappings(initialMappings);
       setBulkProductoId("");
+      setBulkVariedadId("");
 
       toast.success(`Excel cargado: ${headers.length} cabecera(s), ${parsedRows.length} fila(s)`);
     } catch {
@@ -565,7 +594,22 @@ export default function AdminServicioLotesPage() {
         });
       }
       if (mapping === "producto") setBulkProductoId("");
+      if (mapping === "variedad") setBulkVariedadId("");
       return next;
+    });
+  };
+
+  const handleBulkProductoChange = (productoId: string) => {
+    setBulkProductoId(productoId);
+    setBulkVariedadId((currentVariedadId) => {
+      if (!currentVariedadId) return "";
+
+      const selectedProduct = productos.find((p) => p.id === productoId);
+      const belongsToSelectedProduct = selectedProduct?.variedades.some(
+        (v) => v.id === currentVariedadId
+      );
+
+      return belongsToSelectedProduct ? currentVariedadId : "";
     });
   };
 
@@ -1321,7 +1365,7 @@ export default function AdminServicioLotesPage() {
                       <label className="text-sm text-slate-400 mb-1.5 block">
                         Producto para esta carga
                       </label>
-                      <Select value={bulkProductoId} onValueChange={setBulkProductoId}>
+                      <Select value={bulkProductoId} onValueChange={handleBulkProductoChange}>
                         <SelectTrigger className="bg-slate-800/50 border-white/10 text-white max-w-sm">
                           <SelectValue placeholder="Opcional: seleccionar producto" />
                         </SelectTrigger>
@@ -1333,6 +1377,30 @@ export default function AdminServicioLotesPage() {
                               className="text-white hover:bg-slate-800"
                             >
                               {p.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {!mappedHeaderByType.variedad && (
+                    <div>
+                      <label className="text-sm text-slate-400 mb-1.5 block">
+                        Variedad para esta carga
+                      </label>
+                      <Select value={bulkVariedadId} onValueChange={setBulkVariedadId}>
+                        <SelectTrigger className="bg-slate-800/50 border-white/10 text-white max-w-sm">
+                          <SelectValue placeholder="Opcional: seleccionar variedad" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10">
+                          {bulkVariedadOptions.map(({ variedad, producto }) => (
+                            <SelectItem
+                              key={variedad.id}
+                              value={variedad.id}
+                              className="text-white hover:bg-slate-800"
+                            >
+                              {variedad.nombre} · {producto.nombre}
                             </SelectItem>
                           ))}
                         </SelectContent>
