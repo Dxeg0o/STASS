@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import { Badge } from "@/components/ui/badge";
@@ -333,6 +334,17 @@ export default function DispositivoDetailPage() {
             historial
           </Badge>
         </div>
+        {servicioActual && (
+          <Button
+            asChild
+            variant="outline"
+            className="w-fit border-amber-500/20 text-amber-400 hover:bg-amber-950/30"
+          >
+            <Link href={`/admin/servicios/${servicioActual.servicio.id}`}>
+              Ver detalle del servicio
+            </Link>
+          </Button>
+        )}
       </div>
 
       <motion.div
@@ -536,9 +548,12 @@ export default function DispositivoDetailPage() {
                       <TableCell>
                         <div className="space-y-1.5">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="font-medium text-white">
+                            <Link
+                              href={`/admin/servicios/${assignment.servicio.id}`}
+                              className="font-medium text-amber-400 hover:text-amber-300"
+                            >
                               {assignment.servicio.nombre}
-                            </span>
+                            </Link>
                             <Badge
                               variant="outline"
                               className={`text-xs ${assignmentState.className}`}

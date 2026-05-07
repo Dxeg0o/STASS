@@ -7,6 +7,8 @@ import { useContext } from "react";
 import {
   LayoutDashboard,
   Building2,
+  ClipboardList,
+  Layers,
   Users,
   Package,
   Cpu,
@@ -83,6 +85,8 @@ export function AdminSidebar({
     {
       section: "Operaciones",
       items: [
+        { href: "/admin/procesos", label: "Procesos", icon: ClipboardList, exact: false },
+        { href: "/admin/servicios", label: "Servicios", icon: Layers, exact: false },
         { href: "/admin/productos", label: "Productos & Variedades", icon: Package, exact: false },
         { href: "/admin/dispositivos", label: "Dispositivos", icon: Cpu, exact: false },
       ],

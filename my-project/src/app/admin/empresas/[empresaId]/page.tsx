@@ -31,7 +31,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { Plus, Trash2, ArrowLeft, Building2, AlertTriangle, StopCircle, Layers, PlayCircle, Lock } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Building2, AlertTriangle, StopCircle, Layers, PlayCircle, Lock, Eye } from "lucide-react";
 
 interface TipoProceso {
   id: string;
@@ -934,6 +934,13 @@ export default function EmpresaDetailPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => router.push(`/admin/procesos/${p.id}`)}
+                              className="p-1.5 text-slate-500 hover:text-amber-400 hover:bg-amber-400/10 rounded transition-all"
+                              title="Ver detalle del proceso"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
                             {p.estado === "planificado" && (
                               <button
                                 onClick={() => handleStartProceso(p.id)}
@@ -1222,9 +1229,16 @@ export default function EmpresaDetailPage() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
+                            onClick={() => router.push(`/admin/servicios/${s.id}`)}
+                            className="p-1.5 text-slate-500 hover:text-amber-400 hover:bg-amber-400/10 rounded transition-all"
+                            title="Ver detalle del servicio"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => router.push(`/admin/empresas/${empresaId}/servicios/${s.id}`)}
                             className="p-1.5 text-slate-500 hover:text-amber-400 hover:bg-amber-400/10 rounded transition-all"
-                            title="Gestionar Lotes"
+                            title="Gestionar lotes y asignaciones"
                           >
                             <Layers className="w-4 h-4" />
                           </button>
