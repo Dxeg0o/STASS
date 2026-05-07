@@ -94,12 +94,28 @@ interface ServicioDetailResponse {
     id: string;
     cajaId: string;
     codigo: string;
+    cajaActiva?: boolean | null;
     loteSessionId: string;
     loteId: string;
     codigoLote: string | null;
     asignadoAt: string | null;
+    retiradoAt?: string | null;
     totalCount: number;
     lastCountAt: string | null;
+  }>;
+  cajas: Array<{
+    id: string;
+    cajaId: string;
+    codigo: string;
+    cajaActiva: boolean | null;
+    loteSessionId: string;
+    loteId: string;
+    codigoLote: string | null;
+    asignadoAt: string | null;
+    retiradoAt: string | null;
+    totalCount: number;
+    lastCountAt: string | null;
+    isActive: boolean;
   }>;
 }
 
@@ -278,10 +294,15 @@ export default function AdminServicioDetailPage() {
         detail: assignment.dispositivoNombre,
       });
     });
-    data.activeCajas.forEach((caja) => {
+    data.cajas.forEach((caja) => {
       events.push({
         date: caja.asignadoAt,
-        label: "Caja activa asignada",
+        label: "Caja asignada",
+        detail: `${caja.codigo} · ${getLoteLabel(caja)}`,
+      });
+      events.push({
+        date: caja.retiradoAt,
+        label: "Caja retirada",
         detail: `${caja.codigo} · ${getLoteLabel(caja)}`,
       });
     });
@@ -458,6 +479,11 @@ export default function AdminServicioDetailPage() {
           <TabsTrigger value="lotes" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
             Lotes
           </TabsTrigger>
+          {servicio.usaCajas && (
+            <TabsTrigger value="cajas" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
+              Cajas
+            </TabsTrigger>
+          )}
           <TabsTrigger value="dispositivos" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
             Dispositivos
           </TabsTrigger>
@@ -571,6 +597,75 @@ export default function AdminServicioDetailPage() {
                           {formatNumber(lote.totalCount)}
                         </TableCell>
                         <TableCell className="text-slate-400">{formatDate(lote.lastCountAt, "Sin conteos")}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="cajas" className="mt-4">
+          <Card className="bg-slate-900/60 border-white/10">
+            <CardContent className="p-0">
+              {data.cajas.length === 0 ? (
+                <div className="p-12 text-center text-slate-500">
+                  No hay cajas asociadas a este servicio.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-white/10 hover:bg-transparent">
+                      <TableHead className="text-slate-400 uppercase text-xs">Caja</TableHead>
+                      <TableHead className="text-slate-400 uppercase text-xs">Lote</TableHead>
+                      <TableHead className="text-slate-400 uppercase text-xs">Estado</TableHead>
+                      <TableHead className="text-slate-400 uppercase text-xs text-right">Conteos</TableHead>
+                      <TableHead className="text-slate-400 uppercase text-xs">Último conteo</TableHead>
+                      <TableHead className="text-slate-400 uppercase text-xs">Asignada</TableHead>
+                      <TableHead className="text-slate-400 uppercase text-xs">Retirada</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.cajas.map((caja) => (
+                      <TableRow key={caja.id} className="border-white/5 hover:bg-white/[0.02]">
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="font-medium text-white">{caja.codigo}</div>
+                            {caja.cajaActiva === false && (
+                              <div className="text-xs text-slate-600">
+                                Caja inactiva
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-300">
+                          {getLoteLabel(caja)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              caja.isActive
+                                ? "border-emerald-500/30 bg-emerald-950/30 text-emerald-400"
+                                : "border-slate-500/30 bg-slate-950/30 text-slate-300"
+                            }
+                          >
+                            {caja.isActive ? "Activa" : "Retirada"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-white">
+                          {formatNumber(caja.totalCount)}
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          {formatDate(caja.lastCountAt, "Sin conteos")}
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          {formatDate(caja.asignadoAt)}
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          {formatDate(caja.retiradoAt, "Vigente")}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

@@ -150,17 +150,19 @@ export async function GET(
       .where(eq(dispositivoServicio.servicioId, servicioId))
       .orderBy(desc(dispositivoServicio.asignadoAt));
 
-    const activeCajas =
+    const cajas =
       servicioRow.usaCajas && loteIds.length > 0
         ? await db
             .select({
               id: cajaLoteSession.id,
               cajaId: caja.id,
               codigo: caja.codigo,
+              cajaActiva: caja.activa,
               loteSessionId: cajaLoteSession.loteSessionId,
               loteId: loteSession.loteId,
               codigoLote: lote.codigoLote,
               asignadoAt: cajaLoteSession.asignadoAt,
+              retiradoAt: cajaLoteSession.retiradoAt,
               totalCount: sql<number>`COALESCE(SUM(${cajaStats.countIn} + ${cajaStats.countOut}), 0)::int`,
               lastCountAt: sql<Date | null>`MAX(${cajaStats.lastTs})`,
             })
@@ -169,23 +171,21 @@ export async function GET(
             .innerJoin(loteSession, eq(loteSession.id, cajaLoteSession.loteSessionId))
             .innerJoin(lote, eq(lote.id, loteSession.loteId))
             .leftJoin(cajaStats, eq(cajaStats.cajaLoteSessionId, cajaLoteSession.id))
-            .where(
-              and(
-                inArray(loteSession.loteId, loteIds),
-                isNull(cajaLoteSession.retiradoAt)
-              )
-            )
+            .where(inArray(loteSession.loteId, loteIds))
             .groupBy(
               cajaLoteSession.id,
               caja.id,
               caja.codigo,
+              caja.activa,
               cajaLoteSession.loteSessionId,
               loteSession.loteId,
               lote.codigoLote,
-              cajaLoteSession.asignadoAt
+              cajaLoteSession.asignadoAt,
+              cajaLoteSession.retiradoAt
             )
             .orderBy(desc(cajaLoteSession.asignadoAt))
         : [];
+    const activeCajas = cajas.filter((item) => !item.retiradoAt);
 
     const activeLoteIds = new Set(activeSessions.map((session) => session.loteId));
     const totalCount = lotes.reduce((sum, item) => sum + item.totalCount, 0);
@@ -219,6 +219,10 @@ export async function GET(
       })),
       activeSessions,
       deviceAssignments,
+      cajas: cajas.map((item) => ({
+        ...item,
+        isActive: !item.retiradoAt,
+      })),
       activeCajas,
     });
   } catch (error) {
