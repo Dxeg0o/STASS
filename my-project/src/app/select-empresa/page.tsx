@@ -112,7 +112,7 @@ export default function SelectEmpresaPage() {
 
       <footer className="py-6 w-full border-t border-white/10 text-center relative z-10 bg-slate-950/80 backdrop-blur">
         <p className="text-xs text-slate-500">
-          © 2025 QualiBlick. Todos los derechos reservados.
+          © 2026 QualiBlick. Todos los derechos reservados.
         </p>
       </footer>
     </div>

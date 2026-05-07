@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { dispositivo, dispositivoServicio } from "@/db/schema";
+import { dispositivo, lote, loteSession } from "@/db/schema";
 import { verifyAdmin } from "@/lib/auth";
-import { isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
 export async function GET(req: Request) {
   try {
@@ -14,13 +14,73 @@ export async function GET(req: Request) {
     const dispositivos = await db.query.dispositivo.findMany({
       with: {
         dispositivoServicios: {
-          where: isNull(dispositivoServicio.fechaTermino),
-          with: { servicio: true },
+          orderBy: (assignment, { desc }) => [desc(assignment.asignadoAt)],
+          with: {
+            servicio: {
+              with: {
+                empresa: true,
+                proceso: { with: { tipoProceso: true } },
+                ubicacion: true,
+              },
+            },
+          },
         },
       },
     });
 
-    return NextResponse.json(dispositivos);
+    const dispositivoIds = dispositivos.map((device) => device.id);
+    const activeSessions =
+      dispositivoIds.length > 0
+        ? await db
+            .select({
+              id: loteSession.id,
+              sessionId: loteSession.id,
+              dispositivoId: loteSession.dispositivoId,
+              loteId: loteSession.loteId,
+              startTime: loteSession.startTime,
+              codigoLote: lote.codigoLote,
+            })
+            .from(loteSession)
+            .innerJoin(lote, eq(lote.id, loteSession.loteId))
+            .where(
+              and(
+                inArray(loteSession.dispositivoId, dispositivoIds),
+                isNull(loteSession.endTime)
+              )
+            )
+            .orderBy(desc(loteSession.startTime))
+        : [];
+
+    const activeSessionMap = new Map<string, (typeof activeSessions)[number]>();
+    for (const session of activeSessions) {
+      if (!activeSessionMap.has(session.dispositivoId)) {
+        activeSessionMap.set(session.dispositivoId, session);
+      }
+    }
+
+    const response = dispositivos.map((device) => {
+      const historialServicios = [...device.dispositivoServicios].sort(
+        (a, b) => {
+          if (!a.fechaTermino && b.fechaTermino) return -1;
+          if (a.fechaTermino && !b.fechaTermino) return 1;
+
+          const aDate = a.asignadoAt?.getTime() ?? 0;
+          const bDate = b.asignadoAt?.getTime() ?? 0;
+          return bDate - aDate;
+        }
+      );
+
+      return {
+        ...device,
+        servicioActual:
+          historialServicios.find((assignment) => !assignment.fechaTermino) ??
+          null,
+        loteActivo: activeSessionMap.get(device.id) ?? null,
+        historialServicios,
+      };
+    });
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error fetching dispositivos:", error);
     return NextResponse.json(

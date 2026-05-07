@@ -18,7 +18,7 @@ export default function Footer() {
                         Transformando la agroindustria mediante visión artificial y datos claves de alta precisión.
                     </p>
                     <div className="text-slate-500 text-xs">
-                        © 2025 Qualiblick Inc.
+                        © 2026 Qualiblick Inc.
                     </div>
                 </div>
 

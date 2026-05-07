@@ -65,7 +65,7 @@ export default function RegisterPage() {
 
       <footer className="relative z-10 w-full border-t border-white/10 bg-slate-950/80 py-6 text-center backdrop-blur">
         <p className="text-xs text-slate-500">
-          © 2025 QualiBlick. Todos los derechos reservados.
+          © 2026 QualiBlick. Todos los derechos reservados.
         </p>
       </footer>
     </div>
