@@ -32,7 +32,6 @@ import {
 import {
   Building2,
   Clock3,
-  Eye,
   History,
   PackageOpen,
   Plus,
@@ -574,21 +573,6 @@ export default function DispositivosPage() {
                                 <PackageOpen className="w-3 h-3 mr-1" />
                                 Ver
                               </Button>
-                              {currentAssignment && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-amber-500/20 text-amber-400 hover:bg-amber-950/30"
-                                  onClick={() =>
-                                    router.push(
-                                      `/admin/servicios/${currentAssignment.servicio.id}`
-                                    )
-                                  }
-                                >
-                                  <Eye className="w-3 h-3 mr-1" />
-                                  Servicio
-                                </Button>
-                              )}
                               <Button
                                 size="sm"
                                 variant="outline"

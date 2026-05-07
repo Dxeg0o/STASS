@@ -73,47 +73,11 @@ export async function POST(request: Request) {
   }
 
   // 2. Parsear y validar body
-  let body: {
-    mediciones?: unknown;
-    dispositivoId?: unknown;
-    dispositivoNombre?: unknown;
-  };
+  let body: { mediciones?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
-  }
-
-  if (typeof body.dispositivoId === "string" && body.dispositivoId !== device.id) {
-    return NextResponse.json(
-      {
-        error: "La API key no corresponde al dispositivo declarado",
-        dispositivoAutenticado: {
-          id: device.id,
-          nombre: device.nombre,
-        },
-        dispositivoDeclarado: body.dispositivoId,
-      },
-      { status: 403 }
-    );
-  }
-
-  if (
-    typeof body.dispositivoNombre === "string" &&
-    body.dispositivoNombre.trim().toLowerCase() !==
-      device.nombre.trim().toLowerCase()
-  ) {
-    return NextResponse.json(
-      {
-        error: "La API key no corresponde al dispositivo declarado",
-        dispositivoAutenticado: {
-          id: device.id,
-          nombre: device.nombre,
-        },
-        dispositivoDeclarado: body.dispositivoNombre,
-      },
-      { status: 403 }
-    );
   }
 
   const validation = validateMediciones(body.mediciones);
@@ -137,13 +101,7 @@ export async function POST(request: Request) {
 
   if (!activeSession) {
     return NextResponse.json(
-      {
-        error: "No hay sesión de lote activa para este dispositivo",
-        dispositivo: {
-          id: device.id,
-          nombre: device.nombre,
-        },
-      },
+      { error: "No hay sesión de lote activa para este dispositivo" },
       { status: 409 }
     );
   }
