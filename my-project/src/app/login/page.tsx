@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -11,14 +11,24 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { fetchUser } = useContext(AuthenticationContext);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reset") === "success") {
+      setSuccessMessage("Tu contraseña fue actualizada. Ya puedes iniciar sesión.");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -89,6 +99,12 @@ export default function LoginPage() {
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm text-center">
                 {error}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-300 text-sm text-center">
+                {successMessage}
               </div>
             )}
 

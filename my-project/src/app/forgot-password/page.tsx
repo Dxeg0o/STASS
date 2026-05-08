@@ -17,15 +17,16 @@ export default function ForgotPasswordPage() {
     setError(null);
 
     try {
+      const normalizedCorreo = correo.trim().toLowerCase();
       const response = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ correo }),
+        body: JSON.stringify({ correo: normalizedCorreo }),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.errorMessage || "Error al enviar el correo.");
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.errorMessage || "Error al enviar el correo.");
       }
 
       setSubmitted(true);

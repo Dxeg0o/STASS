@@ -6,7 +6,9 @@ import { and, eq, gt } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, newPassword } = await req.json();
+    const body = await req.json();
+    const token = typeof body.token === "string" ? body.token.trim() : "";
+    const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
 
     if (!token || !newPassword) {
       return NextResponse.json(

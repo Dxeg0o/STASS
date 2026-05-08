@@ -4,12 +4,13 @@ import * as jose from "jose";
 import validator from "validator";
 import { db } from "@/db";
 import { usuario, empresa } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password } = body;
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const password = typeof body.password === "string" ? body.password : "";
 
     if (!email || !password) {
       return NextResponse.json(
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await db.query.usuario.findFirst({
-      where: eq(usuario.correo, email),
+      where: sql`lower(${usuario.correo}) = ${email}`,
       with: { empresaUsuarios: true },
     });
 

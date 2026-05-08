@@ -45,10 +45,10 @@ function ResetPasswordForm() {
         body: JSON.stringify({ token, newPassword }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data.errorMessage || "Error al restablecer la contraseña.");
+        throw new Error(data?.errorMessage || "Error al restablecer la contraseña.");
       }
 
       router.push("/login?reset=success");
