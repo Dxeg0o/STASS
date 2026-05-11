@@ -86,27 +86,6 @@ export async function POST(request: Request) {
   }
   const mediciones = validation.data;
 
-  // 3. Resolver sesión activa del dispositivo.
-  const [activeSession] = await db
-    .select({
-      id: loteSession.id,
-      loteId: loteSession.loteId,
-    })
-    .from(loteSession)
-    .where(
-      and(eq(loteSession.dispositivoId, device.id), isNull(loteSession.endTime))
-    )
-    .orderBy(desc(loteSession.startTime))
-    .limit(1);
-
-  if (!activeSession) {
-    return NextResponse.json(
-      { error: "No hay sesión de lote activa para este dispositivo" },
-      { status: 409 }
-    );
-  }
-
-  // 4. Resolver servicios por intervalo temporal del dispositivo.
   const minTs = mediciones.reduce(
     (min, medicion) => (medicion.ts < min ? medicion.ts : min),
     mediciones[0].ts
@@ -116,6 +95,37 @@ export async function POST(request: Request) {
     mediciones[0].ts
   );
 
+  // 3. Resolver sesiones del dispositivo que cubren el rango temporal del batch.
+  //    La cola local puede enviar eventos antiguos; por eso cada medición debe
+  //    calzar por timestamp y no por la sesión abierta al momento del POST.
+  const sessionAssignments = await db
+    .select({
+      id: loteSession.id,
+      loteId: loteSession.loteId,
+      startTime: loteSession.startTime,
+      endTime: loteSession.endTime,
+    })
+    .from(loteSession)
+    .where(
+      and(
+        eq(loteSession.dispositivoId, device.id),
+        lte(loteSession.startTime, maxTs),
+        or(isNull(loteSession.endTime), gt(loteSession.endTime, minTs))
+      )
+    )
+    .orderBy(desc(loteSession.startTime));
+
+  if (sessionAssignments.length === 0) {
+    return NextResponse.json(
+      {
+        error:
+          "No hay sesión de lote para este dispositivo en el rango temporal del batch",
+      },
+      { status: 409 }
+    );
+  }
+
+  // 4. Resolver servicios por intervalo temporal del dispositivo.
   const serviceAssignments = await db
     .select({
       servicioId: servicio.id,
@@ -145,7 +155,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const rowsWithService = mediciones.map((medicion, index) => {
+  const rowsWithContext = mediciones.map((medicion, index) => {
+    const session = sessionAssignments.find((candidate) => {
+      const startsBeforeOrAt = medicion.ts >= candidate.startTime;
+      const endsAfter =
+        candidate.endTime === null || medicion.ts < candidate.endTime;
+      return startsBeforeOrAt && endsAfter;
+    });
+
     const assignment = serviceAssignments.find((candidate) => {
       if (!candidate.fechaInicio) return false;
       const startsBeforeOrAt = medicion.ts >= candidate.fechaInicio;
@@ -154,14 +171,25 @@ export async function POST(request: Request) {
       return startsBeforeOrAt && endsAfter;
     });
 
-    if (!assignment) {
-      return { index, medicion, assignment: null };
-    }
-
-    return { index, medicion, assignment };
+    return {
+      index,
+      medicion,
+      session: session ?? null,
+      assignment: assignment ?? null,
+    };
   });
 
-  const missingAssignment = rowsWithService.find((row) => !row.assignment);
+  const missingSession = rowsWithContext.find((row) => !row.session);
+  if (missingSession) {
+    return NextResponse.json(
+      {
+        error: `medicion[${missingSession.index}]: no calza con una sesión temporal del dispositivo`,
+      },
+      { status: 409 }
+    );
+  }
+
+  const missingAssignment = rowsWithContext.find((row) => !row.assignment);
   if (missingAssignment) {
     return NextResponse.json(
       {
@@ -172,67 +200,92 @@ export async function POST(request: Request) {
   }
 
   const resolvedServicioIds = [
-    ...new Set(
-      rowsWithService.map((row) => row.assignment!.servicioId)
-    ),
+    ...new Set(rowsWithContext.map((row) => row.assignment!.servicioId)),
+  ];
+  const resolvedLoteIds = [
+    ...new Set(rowsWithContext.map((row) => row.session!.loteId)),
   ];
 
   const loteAssignments = await db
-    .select({ servicioId: loteServicio.servicioId })
+    .select({
+      loteId: loteServicio.loteId,
+      servicioId: loteServicio.servicioId,
+    })
     .from(loteServicio)
     .where(
       and(
-        eq(loteServicio.loteId, activeSession.loteId),
+        inArray(loteServicio.loteId, resolvedLoteIds),
         inArray(loteServicio.servicioId, resolvedServicioIds)
       )
     );
   const loteServicioIds = new Set(
-    loteAssignments.map((assignment) => assignment.servicioId)
+    loteAssignments.map(
+      (assignment) => `${assignment.loteId}:${assignment.servicioId}`
+    )
   );
-  const missingLoteServicioId = resolvedServicioIds.find(
-    (servicioId) => !loteServicioIds.has(servicioId)
+  const missingLoteServicio = rowsWithContext.find(
+    (row) =>
+      !loteServicioIds.has(
+        `${row.session!.loteId}:${row.assignment!.servicioId}`
+      )
   );
 
-  if (missingLoteServicioId) {
+  if (missingLoteServicio) {
     return NextResponse.json(
       {
         error: "El lote activo no está asignado al servicio resuelto para el dispositivo",
-        servicioId: missingLoteServicioId,
+        loteId: missingLoteServicio.session!.loteId,
+        servicioId: missingLoteServicio.assignment!.servicioId,
       },
       { status: 409 }
     );
   }
 
-  let activeCajaLoteSessionId: string | null = null;
-  const anyServiceUsesCajas = rowsWithService.some(
+  const cajaSessionIds = [
+    ...new Set(
+      rowsWithContext
+        .filter((row) => row.assignment?.usaCajas)
+        .map((row) => row.session!.id)
+    ),
+  ];
+  const cajaByLoteSessionId = new Map<string, string>();
+  const anyServiceUsesCajas = rowsWithContext.some(
     (row) => row.assignment?.usaCajas
   );
   if (anyServiceUsesCajas) {
-    const [activeCaja] = await db
-      .select({ id: cajaLoteSession.id })
+    const activeCajas = await db
+      .select({
+        id: cajaLoteSession.id,
+        loteSessionId: cajaLoteSession.loteSessionId,
+      })
       .from(cajaLoteSession)
       .where(
         and(
-          eq(cajaLoteSession.loteSessionId, activeSession.id),
+          inArray(cajaLoteSession.loteSessionId, cajaSessionIds),
           isNull(cajaLoteSession.retiradoAt)
         )
       )
-      .orderBy(desc(cajaLoteSession.asignadoAt))
-      .limit(1);
+      .orderBy(desc(cajaLoteSession.asignadoAt));
 
-    activeCajaLoteSessionId = activeCaja?.id ?? null;
+    for (const activeCaja of activeCajas) {
+      if (!cajaByLoteSessionId.has(activeCaja.loteSessionId)) {
+        cajaByLoteSessionId.set(activeCaja.loteSessionId, activeCaja.id);
+      }
+    }
   }
 
   // 5. Bulk INSERT — un solo statement para N filas.
   //    El trigger STATEMENT-level (migración 0009) dispara UNA vez
   //    y agrega todo el batch a lote_stats; caja_stats solo si hay caja activa.
   await db.insert(conteo).values(
-    rowsWithService.map(({ medicion, assignment }) => ({
+    rowsWithContext.map(({ medicion, session, assignment }) => ({
       ts: medicion.ts,
-      loteId: activeSession.loteId,
+      loteId: session!.loteId,
       servicioId: assignment!.servicioId,
       dispositivoId: device.id,
-      cajaLoteSessionId: assignment!.usaCajas ? activeCajaLoteSessionId : null,
+      cajaLoteSessionId: assignment!.usaCajas
+        ? cajaByLoteSessionId.get(session!.id) ?? null
+        : null,
       perimeter: medicion.perimeter,
       direction: medicion.direction,
     }))
