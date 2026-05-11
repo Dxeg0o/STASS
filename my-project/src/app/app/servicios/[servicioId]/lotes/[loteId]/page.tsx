@@ -24,6 +24,7 @@ import {
 
 interface Lote {
   id: string;
+  codigoLote?: string | null;
   fechaCreacion: string;
   variedadId?: string;
   variedadNombre?: string;
@@ -85,6 +86,10 @@ const ESTADO_COLORS: Record<string, string> = {
 const SERIES_COLORS = ["#06b6d4", "#6366f1", "#f97316", "#10b981", "#ec4899"];
 
 const LIMIT = 100;
+
+function displayLote(lote: Pick<Lote, "codigoLote"> | null): string {
+  return lote?.codigoLote?.trim() || "Sin código";
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -212,11 +217,11 @@ export default function LoteDetailPage() {
     return [
       {
         key: loteId,
-        label: `Lote ${loteId.slice(-8)}`,
+        label: displayLote(lote),
         color: SERIES_COLORS[0],
       },
     ];
-  }, [loteId]);
+  }, [loteId, lote]);
 
   // ── Excel export ───────────────────────────────────────────────────────────
   const handleExportExcel = () => {
@@ -229,7 +234,7 @@ export default function LoteDetailPage() {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, "Datos");
-    XLSX.writeFile(wb, `lote-${loteId}-datos.xlsx`);
+    XLSX.writeFile(wb, `lote-${lote?.codigoLote?.trim() || "sin_codigo"}-datos.xlsx`);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -242,7 +247,7 @@ export default function LoteDetailPage() {
         ) : (
           <div className="flex items-center flex-wrap gap-3">
             <h1 className="text-2xl font-bold text-white">
-              Lote {loteId.slice(-8)}
+              Lote {displayLote(lote)}
             </h1>
             {lote?.variedadNombre && (
               <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">

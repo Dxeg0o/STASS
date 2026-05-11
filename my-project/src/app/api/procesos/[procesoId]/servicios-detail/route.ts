@@ -42,6 +42,7 @@ export async function GET(
   const loteAssignments = await db
     .select({
       loteId: loteServicio.loteId,
+      codigoLote: lote.codigoLote,
       servicioId: loteServicio.servicioId,
       asignadoAt: loteServicio.asignadoAt,
       variedadNombre: variedad.nombre,
@@ -137,6 +138,7 @@ export async function GET(
       const stat = statsMap.get(`${assignment.loteId}:${s.id}`);
       return {
         loteId: assignment.loteId,
+        codigoLote: assignment.codigoLote,
         variedadNombre: assignment.variedadNombre,
         productoNombre: assignment.productoNombre,
         asignadoAt: assignment.asignadoAt,

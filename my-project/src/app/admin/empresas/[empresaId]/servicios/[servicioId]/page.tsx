@@ -282,7 +282,6 @@ export default function AdminServicioLotesPage() {
     if (!term) return lotes;
     return lotes.filter(
       (l) =>
-        l.id.toLowerCase().includes(term) ||
         (l.codigoLote ?? "").toLowerCase().includes(term) ||
         (l.variedadTipo ?? "").toLowerCase().includes(term) ||
         l.variedadNombre?.toLowerCase().includes(term) ||
@@ -743,6 +742,11 @@ export default function AdminServicioLotesPage() {
   };
 
   const handleCreate = async () => {
+    if (creationMode === "individual" && !codigoLoteInput.trim()) {
+      toast.error("Debes ingresar un código de lote");
+      return;
+    }
+
     if (creationMode === "excel") {
       if (!mappedHeaderByType.codigoLote) {
         toast.error("Debes mapear una columna como Código de lote");
@@ -807,6 +811,10 @@ export default function AdminServicioLotesPage() {
 
   const handleUpdate = async () => {
     if (!editingLote) return;
+    if (!editCodigoLote.trim()) {
+      toast.error("Debes ingresar un código de lote");
+      return;
+    }
     setUpdating(true);
     try {
       const res = await axios.patch(`/api/admin/servicios/${servicioId}/lotes`, {
@@ -1117,7 +1125,7 @@ export default function AdminServicioLotesPage() {
         <CardContent className="space-y-4">
           {/* Search */}
           <Input
-            placeholder="Buscar por ID, variedad o producto..."
+            placeholder="Buscar por código de lote, variedad o producto..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="max-w-sm bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500"
@@ -1152,7 +1160,7 @@ export default function AdminServicioLotesPage() {
                       </TableHead>
                     )}
                     <TableHead className="text-slate-400 uppercase text-xs">
-                      ID
+                      Codigo lote
                     </TableHead>
                     <TableHead className="text-slate-400 uppercase text-xs">
                       Producto
@@ -1205,7 +1213,7 @@ export default function AdminServicioLotesPage() {
                           </TableCell>
                         )}
                         <TableCell className="font-mono text-white text-sm">
-                          {l.codigoLote ?? l.id.slice(-8)}
+                          {l.codigoLote?.trim() || "Sin código"}
                         </TableCell>
                         <TableCell className="text-slate-400">
                           {l.productoNombre ?? (
@@ -1847,6 +1855,7 @@ export default function AdminServicioLotesPage() {
               onClick={handleCreate}
               disabled={
                 creating ||
+                (creationMode === "individual" && !codigoLoteInput.trim()) ||
                 (creationMode === "excel" &&
                   (!mappedHeaderByType.codigoLote || importPreview.readyRows.length === 0))
               }
@@ -2042,7 +2051,7 @@ export default function AdminServicioLotesPage() {
             </Button>
             <Button
               onClick={handleUpdate}
-              disabled={updating}
+              disabled={updating || !editCodigoLote.trim()}
               className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
             >
               {updating ? "Guardando..." : "Guardar cambios"}

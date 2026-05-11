@@ -10,6 +10,7 @@ import { Activity } from "lucide-react";
 
 interface ActiveSession {
   loteId: string;
+  codigoLote: string | null;
   servicioNombre: string;
   dispositivoNombre: string;
   startTime: string;
@@ -19,6 +20,7 @@ interface ActiveSession {
 
 interface RecentLote {
   loteId: string;
+  codigoLote: string | null;
   servicioId: string;
   servicioNombre: string;
   totalCount: number;
@@ -73,6 +75,10 @@ function formatTimestamp(isoString: string | null): string {
   });
 }
 
+function displayLote(lote: { codigoLote?: string | null }): string {
+  return lote.codigoLote?.trim() || "Sin código";
+}
+
 // ---------- Active Lote Card ----------
 
 function ActiveLoteCard({ session }: { session: ActiveSession }) {
@@ -97,7 +103,7 @@ function ActiveLoteCard({ session }: { session: ActiveSession }) {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
             </span>
             <span className="text-sm font-mono font-semibold text-white group-hover:text-emerald-100 transition-colors">
-              {session.loteId.slice(-8)}
+              {displayLote(session)}
             </span>
           </div>
           <span className="text-xs font-mono text-emerald-400">{elapsed}</span>
@@ -341,7 +347,7 @@ export default function OverviewPage() {
                                 href={`/app/lotes/${lote.loteId}`}
                                 className="text-slate-200 hover:text-cyan-400 transition-colors font-medium font-mono text-xs"
                               >
-                                {lote.loteId.slice(-8)}
+                                {displayLote(lote)}
                               </Link>
                             </td>
                             <td className="px-5 py-3 text-slate-400 hidden sm:table-cell">

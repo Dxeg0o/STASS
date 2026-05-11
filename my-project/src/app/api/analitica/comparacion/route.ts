@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { loteStats, servicio, proceso } from "@/db/schema";
+import { lote, loteStats, servicio, proceso } from "@/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 
 export async function GET(request: Request) {
@@ -40,6 +40,11 @@ export async function GET(request: Request) {
   const result = [];
 
   for (const loteId of loteIds) {
+    const [loteInfo] = await db
+      .select({ codigoLote: lote.codigoLote })
+      .from(lote)
+      .where(eq(lote.id, loteId));
+
     const conditions = [eq(loteStats.loteId, loteId)];
     if (servicioFilter) {
       conditions.push(inArray(loteStats.servicioId, servicioFilter));
@@ -72,6 +77,7 @@ export async function GET(request: Request) {
 
     result.push({
       loteId,
+      codigoLote: loteInfo?.codigoLote ?? null,
       distribution: distribution.map((d) => ({
         calibre: d.calibre,
         count: d.count,

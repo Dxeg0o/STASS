@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import {
   servicio,
+  lote,
   loteStats,
   loteSession,
   loteServicio,
@@ -111,9 +112,11 @@ export async function GET(request: Request) {
     .select({
       servicioId: loteServicio.servicioId,
       loteId: loteServicio.loteId,
+      codigoLote: lote.codigoLote,
     })
     .from(loteSession)
     .innerJoin(loteServicio, eq(loteServicio.loteId, loteSession.loteId))
+    .innerJoin(lote, eq(lote.id, loteSession.loteId))
     .innerJoin(
       latestAssignment,
       and(
@@ -128,11 +131,12 @@ export async function GET(request: Request) {
       )
     );
 
-  const activeSessionMap = new Map<string, { id: string }>();
+  const activeSessionMap = new Map<string, { id: string; codigoLote: string | null }>();
   for (const session of activeSessions) {
     if (!activeSessionMap.has(session.servicioId)) {
       activeSessionMap.set(session.servicioId, {
         id: session.loteId,
+        codigoLote: session.codigoLote,
       });
     }
   }

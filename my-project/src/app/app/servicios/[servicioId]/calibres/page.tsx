@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Lote {
   id: string;
+  codigoLote?: string | null;
   fechaCreacion: string;
   variedadId?: string;
   variedadNombre?: string;
@@ -38,6 +39,10 @@ const SERIES_COLORS = [
   "#ec4899",
   "#14b8a6",
 ];
+
+function displayLote(lote: Pick<Lote, "codigoLote"> | null | undefined): string {
+  return lote?.codigoLote?.trim() || "Sin código";
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -110,19 +115,22 @@ export default function CalibresPage() {
   const filteredLotes = useMemo(() => {
     const term = search.toLowerCase().trim();
     if (!term) return lotes;
-    return lotes.filter((l) => l.id.toLowerCase().includes(term));
+    return lotes.filter((l) =>
+      (l.codigoLote ?? "").toLowerCase().includes(term)
+    );
   }, [lotes, search]);
 
   // ── Derived: chart series ──────────────────────────────────────────────────
   const series = useMemo<CaliberSeries[]>(() => {
     return selectedLoteIds.map((id, index) => {
+      const lote = lotes.find((l) => l.id === id);
       return {
         key: id,
-        label: `Lote ${id.slice(-8)}`,
+        label: displayLote(lote),
         color: SERIES_COLORS[index % SERIES_COLORS.length],
       };
     });
-  }, [selectedLoteIds]);
+  }, [lotes, selectedLoteIds]);
 
   // ── Derived: totals for percentage mode ───────────────────────────────────
   const loteTotals = useMemo(() => {
@@ -178,7 +186,7 @@ export default function CalibresPage() {
           <span className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse shrink-0" />
           <span className="text-sm text-slate-300">
             Lote activo:{" "}
-            <span className="font-semibold text-white font-mono">{activeLote.id.slice(-8)}</span>
+            <span className="font-semibold text-white font-mono">{displayLote(activeLote)}</span>
           </span>
           <Button
             variant="ghost"
@@ -257,7 +265,7 @@ export default function CalibresPage() {
                               onChange={() => toggleLote(lote.id)}
                             />
                             <span className="text-sm font-medium text-white truncate">
-                              {lote.id.slice(-8)}
+                              {displayLote(lote)}
                             </span>
                             {lote.variedadNombre && (
                               <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40 text-xs shrink-0">

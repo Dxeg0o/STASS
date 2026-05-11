@@ -61,6 +61,7 @@ export async function GET(request: Request) {
   return NextResponse.json(
     rows.map((r) => ({
       id: r.id,
+      codigoLote: r.codigoLote,
       conteo: r.conteo,
       firstTimestamp: r.firstTimestamp ? new Date(r.firstTimestamp).toISOString() : null,
       lastTimestamp: r.lastTimestamp ? new Date(r.lastTimestamp).toISOString() : null,

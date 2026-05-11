@@ -173,7 +173,7 @@ function getProcesoLabel(servicio?: ServicioRef | null) {
 }
 
 function getLoteLabel(lote: Pick<LoteActivoRef, "loteId" | "codigoLote">) {
-  return lote.codigoLote?.trim() || `Lote ${lote.loteId.slice(-8)}`;
+  return lote.codigoLote?.trim() || "Sin código";
 }
 
 function getLoteState(session: HistorialLoteRef) {

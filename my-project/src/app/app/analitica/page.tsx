@@ -37,6 +37,7 @@ interface EvolucionStep {
 
 interface ComparacionLote {
   loteId: string;
+  codigoLote: string | null;
   distribution: { calibre: number; count: number }[];
   stats: {
     totalCount: number;
@@ -50,6 +51,7 @@ interface ComparacionLote {
 
 interface LoteOption {
   id: string;
+  codigoLote: string | null;
   variedadNombre: string | null;
   productoNombre: string | null;
 }
@@ -60,6 +62,10 @@ const COLORS = ["#06b6d4", "#6366f1", "#f97316", "#10b981", "#ec4899", "#eab308"
 
 function formatNumber(n: number): string {
   return n.toLocaleString("es-CL");
+}
+
+function displayLote(lote: { codigoLote?: string | null }): string {
+  return lote.codigoLote?.trim() || "Sin código";
 }
 
 // ---------- Main Page ----------
@@ -97,6 +103,7 @@ export default function AnaliticaPage() {
         setLoteOptions(
           json.data?.map((l: LoteOption) => ({
             id: l.id,
+            codigoLote: l.codigoLote,
             variedadNombre: l.variedadNombre,
             productoNombre: l.productoNombre,
           })) ?? []
@@ -160,12 +167,12 @@ export default function AnaliticaPage() {
         const entry = l.distribution.find((d) => d.calibre === cal);
         const count = entry?.count ?? 0;
         if (compMode === "porcentaje") {
-          point[l.loteId.slice(-8)] =
+          point[l.loteId] =
             l.stats.totalCount > 0
               ? parseFloat(((count / l.stats.totalCount) * 100).toFixed(2))
               : 0;
         } else {
-          point[l.loteId.slice(-8)] = count;
+          point[l.loteId] = count;
         }
       }
       return point;
@@ -261,7 +268,7 @@ export default function AnaliticaPage() {
         <option value="">{placeholder ?? "Seleccionar lote..."}</option>
         {loteOptions.map((l) => (
           <option key={l.id} value={l.id}>
-            {l.id.slice(-8)}
+            {displayLote(l)}
             {l.variedadNombre ? ` - ${l.variedadNombre}` : ""}
           </option>
         ))}
@@ -445,7 +452,7 @@ export default function AnaliticaPage() {
                     )
                   }
                 >
-                  {id.slice(-8)} <X className="w-3 h-3 ml-1" />
+                  {displayLote(loteOptions.find((l) => l.id === id) ?? {})} <X className="w-3 h-3 ml-1" />
                 </Badge>
               ))}
             </div>
@@ -468,7 +475,7 @@ export default function AnaliticaPage() {
                   .filter((l) => !selectedLotesComp.includes(l.id))
                   .map((l) => (
                     <option key={l.id} value={l.id}>
-                      {l.id.slice(-8)}
+                      {displayLote(l)}
                       {l.variedadNombre ? ` - ${l.variedadNombre}` : ""}
                     </option>
                   ))}
@@ -543,7 +550,8 @@ export default function AnaliticaPage() {
                       {comparacion.map((l, idx) => (
                         <Bar
                           key={l.loteId}
-                          dataKey={l.loteId.slice(-8)}
+                          dataKey={l.loteId}
+                          name={displayLote(l)}
                           fill={COLORS[idx % COLORS.length]}
                           fillOpacity={0.7}
                           radius={[2, 2, 0, 0]}
@@ -598,7 +606,7 @@ export default function AnaliticaPage() {
                                     COLORS[idx % COLORS.length],
                                 }}
                               />
-                              {l.loteId.slice(-8)}
+                              {displayLote(l)}
                             </td>
                             <td className="py-2.5 pr-4 text-right">
                               {formatNumber(l.stats.totalCount)}

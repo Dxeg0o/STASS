@@ -49,6 +49,10 @@ function formatDate(iso: string | null): string {
   });
 }
 
+function displayLote(lote: Pick<LoteRow, "codigoLote">): string {
+  return lote.codigoLote?.trim() || "Sin código";
+}
+
 // ---------- Main Page ----------
 
 export default function LotesPage() {
@@ -174,7 +178,7 @@ export default function LotesPage() {
                 <thead>
                   <tr className="border-b border-white/5">
                     <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      ID
+                      Codigo lote
                     </th>
                     <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider hidden sm:table-cell">
                       Variedad
@@ -207,7 +211,7 @@ export default function LotesPage() {
                           href={`/app/lotes/${l.id}`}
                           className="text-slate-200 hover:text-cyan-400 transition-colors font-medium font-mono text-xs"
                         >
-                          {l.codigoLote ?? l.id.slice(-8)}
+                          {displayLote(l)}
                         </Link>
                       </td>
                       <td className="px-5 py-3 text-slate-400 hidden sm:table-cell">

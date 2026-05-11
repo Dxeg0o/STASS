@@ -72,6 +72,7 @@ export async function GET(
 
   let loteRows: {
     id: string;
+    codigoLote: string | null;
     createdAt: Date | null;
     totalCount: number;
     lastTs: Date | null;
@@ -83,6 +84,7 @@ export async function GET(
     loteRows = await db
       .select({
         id: lote.id,
+        codigoLote: lote.codigoLote,
         createdAt: lote.createdAt,
         totalCount: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
         lastTs: sql<Date | null>`MAX(${loteStats.lastTs})`,
@@ -97,17 +99,18 @@ export async function GET(
       .leftJoin(variedad, eq(variedad.id, lote.variedadId))
       .leftJoin(producto, eq(producto.id, variedad.productoId))
       .where(inArray(lote.id, loteIds))
-      .groupBy(lote.id, lote.createdAt, variedad.nombre, producto.nombre)
+      .groupBy(lote.id, lote.codigoLote, lote.createdAt, variedad.nombre, producto.nombre)
       .orderBy(desc(lote.createdAt))
       .limit(10);
   }
 
   // 4. Get active loteSession for this servicio's lotes
-  let activeLote: { id: string } | null = null;
+  let activeLote: { id: string; codigoLote: string | null } | null = null;
   if (loteIds.length > 0) {
     const activeSessions = await db
-      .select({ loteId: loteSession.loteId })
+      .select({ loteId: loteSession.loteId, codigoLote: lote.codigoLote })
       .from(loteSession)
+      .innerJoin(lote, eq(lote.id, loteSession.loteId))
       .where(
         and(
           inArray(loteSession.loteId, loteIds),
@@ -117,7 +120,10 @@ export async function GET(
       .limit(1);
 
     if (activeSessions.length > 0) {
-      activeLote = { id: activeSessions[0].loteId };
+      activeLote = {
+        id: activeSessions[0].loteId,
+        codigoLote: activeSessions[0].codigoLote,
+      };
     }
   }
 
@@ -166,6 +172,7 @@ export async function GET(
     })),
     recentLotes: loteRows.map((l) => ({
       id: l.id,
+      codigoLote: l.codigoLote,
       totalCount: l.totalCount,
       lastTs: l.lastTs ? new Date(l.lastTs).toISOString() : null,
       variedadNombre: l.variedadNombre ?? null,

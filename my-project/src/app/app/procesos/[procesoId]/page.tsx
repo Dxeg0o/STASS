@@ -54,6 +54,7 @@ interface ProcesoBasic {
 
 interface LoteInfo {
   loteId: string;
+  codigoLote: string | null;
   variedadNombre: string | null;
   productoNombre: string | null;
   asignadoAt: string;
@@ -140,6 +141,10 @@ function formatTimestamp(iso: string | null): string {
   });
 }
 
+function displayLote(lote: Pick<LoteInfo, "codigoLote">): string {
+  return lote.codigoLote?.trim() || "Sin código";
+}
+
 // ---------- Lote Row Component ----------
 
 function LoteRow({ lote }: { lote: LoteInfo }) {
@@ -157,7 +162,7 @@ function LoteRow({ lote }: { lote: LoteInfo }) {
         )}
         <div className="min-w-0">
           <p className="text-sm font-mono text-slate-200 group-hover:text-cyan-400 transition-colors">
-            {lote.loteId.slice(-8)}
+            {displayLote(lote)}
           </p>
           {lote.variedadNombre && (
             <p className="text-xs text-slate-500 truncate">

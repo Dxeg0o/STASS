@@ -21,6 +21,7 @@ import {
 
 interface ActiveLote {
   id: string;
+  codigoLote: string | null;
 }
 
 interface ServicioSummary {
@@ -100,6 +101,10 @@ function formatTimestamp(isoString: string | null): string {
   });
 }
 
+function displayLote(lote: { codigoLote?: string | null }): string {
+  return lote.codigoLote?.trim() || "Sin código";
+}
+
 // ---------- Service Card ----------
 
 function ServicioCard({ servicio }: { servicio: ServicioSummary }) {
@@ -154,7 +159,7 @@ function ServicioCard({ servicio }: { servicio: ServicioSummary }) {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
               <span className="text-xs text-emerald-400 truncate font-medium">
-                Lote {servicio.activeLote.id.slice(-8)}
+                Lote {displayLote(servicio.activeLote)}
               </span>
             </div>
           ) : (

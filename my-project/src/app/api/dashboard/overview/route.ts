@@ -99,9 +99,12 @@ export async function GET(request: Request) {
   // 4. Get active sessions
   let activeSessions: {
     loteId: string;
+    codigoLote: string | null;
     servicioNombre: string;
     dispositivoNombre: string;
     startTime: string;
+    variedadNombre: string | null;
+    productoNombre: string | null;
   }[] = [];
 
   if (servicioIds.length > 0) {
@@ -139,6 +142,7 @@ export async function GET(request: Request) {
         ? await db
             .select({
               id: lote.id,
+              codigoLote: lote.codigoLote,
               variedadNombre: variedad.nombre,
               productoNombre: producto.nombre,
             })
@@ -154,6 +158,7 @@ export async function GET(request: Request) {
       const info = loteInfoMap.get(r.loteId);
       return {
         loteId: r.loteId,
+        codigoLote: info?.codigoLote ?? null,
         servicioNombre: servicioNameMap.get(sId) ?? "",
         dispositivoNombre: r.dispositivoNombre,
         startTime: new Date(r.startTime).toISOString(),
@@ -166,6 +171,7 @@ export async function GET(request: Request) {
   // 5. Get recent lotes
   let recentLotes: {
     loteId: string;
+    codigoLote: string | null;
     servicioId: string;
     servicioNombre: string;
     totalCount: number;
@@ -176,6 +182,7 @@ export async function GET(request: Request) {
     const recentRows = await db
       .select({
         loteId: loteServicio.loteId,
+        codigoLote: lote.codigoLote,
         servicioId: loteServicio.servicioId,
         servicioNombre: servicio.nombre,
         totalCount: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
@@ -195,6 +202,7 @@ export async function GET(request: Request) {
       .where(inArray(loteServicio.servicioId, servicioIds))
       .groupBy(
         loteServicio.loteId,
+        lote.codigoLote,
         loteServicio.servicioId,
         servicio.nombre,
         lote.createdAt
@@ -204,6 +212,7 @@ export async function GET(request: Request) {
 
     recentLotes = recentRows.map((r) => ({
       loteId: r.loteId,
+      codigoLote: r.codigoLote,
       servicioId: r.servicioId,
       servicioNombre: r.servicioNombre,
       totalCount: r.totalCount,

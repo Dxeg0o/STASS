@@ -53,13 +53,14 @@ export async function GET(request: Request) {
   if (!session) return NextResponse.json(null, { status: 200 });
 
   const [loteData] = await db
-    .select({ id: lote.id, createdAt: lote.createdAt })
+    .select({ id: lote.id, codigoLote: lote.codigoLote, createdAt: lote.createdAt })
     .from(lote)
     .where(eq(lote.id, session.loteId));
 
   return NextResponse.json(
     {
       id: loteData.id,
+      codigoLote: loteData.codigoLote,
       fechaCreacion: loteData.createdAt,
     },
     { status: 200 }

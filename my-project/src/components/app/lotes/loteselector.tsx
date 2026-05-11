@@ -22,7 +22,7 @@ export interface Lote {
 }
 
 function displayLote(lote: Lote) {
-  return lote.codigoLote ?? lote.id.slice(-8);
+  return lote.codigoLote?.trim() || "Sin código";
 }
 
 interface LoteSelectorProps {
@@ -47,10 +47,7 @@ export function LoteSelector({
 
   const filtered = lotes.filter((l) => {
     const term = search.toLowerCase();
-    return (
-      (l.codigoLote ?? "").toLowerCase().includes(term) ||
-      l.id.toLowerCase().includes(term)
-    );
+    return (l.codigoLote ?? "").toLowerCase().includes(term);
   });
 
   if (loading) {
@@ -109,7 +106,7 @@ export function LoteSelector({
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
               <Input
-                placeholder="Buscar por código o ID..."
+                placeholder="Buscar por código de lote..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-8"
@@ -160,11 +157,6 @@ export function LoteSelector({
                         )}
                         {lote.productoNombre && (
                           <div className="text-xs text-gray-500">{lote.productoNombre}</div>
-                        )}
-                        {lote.codigoLote && (
-                          <div className="text-xs text-gray-400 font-normal">
-                            ID: {lote.id.slice(-8)}
-                          </div>
                         )}
                         {lote.fechaCreacion && (
                           <div className="text-xs text-gray-500">

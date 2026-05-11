@@ -44,6 +44,10 @@ interface Producto {
   variedades: Variedad[];
 }
 
+function displayLote(lote: Pick<Lote, "codigoLote">): string {
+  return lote.codigoLote?.trim() || "Sin código";
+}
+
 export default function LotesPage() {
   const params = useParams();
   const servicioId = params.servicioId as string;
@@ -95,9 +99,7 @@ export default function LotesPage() {
     const term = search.toLowerCase().trim();
     if (!term) return lotes;
     return lotes.filter(
-      (l) =>
-        (l.codigoLote ?? "").toLowerCase().includes(term) ||
-        l.id.toLowerCase().includes(term)
+      (l) => (l.codigoLote ?? "").toLowerCase().includes(term)
     );
   }, [lotes, search]);
 
@@ -113,6 +115,7 @@ export default function LotesPage() {
   };
 
   const handleCreateLote = async () => {
+    if (!codigoLoteInput.trim()) return;
     setCreating(true);
     try {
       const res = await fetch("/api/lotes", {
@@ -203,7 +206,7 @@ export default function LotesPage() {
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <span className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse" />
-                <span className="font-semibold text-white font-mono">{activeLote.codigoLote ?? activeLote.id.slice(-8)}</span>
+                <span className="font-semibold text-white font-mono">{displayLote(activeLote)}</span>
                 {activeLote.variedadNombre && (
                   <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40 text-xs">
                     {activeLote.variedadNombre}
@@ -277,7 +280,7 @@ export default function LotesPage() {
                             <span className="h-2 w-2 rounded-full bg-green-400" />
                           )}
                           <span className="font-medium text-white text-sm group-hover:text-cyan-300 transition-colors truncate">
-                            {lote.codigoLote ?? lote.id.slice(-8)}
+                            {displayLote(lote)}
                           </span>
                           {lote.variedadTipo && (
                             <Badge className="bg-violet-500/20 text-violet-300 border-violet-500/40 text-xs shrink-0">
@@ -335,7 +338,7 @@ export default function LotesPage() {
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
-            <p className="text-sm text-slate-400">El lote se identificará con el código que ingreses o con su UUID si lo dejas vacío.</p>
+            <p className="text-sm text-slate-400">El lote se identificará en pantalla con el código que ingreses.</p>
 
             <div className="space-y-1.5">
               <label className="text-sm text-slate-400">Código de lote <span className="text-slate-600">(ej. 320.22C.S)</span></label>
@@ -404,7 +407,7 @@ export default function LotesPage() {
                 Cancelar
               </Button>
               <Button
-                disabled={creating}
+                disabled={creating || !codigoLoteInput.trim()}
                 onClick={handleCreateLote}
                 className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold"
               >

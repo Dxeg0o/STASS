@@ -87,6 +87,10 @@ function getRelativeTime(isoString: string): string {
   return `${seconds}s`;
 }
 
+function displayLote(detail: Pick<LoteDetail, "codigoLote"> | null): string {
+  return detail?.codigoLote?.trim() || "Sin código";
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function LoteGlobalDetailPage() {
@@ -222,7 +226,7 @@ export default function LoteGlobalDetailPage() {
     () => [
       {
         key: loteId,
-        label: detail?.codigoLote ?? `Lote ${loteId.slice(-8)}`,
+        label: detail?.codigoLote?.trim() || "Sin código",
         color: SERIES_COLORS[0],
       },
     ],
@@ -240,7 +244,7 @@ export default function LoteGlobalDetailPage() {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, "Datos");
-    XLSX.writeFile(wb, `lote-${detail?.codigoLote ?? loteId.slice(-8)}-datos.xlsx`);
+    XLSX.writeFile(wb, `lote-${detail?.codigoLote?.trim() || "sin_codigo"}-datos.xlsx`);
   };
 
   // ── Loading / Error states ──────────────────────────────────────────────────
@@ -280,7 +284,7 @@ export default function LoteGlobalDetailPage() {
         <div className="space-y-2">
           <div className="flex items-center flex-wrap gap-3">
             <h1 className="text-2xl font-bold text-white font-mono">
-              {detail.codigoLote ?? loteId.slice(-8)}
+              {displayLote(detail)}
             </h1>
             {detail.productoNombre && (
               <Badge className="bg-slate-700/60 text-slate-300 border-slate-600/40">
