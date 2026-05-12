@@ -62,6 +62,28 @@ interface ConteoRecord {
   [key: string]: unknown;
 }
 
+interface ExportCalibreRange {
+  bucket: number;
+  label: string;
+}
+
+interface ExportLoteRow {
+  loteId: string;
+  codigoLote: string | null;
+  producto: string | null;
+  variedad: string | null;
+  fechaInicio: string | null;
+  fechaTermino: string | null;
+  conteoTotal: number;
+  desviacionEstandar: number | null;
+  distribucion: Record<string, number>;
+}
+
+interface ExportResponse {
+  rows: ExportLoteRow[];
+  calibreRanges: ExportCalibreRange[];
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const TIPO_LABELS: Record<string, string> = {
@@ -181,33 +203,55 @@ export default function ServicioDetailPage() {
 
   const downloadExcel = async () => {
     try {
-      const res = await fetch(`/api/lotes/summary/all?servicioId=${servicioId}`);
+      const res = await fetch(`/api/servicios/${servicioId}/lotes/export`);
       if (!res.ok) throw new Error("Error al obtener resumen");
-      const arr: {
-        id: string;
-        codigoLote: string | null;
-        conteo: number;
-        firstTimestamp: string | null;
-        lastTimestamp: string | null;
-      }[] = await res.json();
-      const sheetData = arr.map((l) => ({
+
+      const payload: ExportResponse = await res.json();
+      const fixedHeaders = [
+        "Lote",
+        "Producto",
+        "Variedad",
+        "Fecha inicio",
+        "Fecha término",
+        "Desviación estándar",
+        "Conteo total",
+      ];
+      const calibreHeaders = payload.calibreRanges.map((range) => range.label);
+      const headers = [...fixedHeaders, ...calibreHeaders];
+
+      const sheetData = payload.rows.map((l) => ({
         Lote: displayLote(l),
-        Conteo: l.conteo,
-        "Primer conteo": l.firstTimestamp
-          ? format(new Date(l.firstTimestamp), "yyyy-MM-dd HH:mm")
+        Producto: l.producto ?? "",
+        Variedad: l.variedad ?? "",
+        "Fecha inicio": l.fechaInicio
+          ? format(new Date(l.fechaInicio), "yyyy-MM-dd HH:mm")
           : "",
-        "Último conteo": l.lastTimestamp
-          ? format(new Date(l.lastTimestamp), "yyyy-MM-dd HH:mm")
+        "Fecha término": l.fechaTermino
+          ? format(new Date(l.fechaTermino), "yyyy-MM-dd HH:mm")
           : "",
+        "Desviación estándar":
+          l.desviacionEstandar === null
+            ? ""
+            : Number(l.desviacionEstandar.toFixed(3)),
+        "Conteo total": l.conteoTotal,
+        ...Object.fromEntries(
+          payload.calibreRanges.map((range) => [
+            range.label,
+            l.distribucion[range.bucket.toString()] ?? 0,
+          ])
+        ),
       }));
-      const ws = XLSX.utils.json_to_sheet(sheetData, {
-        header: ["Lote", "Conteo", "Primer conteo", "Último conteo"],
+      const ws = XLSX.utils.aoa_to_sheet([headers]);
+      XLSX.utils.sheet_add_json(ws, sheetData, {
+        header: headers,
+        skipHeader: true,
+        origin: "A2",
       });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Resumen");
       XLSX.writeFile(
         wb,
-        `resumen_lotes_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`
+        `lotes_servicio_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`
       );
     } catch (err) {
       console.error(err);
