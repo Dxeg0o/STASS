@@ -344,8 +344,9 @@ export async function POST(request: Request) {
     }
   }
 
-  // 5. Bulk INSERT — chunked para no superar el límite de 65 535 parámetros
-  //    de PostgreSQL (7 columnas × 10 000 filas excedería el límite).
+  // 5. Bulk INSERT — chunked para no superar el límite de 32 767 parámetros
+  //    del driver postgres-js (la cuenta de parámetros se serializa como Int16
+  //    en el mensaje Bind del protocolo de Postgres, no los 65 535 del server).
   //    El trigger STATEMENT-level (migración 0009) es aditivo, así que
   //    dispararlo una vez por chunk produce los mismos totales que una sola
   //    sentencia. La transacción mantiene la semántica all-or-nothing.
@@ -361,7 +362,8 @@ export async function POST(request: Request) {
     direction: medicion.direction,
   }));
 
-  const CONTEO_INSERT_CHUNK_SIZE = 5000;
+  // 7 columnas × 4000 = 28 000 parámetros (margen bajo el límite de 32 767).
+  const CONTEO_INSERT_CHUNK_SIZE = 4000;
   await db.transaction(async (tx) => {
     for (let i = 0; i < rows.length; i += CONTEO_INSERT_CHUNK_SIZE) {
       await tx
