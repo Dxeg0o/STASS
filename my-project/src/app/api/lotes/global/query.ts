@@ -2,7 +2,7 @@ import { db } from "@/db";
 import {
   lote,
   loteServicio,
-  loteStats,
+  loteTotalStats,
   loteSession,
   servicio,
   variedad,
@@ -495,14 +495,14 @@ export async function getGlobalLotesPayload(
       .where(inArray(lote.id, uniqueLoteIds)),
     db
       .select({
-        loteId: loteStats.loteId,
-        totalBulbs: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
-        firstTs: sql<Date | null>`MIN(${loteStats.firstTs})`,
-        lastTs: sql<Date | null>`MAX(${loteStats.lastTs})`,
+        loteId: loteTotalStats.loteId,
+        totalBulbs: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
+        firstTs: sql<Date | null>`MIN(${loteTotalStats.firstTs})`,
+        lastTs: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
       })
-      .from(loteStats)
-      .where(inArray(loteStats.loteId, uniqueLoteIds))
-      .groupBy(loteStats.loteId),
+      .from(loteTotalStats)
+      .where(inArray(loteTotalStats.loteId, uniqueLoteIds))
+      .groupBy(loteTotalStats.loteId),
     db
       .select({ loteId: loteSession.loteId })
       .from(loteSession)

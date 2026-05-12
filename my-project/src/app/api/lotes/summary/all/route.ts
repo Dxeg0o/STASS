@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { lote, loteStats, loteServicio, servicio } from "@/db/schema";
+import { lote, loteTotalStats, loteServicio, servicio } from "@/db/schema";
 import { and, eq, inArray, desc, sql } from "drizzle-orm";
 
 export async function GET(request: Request) {
@@ -42,17 +42,20 @@ export async function GET(request: Request) {
     .select({
       id: lote.id,
       codigoLote: lote.codigoLote,
-      conteo: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
-      firstTimestamp: sql<Date | null>`MIN(${loteStats.firstTs})`,
-      lastTimestamp: sql<Date | null>`MAX(${loteStats.lastTs})`,
+      conteo: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
+      firstTimestamp: sql<Date | null>`MIN(${loteTotalStats.firstTs})`,
+      lastTimestamp: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
       createdAt: lote.createdAt,
     })
     .from(lote)
     .leftJoin(
-      loteStats,
+      loteTotalStats,
       servicioId
-        ? and(eq(loteStats.loteId, lote.id), eq(loteStats.servicioId, servicioId))
-        : eq(loteStats.loteId, lote.id)
+        ? and(
+            eq(loteTotalStats.loteId, lote.id),
+            eq(loteTotalStats.servicioId, servicioId)
+          )
+        : eq(loteTotalStats.loteId, lote.id)
     )
     .where(inArray(lote.id, uniqueLoteIds))
     .groupBy(lote.id, lote.codigoLote, lote.createdAt)

@@ -4,7 +4,7 @@ import {
   lote,
   loteServicio,
   loteSession,
-  loteStats,
+  loteTotalStats,
   servicio,
   variedad,
   producto,
@@ -79,40 +79,40 @@ export async function GET(
   // 4. Aggregated stats per service
   const statsPerService = await db
     .select({
-      servicioId: loteStats.servicioId,
-      totalIn: sql<number>`SUM(${loteStats.countIn})::int`,
-      totalOut: sql<number>`SUM(${loteStats.countOut})::int`,
-      firstTs: sql<string | null>`MIN(${loteStats.firstTs})`,
-      lastTs: sql<string | null>`MAX(${loteStats.lastTs})`,
+      servicioId: loteTotalStats.servicioId,
+      totalIn: sql<number>`SUM(${loteTotalStats.countIn})::int`,
+      totalOut: sql<number>`SUM(${loteTotalStats.countOut})::int`,
+      firstTs: sql<string | null>`MIN(${loteTotalStats.firstTs})`,
+      lastTs: sql<string | null>`MAX(${loteTotalStats.lastTs})`,
     })
-    .from(loteStats)
-    .where(eq(loteStats.loteId, loteId))
-    .groupBy(loteStats.servicioId);
+    .from(loteTotalStats)
+    .where(eq(loteTotalStats.loteId, loteId))
+    .groupBy(loteTotalStats.servicioId);
 
   const statsMap = new Map(statsPerService.map((s) => [s.servicioId, s]));
 
   // 5. Total aggregated stats
   const totalStats = await db
     .select({
-      totalIn: sql<number>`COALESCE(SUM(${loteStats.countIn}), 0)::int`,
-      totalOut: sql<number>`COALESCE(SUM(${loteStats.countOut}), 0)::int`,
+      totalIn: sql<number>`COALESCE(SUM(${loteTotalStats.countIn}), 0)::int`,
+      totalOut: sql<number>`COALESCE(SUM(${loteTotalStats.countOut}), 0)::int`,
     })
-    .from(loteStats)
-    .where(eq(loteStats.loteId, loteId));
+    .from(loteTotalStats)
+    .where(eq(loteTotalStats.loteId, loteId));
 
   // 6. Device breakdown
   const deviceStats = await db
     .select({
-      dispositivoId: loteStats.dispositivoId,
+      dispositivoId: loteTotalStats.dispositivoId,
       dispositivoNombre: dispositivo.nombre,
-      totalIn: sql<number>`SUM(${loteStats.countIn})::int`,
-      totalOut: sql<number>`SUM(${loteStats.countOut})::int`,
-      lastTs: sql<string | null>`MAX(${loteStats.lastTs})`,
+      totalIn: sql<number>`SUM(${loteTotalStats.countIn})::int`,
+      totalOut: sql<number>`SUM(${loteTotalStats.countOut})::int`,
+      lastTs: sql<string | null>`MAX(${loteTotalStats.lastTs})`,
     })
-    .from(loteStats)
-    .innerJoin(dispositivo, eq(dispositivo.id, loteStats.dispositivoId))
-    .where(eq(loteStats.loteId, loteId))
-    .groupBy(loteStats.dispositivoId, dispositivo.nombre);
+    .from(loteTotalStats)
+    .innerJoin(dispositivo, eq(dispositivo.id, loteTotalStats.dispositivoId))
+    .where(eq(loteTotalStats.loteId, loteId))
+    .groupBy(loteTotalStats.dispositivoId, dispositivo.nombre);
 
   // 7. Check if any service uses cajas
   const servicioIds = lifecycle.map((l) => l.servicioId);

@@ -3,7 +3,7 @@ import { db } from "@/db";
 import {
   servicio,
   lote,
-  loteStats,
+  loteTotalStats,
   loteSession,
   loteServicio,
   dispositivoServicio,
@@ -58,15 +58,15 @@ export async function GET(request: Request) {
     .select({
       servicioId: loteServicio.servicioId,
       loteCount: sql<number>`COUNT(DISTINCT ${loteServicio.loteId})::int`,
-      totalCount: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
-      lastActivity: sql<Date | null>`MAX(${loteStats.lastTs})`,
+      totalCount: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
+      lastActivity: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
     })
     .from(loteServicio)
     .leftJoin(
-      loteStats,
+      loteTotalStats,
       and(
-        eq(loteStats.loteId, loteServicio.loteId),
-        eq(loteStats.servicioId, loteServicio.servicioId)
+        eq(loteTotalStats.loteId, loteServicio.loteId),
+        eq(loteTotalStats.servicioId, loteServicio.servicioId)
       )
     )
     .where(inArray(loteServicio.servicioId, servicioIds))

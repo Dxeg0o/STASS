@@ -517,6 +517,29 @@ export const cajaStatsRelations = relations(cajaStats, ({ one }) => ({
   }),
 }));
 
+// ─── Caja Total Stats (resumen por caja/dispositivo, incluye sin calibre) ────
+
+export const cajaTotalStats = pgTable(
+  "caja_total_stats",
+  {
+    cajaLoteSessionId: uuid("caja_lote_session_id")
+      .notNull()
+      .references(() => cajaLoteSession.id, { onDelete: "cascade" }),
+    dispositivoId: uuid("dispositivo_id")
+      .notNull()
+      .references(() => dispositivo.id),
+    countIn: integer("count_in").notNull().default(0),
+    countOut: integer("count_out").notNull().default(0),
+    firstTs: timestamp("first_ts", { withTimezone: true }),
+    lastTs: timestamp("last_ts", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({
+      columns: [t.cajaLoteSessionId, t.dispositivoId],
+    }),
+  ]
+);
+
 // ─── Lote Stats (resumen pre-calculado por lote/servicio/dispositivo/calibre) ──
 
 export const loteStats = pgTable(
@@ -541,6 +564,32 @@ export const loteStats = pgTable(
     uniqueIndex("lote_stats_unique_key").on(
       t.loteId, t.servicioId, t.dispositivoId, t.calibre
     ),
+  ]
+);
+
+// ─── Lote Total Stats (resumen por lote/servicio/dispositivo, incluye sin calibre) ──
+
+export const loteTotalStats = pgTable(
+  "lote_total_stats",
+  {
+    loteId: uuid("lote_id")
+      .notNull()
+      .references(() => lote.id, { onDelete: "cascade" }),
+    servicioId: uuid("servicio_id")
+      .notNull()
+      .references(() => servicio.id),
+    dispositivoId: uuid("dispositivo_id")
+      .notNull()
+      .references(() => dispositivo.id),
+    countIn: integer("count_in").notNull().default(0),
+    countOut: integer("count_out").notNull().default(0),
+    firstTs: timestamp("first_ts", { withTimezone: true }),
+    lastTs: timestamp("last_ts", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({
+      columns: [t.loteId, t.servicioId, t.dispositivoId],
+    }),
   ]
 );
 

@@ -3,7 +3,7 @@ import { db } from "@/db";
 import {
   servicio,
   lote,
-  loteStats,
+  loteTotalStats,
   loteSession,
   loteServicio,
   dispositivo,
@@ -86,15 +86,18 @@ export async function GET(
         id: lote.id,
         codigoLote: lote.codigoLote,
         createdAt: lote.createdAt,
-        totalCount: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
-        lastTs: sql<Date | null>`MAX(${loteStats.lastTs})`,
+        totalCount: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
+        lastTs: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
         variedadNombre: variedad.nombre,
         productoNombre: producto.nombre,
       })
       .from(lote)
       .leftJoin(
-        loteStats,
-        and(eq(loteStats.loteId, lote.id), eq(loteStats.servicioId, servicioId))
+        loteTotalStats,
+        and(
+          eq(loteTotalStats.loteId, lote.id),
+          eq(loteTotalStats.servicioId, servicioId)
+        )
       )
       .leftJoin(variedad, eq(variedad.id, lote.variedadId))
       .leftJoin(producto, eq(producto.id, variedad.productoId))
@@ -133,13 +136,13 @@ export async function GET(
   if (loteIds.length > 0) {
     const [totalRow] = await db
       .select({
-        totalCount: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
+        totalCount: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
       })
-      .from(loteStats)
+      .from(loteTotalStats)
       .where(
         and(
-          inArray(loteStats.loteId, loteIds),
-          eq(loteStats.servicioId, servicioId)
+          inArray(loteTotalStats.loteId, loteIds),
+          eq(loteTotalStats.servicioId, servicioId)
         )
       );
     totalCount = totalRow?.totalCount ?? 0;
