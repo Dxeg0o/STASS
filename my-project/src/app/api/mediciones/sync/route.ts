@@ -30,8 +30,7 @@ type SyncConflictCode =
   | "NO_SERVICE_ASSIGNMENT_IN_BATCH_RANGE"
   | "MEASUREMENT_OUTSIDE_LOTE_SESSION"
   | "MEASUREMENT_OUTSIDE_SERVICE_ASSIGNMENT"
-  | "LOTE_NOT_ASSIGNED_TO_SERVICE"
-  | "SERVICE_REQUIRES_ACTIVE_CAJA";
+  | "LOTE_NOT_ASSIGNED_TO_SERVICE";
 
 type SyncConflictDetails = Record<string, unknown>;
 
@@ -342,30 +341,6 @@ export async function POST(request: Request) {
       if (!cajaByLoteSessionId.has(activeCaja.loteSessionId)) {
         cajaByLoteSessionId.set(activeCaja.loteSessionId, activeCaja.id);
       }
-    }
-
-    const missingActiveCaja = rowsWithContext.find(
-      (row) =>
-        row.assignment?.usaCajas &&
-        !cajaByLoteSessionId.has(row.session!.id)
-    );
-
-    if (missingActiveCaja) {
-      return syncConflict({
-        requestId,
-        code: "SERVICE_REQUIRES_ACTIVE_CAJA",
-        error: "El servicio resuelto requiere caja activa, pero la sesión de lote no tiene una caja abierta",
-        details: {
-          ...batchDetails,
-          matchedSessionCount: sessionAssignments.length,
-          matchedServiceCount: serviceAssignments.length,
-          index: missingActiveCaja.index,
-          ts: missingActiveCaja.medicion.ts.toISOString(),
-          loteSessionId: missingActiveCaja.session!.id,
-          loteId: missingActiveCaja.session!.loteId,
-          servicioId: missingActiveCaja.assignment!.servicioId,
-        },
-      });
     }
   }
 
