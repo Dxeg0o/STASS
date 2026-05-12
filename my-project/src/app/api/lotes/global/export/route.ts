@@ -15,6 +15,10 @@ export async function GET(request: Request) {
     );
   }
 
-  const payload = await getGlobalLotesPayload(query);
-  return NextResponse.json(payload);
+  const payload = await getGlobalLotesPayload(query, { paginate: false });
+  return NextResponse.json({
+    data: payload.data,
+    total: payload.total,
+    summary: payload.summary,
+  });
 }
