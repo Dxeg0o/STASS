@@ -89,7 +89,7 @@ export async function GET(
 
     const count = Number(stat.count) || 0;
     const calibre = Number(stat.calibre);
-    if (count <= 0 || !Number.isFinite(calibre)) continue;
+    if (count <= 0 || stat.calibre == null || !Number.isFinite(calibre)) continue;
 
     const bucket = Math.floor(calibre);
     buckets.add(bucket);

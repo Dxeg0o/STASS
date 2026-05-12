@@ -55,7 +55,7 @@ export async function GET(request: Request) {
   for (const loteId of loteIds) {
     const points = resultByLote[loteId] ?? [];
     for (const point of points) {
-      if (point.perimeter == null || isNaN(point.perimeter)) continue;
+      if (point.perimeter == null || isNaN(point.perimeter) || point.perimeter <= 0) continue;
       const key = Number(point.perimeter.toFixed(1));
       const entry = perimeterMap.get(key) ?? { perimeter: key };
       entry[loteId] = point.count;
