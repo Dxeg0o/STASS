@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Search, X } from "lucide-react";
 
 interface Lote {
   id: string;
@@ -44,6 +45,8 @@ interface Producto {
   variedades: Variedad[];
 }
 
+type StatusFilter = "todos" | "activo" | "inactivo";
+
 function displayLote(lote: Pick<Lote, "codigoLote">): string {
   return lote.codigoLote?.trim() || "Sin código";
 }
@@ -60,6 +63,9 @@ export default function LotesPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [productoFilter, setProductoFilter] = useState("");
+  const [variedadFilter, setVariedadFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -95,13 +101,51 @@ export default function LotesPage() {
       .finally(() => setLoading(false));
   }, [servicioId]);
 
+  const productoOptions = useMemo(() => {
+    return Array.from(
+      new Set(lotes.map((l) => l.productoNombre).filter(Boolean))
+    ) as string[];
+  }, [lotes]);
+
+  const variedadOptions = useMemo(() => {
+    return lotes
+      .filter((lote) => !productoFilter || lote.productoNombre === productoFilter)
+      .filter((lote) => lote.variedadId && lote.variedadNombre)
+      .reduce<Array<{ id: string; nombre: string; tipo?: string | null }>>(
+        (acc, lote) => {
+          if (!lote.variedadId || !lote.variedadNombre) return acc;
+          if (acc.some((item) => item.id === lote.variedadId)) return acc;
+          acc.push({
+            id: lote.variedadId,
+            nombre: lote.variedadNombre,
+            tipo: lote.variedadTipo,
+          });
+          return acc;
+        },
+        []
+      );
+  }, [lotes, productoFilter]);
+
   const filteredLotes = useMemo(() => {
     const term = search.toLowerCase().trim();
-    if (!term) return lotes;
-    return lotes.filter(
-      (l) => (l.codigoLote ?? "").toLowerCase().includes(term)
-    );
-  }, [lotes, search]);
+    return lotes.filter((l) => {
+      const isActive = activeLote?.id === l.id;
+      if (statusFilter === "activo" && !isActive) return false;
+      if (statusFilter === "inactivo" && isActive) return false;
+      if (productoFilter && l.productoNombre !== productoFilter) return false;
+      if (variedadFilter && l.variedadId !== variedadFilter) return false;
+      if (!term) return true;
+      return [
+        l.codigoLote,
+        l.productoNombre,
+        l.variedadNombre,
+        l.variedadTipo,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(term);
+    });
+  }, [activeLote?.id, lotes, productoFilter, search, statusFilter, variedadFilter]);
 
   const variedadesForSelected = useMemo(() => {
     if (!selectedProductoId) return [];
@@ -112,6 +156,19 @@ export default function LotesPage() {
   const handleProductoChange = (productoId: string) => {
     setSelectedProductoId(productoId);
     setSelectedVariedadId("");
+  };
+
+  const hasListFilters =
+    search ||
+    productoFilter ||
+    variedadFilter ||
+    statusFilter !== "todos";
+
+  const clearListFilters = () => {
+    setSearch("");
+    setProductoFilter("");
+    setVariedadFilter("");
+    setStatusFilter("todos");
   };
 
   const handleCreateLote = async () => {
@@ -237,12 +294,101 @@ export default function LotesPage() {
           <CardTitle className="text-base text-white">Lotes del servicio</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Input
-            placeholder="Buscar lote…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm bg-slate-800/60 border-white/10 text-white placeholder:text-slate-500 focus-visible:ring-cyan-500"
-          />
+          <div className="space-y-3 rounded-lg border border-white/10 bg-slate-950/20 p-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <Input
+                  placeholder="Buscar codigo, producto o variedad..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-10 bg-slate-800/60 pl-10 border-white/10 text-white placeholder:text-slate-500 focus-visible:ring-cyan-500"
+                />
+              </div>
+
+              <div className="flex gap-2 overflow-x-auto pb-1 lg:pb-0">
+                {[
+                  { key: "todos", label: "Todos", count: lotes.length },
+                  { key: "activo", label: "Activo", count: activeLote ? 1 : 0 },
+                  {
+                    key: "inactivo",
+                    label: "Inactivos",
+                    count: Math.max(0, lotes.length - (activeLote ? 1 : 0)),
+                  },
+                ].map((item) => {
+                  const active = statusFilter === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setStatusFilter(item.key as StatusFilter)}
+                      className={`shrink-0 rounded-md border px-3 py-2 text-xs font-medium transition-colors ${
+                        active
+                          ? "border-cyan-400/40 bg-cyan-500/10 text-cyan-200"
+                          : "border-white/10 bg-slate-900/40 text-slate-400 hover:border-white/20 hover:text-white"
+                      }`}
+                    >
+                      {item.label}
+                      <span className="ml-2 text-slate-500">{item.count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+              <Select
+                value={productoFilter || "all"}
+                onValueChange={(value) => {
+                  setProductoFilter(value === "all" ? "" : value);
+                  setVariedadFilter("");
+                }}
+              >
+                <SelectTrigger className="border-white/10 bg-slate-800/60 text-white focus:ring-cyan-500">
+                  <SelectValue placeholder="Producto" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-white/10 text-white">
+                  <SelectItem value="all">Todos los productos</SelectItem>
+                  {productoOptions.map((producto) => (
+                    <SelectItem key={producto} value={producto}>
+                      {producto}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={variedadFilter || "all"}
+                onValueChange={(value) =>
+                  setVariedadFilter(value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger className="border-white/10 bg-slate-800/60 text-white focus:ring-cyan-500">
+                  <SelectValue placeholder="Variedad" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-white/10 text-white">
+                  <SelectItem value="all">Todas las variedades</SelectItem>
+                  {variedadOptions.map((variedad) => (
+                    <SelectItem key={variedad.id} value={variedad.id}>
+                      {variedad.tipo ? `${variedad.tipo} · ` : ""}
+                      {variedad.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {hasListFilters && (
+                <Button
+                  variant="ghost"
+                  onClick={clearListFilters}
+                  className="text-slate-400 hover:bg-white/5 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                  Limpiar
+                </Button>
+              )}
+            </div>
+          </div>
 
           <ScrollArea className="h-[420px] pr-2">
             {loading ? (
