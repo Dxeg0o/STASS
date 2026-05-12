@@ -344,22 +344,31 @@ export async function POST(request: Request) {
     }
   }
 
-  // 5. Bulk INSERT — un solo statement para N filas.
-  //    El trigger STATEMENT-level (migración 0009) dispara UNA vez
-  //    y agrega todo el batch a lote_stats; caja_stats solo si hay caja activa.
-  await db.insert(conteo).values(
-    rowsWithContext.map(({ medicion, session, assignment }) => ({
-      ts: medicion.ts,
-      loteId: session!.loteId,
-      servicioId: assignment!.servicioId,
-      dispositivoId: device.id,
-      cajaLoteSessionId: assignment!.usaCajas
-        ? cajaByLoteSessionId.get(session!.id) ?? null
-        : null,
-      perimeter: medicion.perimeter,
-      direction: medicion.direction,
-    }))
-  );
+  // 5. Bulk INSERT — chunked para no superar el límite de 65 535 parámetros
+  //    de PostgreSQL (7 columnas × 10 000 filas excedería el límite).
+  //    El trigger STATEMENT-level (migración 0009) es aditivo, así que
+  //    dispararlo una vez por chunk produce los mismos totales que una sola
+  //    sentencia. La transacción mantiene la semántica all-or-nothing.
+  const rows = rowsWithContext.map(({ medicion, session, assignment }) => ({
+    ts: medicion.ts,
+    loteId: session!.loteId,
+    servicioId: assignment!.servicioId,
+    dispositivoId: device.id,
+    cajaLoteSessionId: assignment!.usaCajas
+      ? cajaByLoteSessionId.get(session!.id) ?? null
+      : null,
+    perimeter: medicion.perimeter,
+    direction: medicion.direction,
+  }));
+
+  const CONTEO_INSERT_CHUNK_SIZE = 5000;
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < rows.length; i += CONTEO_INSERT_CHUNK_SIZE) {
+      await tx
+        .insert(conteo)
+        .values(rows.slice(i, i + CONTEO_INSERT_CHUNK_SIZE));
+    }
+  });
 
   return NextResponse.json({ accepted: mediciones.length }, { status: 200 });
 }
