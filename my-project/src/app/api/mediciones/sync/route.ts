@@ -25,6 +25,15 @@ interface ValidMedicion {
   direction: 0 | 1;
 }
 
+type SyncConflictCode =
+  | "NO_LOTE_SESSION_IN_BATCH_RANGE"
+  | "NO_SERVICE_ASSIGNMENT_IN_BATCH_RANGE"
+  | "MEASUREMENT_OUTSIDE_LOTE_SESSION"
+  | "MEASUREMENT_OUTSIDE_SERVICE_ASSIGNMENT"
+  | "LOTE_NOT_ASSIGNED_TO_SERVICE";
+
+type SyncConflictDetails = Record<string, unknown>;
+
 // ── Validación ────────────────────────────────────────────────────────────────
 
 const MAX_BATCH_SIZE = 10_000;
@@ -63,9 +72,35 @@ function validateMediciones(
   return { data: validated };
 }
 
+// ── Diagnóstico ───────────────────────────────────────────────────────────────
+
+function getRequestId(request: Request) {
+  return request.headers.get("x-vercel-id") ?? crypto.randomUUID();
+}
+
+function syncConflict(input: {
+  requestId: string;
+  code: SyncConflictCode;
+  error: string;
+  details: SyncConflictDetails;
+}) {
+  const payload = {
+    error: input.error,
+    code: input.code,
+    requestId: input.requestId,
+    details: input.details,
+  };
+
+  console.warn("[mediciones.sync.conflict]", JSON.stringify(payload));
+
+  return NextResponse.json(payload, { status: 409 });
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
+  const requestId = getRequestId(request);
+
   // 1. Autenticación del dispositivo por API key
   const device = await verifyDeviceKey(request);
   if (!device) {
@@ -94,6 +129,13 @@ export async function POST(request: Request) {
     (max, medicion) => (medicion.ts > max ? medicion.ts : max),
     mediciones[0].ts
   );
+  const batchDetails = {
+    deviceId: device.id,
+    deviceName: device.nombre,
+    batchSize: mediciones.length,
+    minTs: minTs.toISOString(),
+    maxTs: maxTs.toISOString(),
+  };
 
   // 3. Resolver sesiones del dispositivo que cubren el rango temporal del batch.
   //    La cola local puede enviar eventos antiguos; por eso cada medición debe
@@ -116,13 +158,17 @@ export async function POST(request: Request) {
     .orderBy(desc(loteSession.startTime));
 
   if (sessionAssignments.length === 0) {
-    return NextResponse.json(
-      {
-        error:
-          "No hay sesión de lote para este dispositivo en el rango temporal del batch",
+    return syncConflict({
+      requestId,
+      code: "NO_LOTE_SESSION_IN_BATCH_RANGE",
+      error:
+        "No hay sesión de lote para este dispositivo en el rango temporal del batch",
+      details: {
+        ...batchDetails,
+        matchedSessionCount: sessionAssignments.length,
+        matchedServiceCount: null,
       },
-      { status: 409 }
-    );
+    });
   }
 
   // 4. Resolver servicios por intervalo temporal del dispositivo.
@@ -149,10 +195,16 @@ export async function POST(request: Request) {
     .orderBy(desc(dispositivoServicio.fechaInicio));
 
   if (serviceAssignments.length === 0) {
-    return NextResponse.json(
-      { error: "No hay asignación de servicio vigente para este dispositivo" },
-      { status: 409 }
-    );
+    return syncConflict({
+      requestId,
+      code: "NO_SERVICE_ASSIGNMENT_IN_BATCH_RANGE",
+      error: "No hay asignación de servicio vigente para este dispositivo",
+      details: {
+        ...batchDetails,
+        matchedSessionCount: sessionAssignments.length,
+        matchedServiceCount: serviceAssignments.length,
+      },
+    });
   }
 
   const rowsWithContext = mediciones.map((medicion, index) => {
@@ -181,22 +233,34 @@ export async function POST(request: Request) {
 
   const missingSession = rowsWithContext.find((row) => !row.session);
   if (missingSession) {
-    return NextResponse.json(
-      {
-        error: `medicion[${missingSession.index}]: no calza con una sesión temporal del dispositivo`,
+    return syncConflict({
+      requestId,
+      code: "MEASUREMENT_OUTSIDE_LOTE_SESSION",
+      error: `medicion[${missingSession.index}]: no calza con una sesión temporal del dispositivo`,
+      details: {
+        ...batchDetails,
+        matchedSessionCount: sessionAssignments.length,
+        matchedServiceCount: serviceAssignments.length,
+        index: missingSession.index,
+        ts: missingSession.medicion.ts.toISOString(),
       },
-      { status: 409 }
-    );
+    });
   }
 
   const missingAssignment = rowsWithContext.find((row) => !row.assignment);
   if (missingAssignment) {
-    return NextResponse.json(
-      {
-        error: `medicion[${missingAssignment.index}]: no calza con una asignación temporal del dispositivo`,
+    return syncConflict({
+      requestId,
+      code: "MEASUREMENT_OUTSIDE_SERVICE_ASSIGNMENT",
+      error: `medicion[${missingAssignment.index}]: no calza con una asignación temporal del dispositivo`,
+      details: {
+        ...batchDetails,
+        matchedSessionCount: sessionAssignments.length,
+        matchedServiceCount: serviceAssignments.length,
+        index: missingAssignment.index,
+        ts: missingAssignment.medicion.ts.toISOString(),
       },
-      { status: 409 }
-    );
+    });
   }
 
   const resolvedServicioIds = [
@@ -231,14 +295,20 @@ export async function POST(request: Request) {
   );
 
   if (missingLoteServicio) {
-    return NextResponse.json(
-      {
-        error: "El lote activo no está asignado al servicio resuelto para el dispositivo",
+    return syncConflict({
+      requestId,
+      code: "LOTE_NOT_ASSIGNED_TO_SERVICE",
+      error: "El lote activo no está asignado al servicio resuelto para el dispositivo",
+      details: {
+        ...batchDetails,
+        matchedSessionCount: sessionAssignments.length,
+        matchedServiceCount: serviceAssignments.length,
+        index: missingLoteServicio.index,
+        ts: missingLoteServicio.medicion.ts.toISOString(),
         loteId: missingLoteServicio.session!.loteId,
         servicioId: missingLoteServicio.assignment!.servicioId,
       },
-      { status: 409 }
-    );
+    });
   }
 
   const cajaSessionIds = [
