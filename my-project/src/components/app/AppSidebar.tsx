@@ -15,6 +15,7 @@ import {
   Gauge,
   User,
   ChevronUp,
+  ScanLine,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -91,6 +92,7 @@ export function AppSidebar({
       section: "Operaciones",
       items: [
         { href: "/app/procesos", label: "Procesos", icon: ClipboardList, exact: false },
+        { href: "/app/servicios", label: "Servicios", icon: ScanLine, exact: false },
         { href: "/app/lotes", label: "Lotes", icon: Package, exact: false },
       ],
     },
