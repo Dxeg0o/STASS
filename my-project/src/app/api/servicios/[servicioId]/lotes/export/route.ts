@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { lote, loteServicio, loteStats, producto, variedad } from "@/db/schema";
+import {
+  lote,
+  loteServicio,
+  loteStats,
+  loteTotalStats,
+  producto,
+  variedad,
+} from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 interface ExportAccumulator {
@@ -11,6 +18,7 @@ interface ExportAccumulator {
   fechaInicio: Date | null;
   fechaTermino: Date | null;
   conteoTotal: number;
+  calibreConteoTotal: number;
   weightedSum: number;
   weightedSquareSum: number;
   distribution: Map<number, number>;
@@ -56,19 +64,37 @@ export async function GET(
       fechaInicio: null,
       fechaTermino: null,
       conteoTotal: 0,
+      calibreConteoTotal: 0,
       weightedSum: 0,
       weightedSquareSum: 0,
       distribution: new Map(),
     });
   }
 
+  const totalRows = await db
+    .select({
+      loteId: loteTotalStats.loteId,
+      count: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
+      firstTs: sql<Date | null>`MIN(${loteTotalStats.firstTs})`,
+      lastTs: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
+    })
+    .from(loteTotalStats)
+    .where(
+      and(
+        eq(loteTotalStats.servicioId, servicioId),
+        inArray(
+          loteTotalStats.loteId,
+          loteRows.map((row) => row.loteId)
+        )
+      )
+    )
+    .groupBy(loteTotalStats.loteId);
+
   const statsRows = await db
     .select({
       loteId: loteStats.loteId,
       calibre: loteStats.calibre,
       count: sql<number>`(${loteStats.countIn} + ${loteStats.countOut})::int`,
-      firstTs: loteStats.firstTs,
-      lastTs: loteStats.lastTs,
     })
     .from(loteStats)
     .where(
@@ -83,6 +109,20 @@ export async function GET(
 
   const buckets = new Set<number>();
 
+  for (const total of totalRows) {
+    const acc = accumulators.get(total.loteId);
+    if (!acc) continue;
+
+    acc.conteoTotal = Number(total.count) || 0;
+
+    if (total.firstTs && (!acc.fechaInicio || total.firstTs < acc.fechaInicio)) {
+      acc.fechaInicio = total.firstTs;
+    }
+    if (total.lastTs && (!acc.fechaTermino || total.lastTs > acc.fechaTermino)) {
+      acc.fechaTermino = total.lastTs;
+    }
+  }
+
   for (const stat of statsRows) {
     const acc = accumulators.get(stat.loteId);
     if (!acc) continue;
@@ -94,17 +134,10 @@ export async function GET(
     const bucket = Math.floor(calibre);
     buckets.add(bucket);
 
-    acc.conteoTotal += count;
+    acc.calibreConteoTotal += count;
     acc.weightedSum += calibre * count;
     acc.weightedSquareSum += calibre * calibre * count;
     acc.distribution.set(bucket, (acc.distribution.get(bucket) ?? 0) + count);
-
-    if (stat.firstTs && (!acc.fechaInicio || stat.firstTs < acc.fechaInicio)) {
-      acc.fechaInicio = stat.firstTs;
-    }
-    if (stat.lastTs && (!acc.fechaTermino || stat.lastTs > acc.fechaTermino)) {
-      acc.fechaTermino = stat.lastTs;
-    }
   }
 
   const calibreRanges = Array.from(buckets)
@@ -117,11 +150,13 @@ export async function GET(
   const rows = loteRows.map((loteRow) => {
     const acc = accumulators.get(loteRow.loteId)!;
     const mean =
-      acc.conteoTotal > 0 ? acc.weightedSum / acc.conteoTotal : null;
+      acc.calibreConteoTotal > 0
+        ? acc.weightedSum / acc.calibreConteoTotal
+        : null;
     const variance =
       mean === null
         ? null
-        : acc.weightedSquareSum / acc.conteoTotal - mean * mean;
+        : acc.weightedSquareSum / acc.calibreConteoTotal - mean * mean;
     const desviacionEstandar =
       variance === null ? null : Math.sqrt(Math.max(variance, 0));
 

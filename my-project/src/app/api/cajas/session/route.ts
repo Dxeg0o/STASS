@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { caja, cajaLoteSession, cajaStats, loteSession } from "@/db/schema";
+import { caja, cajaLoteSession, cajaTotalStats, loteSession } from "@/db/schema";
 
 async function resolveCajaId(input: {
   cajaId?: unknown;
@@ -58,12 +58,15 @@ export async function GET(request: Request) {
       loteSessionId: cajaLoteSession.loteSessionId,
       asignadoAt: cajaLoteSession.asignadoAt,
       retiradoAt: cajaLoteSession.retiradoAt,
-      totalCount: sql<number>`COALESCE(SUM(${cajaStats.countIn} + ${cajaStats.countOut}), 0)::int`,
-      lastTs: sql<Date | null>`MAX(${cajaStats.lastTs})`,
+      totalCount: sql<number>`COALESCE(SUM(${cajaTotalStats.countIn} + ${cajaTotalStats.countOut}), 0)::int`,
+      lastTs: sql<Date | null>`MAX(${cajaTotalStats.lastTs})`,
     })
     .from(cajaLoteSession)
     .innerJoin(caja, eq(caja.id, cajaLoteSession.cajaId))
-    .leftJoin(cajaStats, eq(cajaStats.cajaLoteSessionId, cajaLoteSession.id))
+    .leftJoin(
+      cajaTotalStats,
+      eq(cajaTotalStats.cajaLoteSessionId, cajaLoteSession.id)
+    )
     .where(and(...conditions))
     .groupBy(
       cajaLoteSession.id,

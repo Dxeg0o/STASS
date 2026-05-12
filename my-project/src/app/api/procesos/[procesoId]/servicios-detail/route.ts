@@ -4,7 +4,7 @@ import {
   servicio,
   loteServicio,
   loteSession,
-  loteStats,
+  loteTotalStats,
   lote,
   variedad,
   producto,
@@ -81,19 +81,19 @@ export async function GET(
     allLoteIds.length > 0
       ? await db
           .select({
-            loteId: loteStats.loteId,
-            servicioId: loteStats.servicioId,
-            totalCount: sql<number>`SUM(${loteStats.countIn} + ${loteStats.countOut})::int`,
-            lastTs: sql<string | null>`MAX(${loteStats.lastTs})`,
+            loteId: loteTotalStats.loteId,
+            servicioId: loteTotalStats.servicioId,
+            totalCount: sql<number>`SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut})::int`,
+            lastTs: sql<string | null>`MAX(${loteTotalStats.lastTs})`,
           })
-          .from(loteStats)
+          .from(loteTotalStats)
           .where(
             and(
-              inArray(loteStats.loteId, allLoteIds),
-              inArray(loteStats.servicioId, servicioIds)
+              inArray(loteTotalStats.loteId, allLoteIds),
+              inArray(loteTotalStats.servicioId, servicioIds)
             )
           )
-          .groupBy(loteStats.loteId, loteStats.servicioId)
+          .groupBy(loteTotalStats.loteId, loteTotalStats.servicioId)
       : [];
 
   const statsMap = new Map<string, { totalCount: number; lastTs: string | null }>();

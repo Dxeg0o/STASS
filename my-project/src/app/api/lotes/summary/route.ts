@@ -1,7 +1,7 @@
 // app/api/lotes/summary/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { loteStats, dispositivo } from "@/db/schema";
+import { loteTotalStats, dispositivo } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 
 export async function GET(request: Request) {
@@ -14,15 +14,15 @@ export async function GET(request: Request) {
   const rows = await db
     .select({
       dispositivoNombre: dispositivo.nombre,
-      servicioId: loteStats.servicioId,
-      countIn: sql<number>`SUM(${loteStats.countIn})::int`,
-      countOut: sql<number>`SUM(${loteStats.countOut})::int`,
-      lastTimestamp: sql<Date>`MAX(${loteStats.lastTs})`,
+      servicioId: loteTotalStats.servicioId,
+      countIn: sql<number>`SUM(${loteTotalStats.countIn})::int`,
+      countOut: sql<number>`SUM(${loteTotalStats.countOut})::int`,
+      lastTimestamp: sql<Date>`MAX(${loteTotalStats.lastTs})`,
     })
-    .from(loteStats)
-    .innerJoin(dispositivo, eq(dispositivo.id, loteStats.dispositivoId))
-    .where(eq(loteStats.loteId, loteId))
-    .groupBy(dispositivo.nombre, loteStats.servicioId);
+    .from(loteTotalStats)
+    .innerJoin(dispositivo, eq(dispositivo.id, loteTotalStats.dispositivoId))
+    .where(eq(loteTotalStats.loteId, loteId))
+    .groupBy(dispositivo.nombre, loteTotalStats.servicioId);
 
   const result = rows.map((r) => ({
     dispositivo: r.dispositivoNombre,

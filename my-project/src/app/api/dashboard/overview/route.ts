@@ -6,7 +6,7 @@ import {
   servicio,
   lote,
   loteSession,
-  loteStats,
+  loteTotalStats,
   loteServicio,
   dispositivo,
   proceso,
@@ -54,16 +54,16 @@ export async function GET(request: Request) {
   }[] = [];
 
   if (servicioIds.length > 0) {
-    // Get stats aggregated by servicio via loteStats.servicioId
+    // Get total stats aggregated by servicio.
     const statsRows = await db
       .select({
-        servicioId: loteStats.servicioId,
-        totalBulbs: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
-        lastTs: sql<Date | null>`MAX(${loteStats.lastTs})`,
+        servicioId: loteTotalStats.servicioId,
+        totalBulbs: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
+        lastTs: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
       })
-      .from(loteStats)
-      .where(inArray(loteStats.servicioId, servicioIds))
-      .groupBy(loteStats.servicioId);
+      .from(loteTotalStats)
+      .where(inArray(loteTotalStats.servicioId, servicioIds))
+      .groupBy(loteTotalStats.servicioId);
 
     const statsMap = new Map(statsRows.map((r) => [r.servicioId, r]));
 
@@ -185,18 +185,18 @@ export async function GET(request: Request) {
         codigoLote: lote.codigoLote,
         servicioId: loteServicio.servicioId,
         servicioNombre: servicio.nombre,
-        totalCount: sql<number>`COALESCE(SUM(${loteStats.countIn} + ${loteStats.countOut}), 0)::int`,
-        lastTs: sql<Date | null>`MAX(${loteStats.lastTs})`,
+        totalCount: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
+        lastTs: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
         createdAt: lote.createdAt,
       })
       .from(loteServicio)
       .innerJoin(lote, eq(lote.id, loteServicio.loteId))
       .innerJoin(servicio, eq(servicio.id, loteServicio.servicioId))
       .leftJoin(
-        loteStats,
+        loteTotalStats,
         and(
-          eq(loteStats.loteId, loteServicio.loteId),
-          eq(loteStats.servicioId, loteServicio.servicioId)
+          eq(loteTotalStats.loteId, loteServicio.loteId),
+          eq(loteTotalStats.servicioId, loteServicio.servicioId)
         )
       )
       .where(inArray(loteServicio.servicioId, servicioIds))
