@@ -51,6 +51,14 @@ interface Proceso {
   temporada: string | null;
 }
 
+interface Servicio {
+  id: string;
+  nombre: string;
+  tipo: string;
+  tipoProcesoNombre: string | null;
+  procesoTemporada: string | null;
+}
+
 // ---------- Helpers ----------
 
 function formatNumber(n: number): string {
@@ -110,6 +118,8 @@ export default function ControlOperacionalPage() {
   const [error, setError] = useState<string | null>(null);
   const [procesos, setProcesos] = useState<Proceso[]>([]);
   const [selectedProceso, setSelectedProceso] = useState<string>("");
+  const [servicios, setServicios] = useState<Servicio[]>([]);
+  const [selectedServicio, setSelectedServicio] = useState<string>("");
 
   // Fetch procesos for filter
   useEffect(() => {
@@ -119,6 +129,18 @@ export default function ControlOperacionalPage() {
       .then((arr: Proceso[]) => setProcesos(arr))
       .catch(console.error);
   }, [data?.empresaId]);
+
+  // Fetch servicios filtered by proceso
+  useEffect(() => {
+    if (!data?.empresaId) return;
+    setSelectedServicio("");
+    const params = new URLSearchParams({ empresaId: data.empresaId });
+    if (selectedProceso) params.set("procesoId", selectedProceso);
+    fetch(`/api/servicios?${params.toString()}`)
+      .then((res) => res.json())
+      .then((arr: Servicio[]) => setServicios(arr))
+      .catch(console.error);
+  }, [data?.empresaId, selectedProceso]);
 
   // Fetch production data
   const fetchProduccion = useCallback(async () => {
@@ -132,7 +154,11 @@ export default function ControlOperacionalPage() {
       desde: desde.toISOString(),
       hasta: hasta.toISOString(),
     });
-    if (selectedProceso) params.set("procesoId", selectedProceso);
+    if (selectedServicio) {
+      params.set("servicioId", selectedServicio);
+    } else if (selectedProceso) {
+      params.set("procesoId", selectedProceso);
+    }
 
     try {
       const res = await fetch(`/api/control/produccion?${params.toString()}`);
@@ -144,7 +170,7 @@ export default function ControlOperacionalPage() {
     } finally {
       setLoading(false);
     }
-  }, [data?.empresaId, range, selectedProceso]);
+  }, [data?.empresaId, range, selectedProceso, selectedServicio]);
 
   useEffect(() => {
     fetchProduccion();
@@ -217,6 +243,22 @@ export default function ControlOperacionalPage() {
               <option key={p.id} value={p.id}>
                 {p.tipoProceso.nombre}
                 {p.temporada ? ` · ${p.temporada}` : ""}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Servicio filter */}
+        {servicios.length > 0 && (
+          <select
+            value={selectedServicio}
+            onChange={(e) => setSelectedServicio(e.target.value)}
+            className="appearance-none pl-3 pr-8 py-1.5 rounded-full text-sm font-medium bg-slate-900/40 text-slate-400 border border-white/10 hover:border-white/20 focus:outline-none focus:border-cyan-500/40 cursor-pointer"
+          >
+            <option value="">Todos los servicios</option>
+            {servicios.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nombre}
               </option>
             ))}
           </select>
@@ -342,6 +384,8 @@ export default function ControlOperacionalPage() {
                         borderRadius: "8px",
                         fontSize: 12,
                       }}
+                      labelStyle={{ color: "#94a3b8" }}
+                      itemStyle={{ color: "#e2e8f0" }}
                       formatter={(value: number) => [
                         formatNumber(value),
                         "Bulbos",
@@ -400,6 +444,8 @@ export default function ControlOperacionalPage() {
                           borderRadius: "8px",
                           fontSize: 12,
                         }}
+                        labelStyle={{ color: "#94a3b8" }}
+                        itemStyle={{ color: "#e2e8f0" }}
                         formatter={(value: number) => [
                           formatNumber(value),
                           "Bulbos",
@@ -465,6 +511,8 @@ export default function ControlOperacionalPage() {
                           borderRadius: "8px",
                           fontSize: 12,
                         }}
+                        labelStyle={{ color: "#94a3b8" }}
+                        itemStyle={{ color: "#e2e8f0" }}
                         formatter={(value: number) => [
                           formatNumber(value),
                           "Bulbos",
