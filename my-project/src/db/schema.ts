@@ -10,7 +10,6 @@ import {
   doublePrecision,
   jsonb,
   primaryKey,
-  uniqueIndex,
   index,
   integer,
 } from "drizzle-orm/pg-core";
@@ -493,16 +492,16 @@ export const cajaStats = pgTable(
     dispositivoId: uuid("dispositivo_id")
       .notNull()
       .references(() => dispositivo.id),
-    calibre: real("calibre"),
+    calibre: real("calibre").notNull(),
     countIn: integer("count_in").notNull().default(0),
     countOut: integer("count_out").notNull().default(0),
     firstTs: timestamp("first_ts", { withTimezone: true }),
     lastTs: timestamp("last_ts", { withTimezone: true }),
   },
   (t) => [
-    uniqueIndex("caja_stats_unique_key").on(
-      t.cajaLoteSessionId, t.dispositivoId, t.calibre
-    ),
+    primaryKey({
+      columns: [t.cajaLoteSessionId, t.dispositivoId, t.calibre],
+    }),
   ]
 );
 
@@ -554,16 +553,16 @@ export const loteStats = pgTable(
     dispositivoId: uuid("dispositivo_id")
       .notNull()
       .references(() => dispositivo.id),
-    calibre: real("calibre"),
+    calibre: real("calibre").notNull(),
     countIn: integer("count_in").notNull().default(0),
     countOut: integer("count_out").notNull().default(0),
     firstTs: timestamp("first_ts", { withTimezone: true }),
     lastTs: timestamp("last_ts", { withTimezone: true }),
   },
   (t) => [
-    uniqueIndex("lote_stats_unique_key").on(
-      t.loteId, t.servicioId, t.dispositivoId, t.calibre
-    ),
+    primaryKey({
+      columns: [t.loteId, t.servicioId, t.dispositivoId, t.calibre],
+    }),
   ]
 );
 
