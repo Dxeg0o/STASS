@@ -60,20 +60,23 @@ export async function GET(request: Request) {
       .groupBy(loteStats.calibre)
       .orderBy(loteStats.calibre);
 
-    const totalCount = distribution.reduce((sum, d) => sum + d.count, 0);
-    const weightedSum = distribution.reduce(
+    const distributionWithCalibre = distribution.filter(
+      (d): d is typeof d & { calibre: number } => d.calibre != null
+    );
+    const totalCount = distributionWithCalibre.reduce((sum, d) => sum + d.count, 0);
+    const weightedSum = distributionWithCalibre.reduce(
       (sum, d) => sum + d.calibre * d.count,
       0
     );
     const mean = totalCount > 0 ? weightedSum / totalCount : 0;
-    const varianceSum = distribution.reduce(
+    const varianceSum = distributionWithCalibre.reduce(
       (sum, d) => sum + d.count * (d.calibre - mean) ** 2,
       0
     );
     const variance = totalCount > 0 ? varianceSum / totalCount : 0;
     const stdDev = Math.sqrt(variance);
 
-    const calibres = distribution.map((d) => d.calibre);
+    const calibres = distributionWithCalibre.map((d) => d.calibre);
 
     result.push({
       loteId,
