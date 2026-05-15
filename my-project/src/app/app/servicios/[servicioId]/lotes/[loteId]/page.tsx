@@ -32,23 +32,18 @@ interface Lote {
 }
 
 interface DeviceSummary {
-  device: string;
+  dispositivo: string;
   countIn: number;
   countOut: number;
   lastTimestamp: string | null;
 }
 
-interface SummaryResponse {
-  devices: DeviceSummary[];
-  totalBulbs: number;
-}
-
 interface Conteo {
   id: string;
-  hora: string;
+  timestamp: string;
   direction: string;
   dispositivo: string;
-  perimetro: number;
+  perimeter: number | null;
 }
 
 interface DistributionResponse {
@@ -103,7 +98,7 @@ export default function LoteDetailPage() {
   const [loteLoading, setLoteLoading] = useState(true);
 
   // Resumen tab
-  const [summary, setSummary] = useState<SummaryResponse | null>(null);
+  const [summary, setSummary] = useState<DeviceSummary[] | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
   // Calibres tab
@@ -157,7 +152,7 @@ export default function LoteDetailPage() {
     fetch(`/api/lotes/summary?loteId=${loteId}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Error al cargar resumen");
-        const data: SummaryResponse = await res.json();
+        const data: DeviceSummary[] = await res.json();
         setSummary(data);
       })
       .catch(console.error)
@@ -185,9 +180,18 @@ export default function LoteDetailPage() {
     fetch(`/api/conteos?loteId=${loteId}&limit=${LIMIT}&skip=${skip}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Error al cargar datos");
-        const data: Conteo[] = await res.json();
-        setConteos(data);
-        setHasMore(data.length === LIMIT);
+        const raw = (await res.json()) as Array<Record<string, unknown>>;
+        const normalized: Conteo[] = raw.map((r, idx) => ({
+          id: String(
+            r.id ?? `${r.timestamp ?? r.ts ?? idx}-${r.dispositivo ?? ""}`
+          ),
+          timestamp: String(r.timestamp ?? r.ts ?? ""),
+          direction: String(r.direction ?? ""),
+          dispositivo: String(r.dispositivo ?? ""),
+          perimeter: typeof r.perimeter === "number" ? r.perimeter : null,
+        }));
+        setConteos(normalized);
+        setHasMore(normalized.length === LIMIT);
       })
       .catch(console.error)
       .finally(() => setConteosLoading(false));
@@ -226,10 +230,10 @@ export default function LoteDetailPage() {
   // ── Excel export ───────────────────────────────────────────────────────────
   const handleExportExcel = () => {
     const rows = conteos.map((c) => ({
-      Hora: new Date(c.hora).toLocaleString("es-CL"),
+      Hora: new Date(c.timestamp).toLocaleString("es-CL"),
       Dirección: c.direction,
       Dispositivo: c.dispositivo,
-      Perimetro: c.perimetro,
+      Perimetro: c.perimeter,
     }));
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -306,9 +310,13 @@ export default function LoteDetailPage() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-white">Resumen de dispositivos</CardTitle>
-                {summary && (
+                {summary && summary.length > 0 && (
                   <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
-                    Total: {summary.totalBulbs.toLocaleString("es-CL")} bulbos
+                    Total:{" "}
+                    {summary
+                      .reduce((acc, d) => acc + (d.countIn ?? 0), 0)
+                      .toLocaleString("es-CL")}{" "}
+                    bulbos
                   </Badge>
                 )}
               </div>
@@ -323,7 +331,7 @@ export default function LoteDetailPage() {
                     />
                   ))}
                 </div>
-              ) : !summary || summary.devices.length === 0 ? (
+              ) : !summary || summary.length === 0 ? (
                 <p className="text-sm text-slate-500">Sin datos de dispositivos.</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -339,9 +347,9 @@ export default function LoteDetailPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {summary.devices.map((d) => (
-                        <tr key={d.device} className="text-white">
-                          <td className="py-2.5 pr-4 font-medium">{d.device}</td>
+                      {summary.map((d) => (
+                        <tr key={d.dispositivo} className="text-white">
+                          <td className="py-2.5 pr-4 font-medium">{d.dispositivo}</td>
                           <td className="py-2.5 pr-4 text-right text-green-400">
                             {d.countIn.toLocaleString("es-CL")}
                           </td>
@@ -470,7 +478,7 @@ export default function LoteDetailPage() {
                       {conteos.map((c) => (
                         <tr key={c.id} className="text-white hover:bg-slate-800/30">
                           <td className="py-2 pr-4 text-xs text-slate-400">
-                            {new Date(c.hora).toLocaleString("es-CL")}
+                            {new Date(c.timestamp).toLocaleString("es-CL")}
                           </td>
                           <td className="py-2 pr-4">
                             <Badge
@@ -487,7 +495,7 @@ export default function LoteDetailPage() {
                             {c.dispositivo}
                           </td>
                           <td className="py-2 text-right font-mono text-cyan-300">
-                            {c.perimetro.toFixed(1)}
+                            {(c.perimeter ?? 0).toFixed(1)}
                           </td>
                         </tr>
                       ))}
