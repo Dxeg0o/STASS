@@ -187,7 +187,6 @@ export async function GET(request: Request) {
         servicioNombre: servicio.nombre,
         totalCount: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
         lastTs: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
-        createdAt: lote.createdAt,
       })
       .from(loteServicio)
       .innerJoin(lote, eq(lote.id, loteServicio.loteId))
@@ -204,10 +203,10 @@ export async function GET(request: Request) {
         loteServicio.loteId,
         lote.codigoLote,
         loteServicio.servicioId,
-        servicio.nombre,
-        lote.createdAt
+        servicio.nombre
       )
-      .orderBy(desc(lote.createdAt))
+      .having(sql`MAX(${loteTotalStats.lastTs}) IS NOT NULL`)
+      .orderBy(desc(sql<Date>`MAX(${loteTotalStats.lastTs})`))
       .limit(5);
 
     recentLotes = recentRows.map((r) => ({
