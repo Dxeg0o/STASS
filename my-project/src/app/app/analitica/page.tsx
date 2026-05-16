@@ -22,19 +22,14 @@ import {
 import {
   TrendingUp,
   BarChart3,
-  ArrowLeftRight,
   X,
-  Package,
-  Activity,
-  Layers,
-  Sparkles,
   Search,
   Plus,
+  Layers,
 } from "lucide-react";
 
 import { LoteCombobox } from "./_components/LoteCombobox";
 import { LoteContextCard } from "./_components/LoteContextCard";
-import { KpiCard } from "./_components/KpiCard";
 import { AnaliticaFilters } from "./_components/AnaliticaFilters";
 import { EmptyState } from "./_components/EmptyState";
 import {
@@ -43,7 +38,6 @@ import {
   formatNumber,
   formatDateShort,
   normalizeText,
-  relativeTimeEs,
   type AnaliticaFiltersState,
   type ComparacionLote,
   type EvolucionStep,
@@ -80,7 +74,6 @@ export default function AnaliticaPage() {
   const { data, loading: authLoading } = useContext(AuthenticationContext);
 
   const [payload, setPayload] = useState<GlobalLotesResponse | null>(null);
-  const [loadingLotes, setLoadingLotes] = useState(true);
   const [filters, setFilters] = useState<AnaliticaFiltersState>(DEFAULT_FILTERS);
 
   // Tab 1: Evolucion
@@ -94,22 +87,13 @@ export default function AnaliticaPage() {
   const [compLoading, setCompLoading] = useState(false);
   const [compMode, setCompMode] = useState<"cantidad" | "porcentaje">("cantidad");
 
-  // Tab 3: Diferencias
-  const [selectedLoteDiff, setSelectedLoteDiff] = useState<string>("");
-  const [diffEvolucion, setDiffEvolucion] = useState<EvolucionStep[]>([]);
-  const [diffStep1, setDiffStep1] = useState(0);
-  const [diffStep2, setDiffStep2] = useState(1);
-  const [diffLoading, setDiffLoading] = useState(false);
-
   // ── Fetch lotes (global with facets) ──────────────────────────────────────
   useEffect(() => {
     if (!data?.empresaId) return;
-    setLoadingLotes(true);
     fetch(`/api/lotes/global?empresaId=${data.empresaId}&all=true`)
       .then((res) => res.json())
       .then((json: GlobalLotesResponse) => setPayload(json))
-      .catch(console.error)
-      .finally(() => setLoadingLotes(false));
+      .catch(console.error);
   }, [data?.empresaId]);
 
   // Filter lote options client-side
@@ -228,52 +212,21 @@ export default function AnaliticaPage() {
     });
   }, [comparacion, compMode]);
 
-  // ── Tab 3: Diferencias fetch ──────────────────────────────────────────────
-  useEffect(() => {
-    if (!selectedLoteDiff) {
-      setDiffEvolucion([]);
-      return;
-    }
-    setDiffLoading(true);
-    fetch(`/api/analitica/lote-evolucion?loteId=${selectedLoteDiff}`)
-      .then((r) => r.json())
-      .then((d: EvolucionStep[]) => {
-        setDiffEvolucion(d);
-        if (d.length >= 2) {
-          setDiffStep1(0);
-          setDiffStep2(d.length - 1);
-        }
-      })
-      .catch(console.error)
-      .finally(() => setDiffLoading(false));
-  }, [selectedLoteDiff]);
-
-  const deltaChartData = useMemo(() => {
-    if (
-      diffEvolucion.length < 2 ||
-      diffStep1 >= diffEvolucion.length ||
-      diffStep2 >= diffEvolucion.length
-    )
-      return [];
-    const step1 = diffEvolucion[diffStep1];
-    const step2 = diffEvolucion[diffStep2];
-
+  // Inter-lote diff (visible cuando hay exactamente 2 lotes en comparación)
+  const diffData = useMemo(() => {
+    if (comparacion.length !== 2) return null;
+    const [a, b] = comparacion;
     const calibreSet = new Set<number>();
-    for (const d of step1.distribution) if (d.calibre != null) calibreSet.add(d.calibre);
-    for (const d of step2.distribution) if (d.calibre != null) calibreSet.add(d.calibre);
-    const calibres = Array.from(calibreSet).sort((a, b) => a - b);
-
-    return calibres.map((cal) => {
-      const count1 = step1.distribution.find((d) => d.calibre === cal)?.count ?? 0;
-      const count2 = step2.distribution.find((d) => d.calibre === cal)?.count ?? 0;
-      return {
-        calibre: cal.toFixed(1),
-        etapaA: count1,
-        etapaB: count2,
-        delta: count2 - count1,
-      };
+    for (const d of a.distribution) if (d.calibre != null) calibreSet.add(d.calibre);
+    for (const d of b.distribution) if (d.calibre != null) calibreSet.add(d.calibre);
+    const calibres = Array.from(calibreSet).sort((x, y) => x - y);
+    const chart = calibres.map((cal) => {
+      const countA = a.distribution.find((d) => d.calibre === cal)?.count ?? 0;
+      const countB = b.distribution.find((d) => d.calibre === cal)?.count ?? 0;
+      return { calibre: cal.toFixed(1), delta: countB - countA };
     });
-  }, [diffEvolucion, diffStep1, diffStep2]);
+    return { a, b, chart };
+  }, [comparacion]);
 
   if (authLoading) {
     return (
@@ -291,101 +244,50 @@ export default function AnaliticaPage() {
   }
 
   const selectedEvoLote = payload?.data.find((l) => l.id === selectedLoteEvo);
-  const selectedDiffLote = payload?.data.find((l) => l.id === selectedLoteDiff);
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">
-            Analítica
-          </h1>
-          <p className="text-slate-400 mt-1 text-sm">
-            Evolución de calibre, comparación de lotes y métricas estadísticas
-          </p>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      {loadingLotes ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-24 rounded-xl bg-slate-900/40 border border-white/5 animate-pulse"
-            />
-          ))}
-        </div>
-      ) : payload ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <KpiCard
-            icon={Activity}
-            label="Lotes activos"
-            value={formatNumber(payload.summary.active)}
-            accent="emerald"
-          />
-          <KpiCard
-            icon={Layers}
-            label="Lotes con datos"
-            value={formatNumber(payload.summary.withData)}
-            hint={`de ${formatNumber(payload.total)} totales`}
-            accent="cyan"
-          />
-          <KpiCard
-            icon={Package}
-            label="Total bulbos"
-            value={formatNumber(payload.summary.totalBulbs)}
-            accent="indigo"
-          />
-          <KpiCard
-            icon={Sparkles}
-            label="Última actividad"
-            value={relativeTimeEs(payload.summary.lastActivity)}
-            hint={formatDateShort(payload.summary.lastActivity)}
-            accent="orange"
-          />
-        </div>
-      ) : null}
-
-      {/* Filters */}
-      {payload && (
-        <AnaliticaFilters
-          state={filters}
-          onChange={setFilters}
-          productos={payload.facets.productos}
-          variedades={payload.facets.variedades}
-          etapas={payload.facets.etapas}
-          resultCount={filteredLotes.length}
-          totalCount={payload.total}
-        />
-      )}
-
-      {/* Tabs */}
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-5">
       <Tabs defaultValue="evolucion" className="space-y-4">
-        <TabsList className="bg-slate-800/60 border border-white/10">
-          <TabsTrigger
-            value="evolucion"
-            className="data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-slate-400 gap-1.5"
-          >
-            <TrendingUp className="w-3.5 h-3.5" />
-            Evolución
-          </TabsTrigger>
-          <TabsTrigger
-            value="comparacion"
-            className="data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-slate-400 gap-1.5"
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            Comparación
-          </TabsTrigger>
-          <TabsTrigger
-            value="diferencias"
-            className="data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-slate-400 gap-1.5"
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5" />
-            Diferencias
-          </TabsTrigger>
-        </TabsList>
+        {/* Header con tabs a la derecha */}
+        <div className="flex items-end justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-white">
+              Analítica
+            </h1>
+            <p className="text-slate-400 mt-1 text-sm">
+              Evolución de calibre y comparación de lotes
+            </p>
+          </div>
+          <TabsList className="bg-slate-900/60 border border-white/10">
+            <TabsTrigger
+              value="evolucion"
+              className="data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-slate-400 gap-1.5"
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              Evolución
+            </TabsTrigger>
+            <TabsTrigger
+              value="comparacion"
+              className="data-[state=active]:bg-cyan-500 data-[state=active]:text-slate-950 text-slate-400 gap-1.5"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              Comparación
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* Filters */}
+        {payload && (
+          <AnaliticaFilters
+            state={filters}
+            onChange={setFilters}
+            productos={payload.facets.productos}
+            variedades={payload.facets.variedades}
+            etapas={payload.facets.etapas}
+            resultCount={filteredLotes.length}
+            totalCount={payload.total}
+          />
+        )}
 
         {/* ── Tab Evolución ────────────────────────────────────────────────── */}
         <TabsContent value="evolucion" className="space-y-4">
@@ -806,130 +708,25 @@ export default function AnaliticaPage() {
                   </div>
                 </CardContent>
               </Card>
-            </>
-          )}
-        </TabsContent>
 
-        {/* ── Tab Diferencias ──────────────────────────────────────────────── */}
-        <TabsContent value="diferencias" className="space-y-4">
-          <LoteCombobox
-            options={filteredLotes}
-            value={selectedLoteDiff}
-            onChange={setSelectedLoteDiff}
-            placeholder="Seleccionar lote para comparar etapas…"
-          />
-
-          {!selectedLoteDiff && (
-            <EmptyState
-              icon={ArrowLeftRight}
-              title="Selecciona un lote"
-              description="Verás la diferencia de calibre entre dos etapas cualesquiera de su trayectoria."
-            />
-          )}
-
-          {diffLoading && (
-            <div className="h-80 rounded-xl bg-slate-900/40 border border-white/5 animate-pulse" />
-          )}
-
-          {!diffLoading && selectedDiffLote && diffEvolucion.length >= 2 && (
-            <>
-              <LoteContextCard lote={selectedDiffLote} />
-
-              <div className="flex flex-wrap gap-4 items-end">
-                <StepSelect
-                  label="Etapa A"
-                  value={diffStep1}
-                  steps={diffEvolucion}
-                  onChange={setDiffStep1}
-                  accent="cyan"
-                />
-                <div className="pb-1.5 text-slate-500 text-sm flex items-center gap-1">
-                  <ArrowLeftRight className="w-3.5 h-3.5" />
-                  vs
-                </div>
-                <StepSelect
-                  label="Etapa B"
-                  value={diffStep2}
-                  steps={diffEvolucion}
-                  onChange={setDiffStep2}
-                  accent="emerald"
-                />
-              </div>
-
-              <Card className="bg-slate-900/40 border-white/10">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-white font-semibold tracking-tight">
-                    Distribución comparada
-                  </CardTitle>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Etapa A en cyan, etapa B en emerald — por calibre.
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart
-                      data={deltaChartData}
-                      margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="calibre" tick={{ fill: "#64748b", fontSize: 10 }} />
-                      <YAxis
-                        tick={{ fill: "#64748b", fontSize: 10 }}
-                        tickFormatter={(v) => v.toLocaleString("es-CL")}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "rgba(15,23,42,0.95)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          borderRadius: "8px",
-                          fontSize: 12,
-                        }}
-                        labelStyle={{ color: "#94a3b8" }}
-                        itemStyle={{ color: "#e2e8f0" }}
-                        labelFormatter={(label) => `Calibre ${label}`}
-                        formatter={(value: number, name: string) => [
-                          formatNumber(value),
-                          name === "etapaA"
-                            ? diffEvolucion[diffStep1]?.tipoProcesoNombre ?? "Etapa A"
-                            : diffEvolucion[diffStep2]?.tipoProcesoNombre ?? "Etapa B",
-                        ]}
-                      />
-                      <Legend wrapperStyle={{ paddingTop: 6, fontSize: 11 }} iconType="circle" />
-                      <Bar
-                        dataKey="etapaA"
-                        name={diffEvolucion[diffStep1]?.tipoProcesoNombre ?? "Etapa A"}
-                        fill="#06b6d4"
-                        radius={[3, 3, 0, 0]}
-                      />
-                      <Bar
-                        dataKey="etapaB"
-                        name={diffEvolucion[diffStep2]?.tipoProcesoNombre ?? "Etapa B"}
-                        fill="#10b981"
-                        radius={[3, 3, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-900/40 border-white/10">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-white font-semibold tracking-tight">
-                    Δ Diferencia (B − A)
-                  </CardTitle>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Verde = ganancia de bulbos en ese calibre. Rojo = pérdida.
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  {deltaChartData.length === 0 ? (
-                    <div className="h-[200px] flex items-center justify-center text-slate-500 text-sm">
-                      Sin datos para comparar
-                    </div>
-                  ) : (
+              {/* Inter-lote diff cuando hay exactamente 2 lotes */}
+              {diffData && (
+                <Card className="bg-slate-900/40 border-white/10">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base text-white font-semibold tracking-tight">
+                      Diferencia por calibre
+                    </CardTitle>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      <span className="font-mono text-slate-300">{displayLoteCode(diffData.b)}</span>
+                      {" − "}
+                      <span className="font-mono text-slate-300">{displayLoteCode(diffData.a)}</span>
+                      {" · Verde = el segundo lote tiene más bulbos en ese calibre."}
+                    </p>
+                  </CardHeader>
+                  <CardContent>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart
-                        data={deltaChartData}
+                        data={diffData.chart}
                         margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -952,7 +749,7 @@ export default function AnaliticaPage() {
                           labelFormatter={(label) => `Calibre ${label}`}
                         />
                         <Bar dataKey="delta" radius={[3, 3, 0, 0]}>
-                          {deltaChartData.map((entry) => (
+                          {diffData.chart.map((entry) => (
                             <Cell
                               key={entry.calibre}
                               fill={entry.delta >= 0 ? "#10b981" : "#ef4444"}
@@ -961,134 +758,14 @@ export default function AnaliticaPage() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-900/40 border-white/10">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-white font-semibold">
-                    Resumen
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-white/10 text-[10px] uppercase tracking-wide text-slate-500">
-                          <th className="text-left py-2 pr-4 font-medium">Métrica</th>
-                          <th className="text-right py-2 pr-4 font-medium">
-                            {diffEvolucion[diffStep1].tipoProcesoNombre ?? "Etapa A"}
-                          </th>
-                          <th className="text-right py-2 pr-4 font-medium">
-                            {diffEvolucion[diffStep2].tipoProcesoNombre ?? "Etapa B"}
-                          </th>
-                          <th className="text-right py-2 font-medium">Δ</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {[
-                          {
-                            label: "Total bulbos",
-                            a: diffEvolucion[diffStep1].stats.totalCount,
-                            b: diffEvolucion[diffStep2].stats.totalCount,
-                            format: formatNumber,
-                          },
-                          {
-                            label: "Media calibre",
-                            a: diffEvolucion[diffStep1].stats.mean,
-                            b: diffEvolucion[diffStep2].stats.mean,
-                            format: (v: number) => v.toFixed(2),
-                          },
-                          {
-                            label: "Desv. estándar",
-                            a: diffEvolucion[diffStep1].stats.stdDev,
-                            b: diffEvolucion[diffStep2].stats.stdDev,
-                            format: (v: number) => v.toFixed(2),
-                          },
-                        ].map((row) => {
-                          const delta = row.b - row.a;
-                          const pct = row.a !== 0 ? ((delta / row.a) * 100).toFixed(1) : "—";
-                          return (
-                            <tr
-                              key={row.label}
-                              className="text-white hover:bg-white/[0.02] transition-colors"
-                            >
-                              <td className="py-2.5 pr-4 text-slate-400">{row.label}</td>
-                              <td className="py-2.5 pr-4 text-right font-mono">{row.format(row.a)}</td>
-                              <td className="py-2.5 pr-4 text-right font-mono">{row.format(row.b)}</td>
-                              <td
-                                className={`py-2.5 text-right font-mono ${
-                                  delta > 0
-                                    ? "text-emerald-400"
-                                    : delta < 0
-                                    ? "text-red-400"
-                                    : "text-slate-400"
-                                }`}
-                              >
-                                {delta > 0 ? "+" : ""}
-                                {row.format(delta)}
-                                {pct !== "—" && (
-                                  <span className="text-slate-500 ml-1">({pct}%)</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
-
-          {!diffLoading && selectedDiffLote && diffEvolucion.length < 2 && (
-            <EmptyState
-              icon={ArrowLeftRight}
-              title="No hay suficientes etapas"
-              description="Este lote necesita al menos 2 etapas con datos para comparar diferencias."
-            />
-          )}
         </TabsContent>
+
       </Tabs>
-    </div>
-  );
-}
-
-// ── Helpers / subcomponents ─────────────────────────────────────────────────
-
-function StepSelect({
-  label,
-  value,
-  steps,
-  onChange,
-  accent,
-}: {
-  label: string;
-  value: number;
-  steps: EvolucionStep[];
-  onChange: (n: number) => void;
-  accent: "cyan" | "emerald";
-}) {
-  const accentColor = accent === "cyan" ? "border-cyan-500/40" : "border-emerald-500/40";
-  return (
-    <div>
-      <label className="text-[10px] uppercase tracking-wide text-slate-500 block mb-1">
-        {label}
-      </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className={`px-3 py-1.5 rounded-lg bg-slate-900/40 border border-white/10 text-sm text-white focus:outline-none focus:${accentColor} cursor-pointer min-w-[220px]`}
-      >
-        {steps.map((step, idx) => (
-          <option key={idx} value={idx}>
-            {step.tipoProcesoNombre ?? "Sin etapa"} · {step.servicioNombre} ·{" "}
-            {formatDateShort(step.firstTs ?? step.asignadoAt)}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

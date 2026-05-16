@@ -10,7 +10,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Badge } from "@/components/ui/badge";
 import { Check, ChevronsUpDown, Package2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -75,7 +74,7 @@ export function LoteCombobox({
                   {displayLoteCode(selected)}
                 </span>
                 {selected.variedadNombre && (
-                  <span className="text-slate-500 truncate">
+                  <span className="text-slate-400 truncate">
                     · {selected.variedadNombre}
                   </span>
                 )}
@@ -131,17 +130,17 @@ export function LoteCombobox({
                     }}
                     className={cn(
                       "flex flex-col items-start gap-0.5 py-2 px-3 cursor-pointer data-[selected=true]:bg-cyan-500/10",
-                      isEmpty && "opacity-60"
+                      isEmpty && "opacity-50"
                     )}
                   >
-                    <div className="flex items-center gap-2 w-full">
+                    <div className="flex items-center gap-2 w-full min-w-0">
                       <Check
                         className={cn(
                           "w-3.5 h-3.5 text-cyan-400 shrink-0",
                           isSelected ? "opacity-100" : "opacity-0"
                         )}
                       />
-                      <span className="font-mono text-sm text-white">
+                      <span className="font-mono text-sm text-white truncate">
                         {displayLoteCode(lote)}
                       </span>
                       {lote.variedadNombre && (
@@ -149,34 +148,15 @@ export function LoteCombobox({
                           · {lote.variedadNombre}
                         </span>
                       )}
-                      {lote.productoNombre && (
-                        <span className="text-[11px] text-slate-500 truncate">
-                          · {lote.productoNombre}
-                        </span>
+                      {!isEmpty && lote.isActive && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)] shrink-0" />
                       )}
-                      <div className="ml-auto flex items-center gap-1.5 shrink-0">
-                        {isEmpty ? (
-                          <Badge className="text-[10px] py-0 px-1.5 bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/10">
-                            Sin datos
-                          </Badge>
-                        ) : lote.isActive ? (
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]" />
-                        ) : null}
+                    </div>
+                    {!isEmpty && (
+                      <div className="pl-6 text-[11px] text-slate-500">
+                        {formatNumber(lote.totalBulbs)} bulbos · {relativeTimeEs(lote.lastTs)}
                       </div>
-                    </div>
-                    <div className="pl-6 text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
-                      <span>{lote.etapaActual ?? "Sin etapa"}</span>
-                      {lote.servicioActual && (
-                        <>
-                          <span className="text-slate-700">·</span>
-                          <span>{lote.servicioActual}</span>
-                        </>
-                      )}
-                      <span className="text-slate-700">·</span>
-                      <span>{formatNumber(lote.totalBulbs)} bulbos</span>
-                      <span className="text-slate-700">·</span>
-                      <span>{relativeTimeEs(lote.lastTs)}</span>
-                    </div>
+                    )}
                   </CommandItem>
                 );
               })}
