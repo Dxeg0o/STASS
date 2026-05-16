@@ -314,7 +314,7 @@ export default function LoteDetailPage() {
                   <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
                     Total:{" "}
                     {summary
-                      .reduce((acc, d) => acc + (d.countIn ?? 0), 0)
+                      .reduce((acc, d) => acc + (d.countIn ?? 0) + (d.countOut ?? 0), 0)
                       .toLocaleString("es-CL")}{" "}
                     bulbos
                   </Badge>
