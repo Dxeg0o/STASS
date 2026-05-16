@@ -15,6 +15,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const payload = await getGlobalLotesPayload(query);
+  const all = searchParams.get("all") === "true";
+  const payload = await getGlobalLotesPayload(query, { paginate: !all });
   return NextResponse.json(payload);
 }

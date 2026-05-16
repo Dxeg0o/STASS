@@ -105,7 +105,7 @@ export default function AnaliticaPage() {
   useEffect(() => {
     if (!data?.empresaId) return;
     setLoadingLotes(true);
-    fetch(`/api/lotes/global?empresaId=${data.empresaId}&limit=500`)
+    fetch(`/api/lotes/global?empresaId=${data.empresaId}&all=true`)
       .then((res) => res.json())
       .then((json: GlobalLotesResponse) => setPayload(json))
       .catch(console.error)
