@@ -20,13 +20,13 @@ export async function GET(request: Request) {
     );
   }
 
-  // Get the lote's service assignments with process context, ordered
   const steps = await db
     .select({
       servicioId: loteServicio.servicioId,
       asignadoAt: loteServicio.asignadoAt,
       servicioNombre: servicio.nombre,
       tipoProcesoNombre: tipoProceso.nombre,
+      procesoTemporada: proceso.temporada,
     })
     .from(loteServicio)
     .innerJoin(servicio, eq(servicio.id, loteServicio.servicioId))
@@ -35,11 +35,10 @@ export async function GET(request: Request) {
     .where(eq(loteServicio.loteId, loteId))
     .orderBy(loteServicio.asignadoAt);
 
-  // For each step, get caliber distribution
   const stepsWithDistribution = [];
 
   for (const step of steps) {
-    const distribution = await db
+    const distributionRows = await db
       .select({
         calibre: loteStats.calibre,
         count: sql<number>`SUM(${loteStats.countIn} + ${loteStats.countOut})::int`,
@@ -54,7 +53,20 @@ export async function GET(request: Request) {
       .groupBy(loteStats.calibre)
       .orderBy(loteStats.calibre);
 
-    const distributionWithCalibre = distribution.filter(
+    const [tsRow] = await db
+      .select({
+        firstTs: sql<Date | null>`MIN(${loteStats.firstTs})`,
+        lastTs: sql<Date | null>`MAX(${loteStats.lastTs})`,
+      })
+      .from(loteStats)
+      .where(
+        and(
+          eq(loteStats.loteId, loteId),
+          eq(loteStats.servicioId, step.servicioId)
+        )
+      );
+
+    const distributionWithCalibre = distributionRows.filter(
       (d): d is typeof d & { calibre: number } => d.calibre != null
     );
     const totalCount = distributionWithCalibre.reduce((sum, d) => sum + d.count, 0);
@@ -69,13 +81,17 @@ export async function GET(request: Request) {
     );
     const variance = totalCount > 0 ? varianceSum / totalCount : 0;
     const stdDev = Math.sqrt(variance);
+    const calibres = distributionWithCalibre.map((d) => d.calibre);
 
     stepsWithDistribution.push({
       servicioId: step.servicioId,
       servicioNombre: step.servicioNombre,
       tipoProcesoNombre: step.tipoProcesoNombre,
+      procesoTemporada: step.procesoTemporada,
       asignadoAt: step.asignadoAt,
-      distribution: distribution.map((d) => ({
+      firstTs: tsRow?.firstTs ? new Date(tsRow.firstTs).toISOString() : null,
+      lastTs: tsRow?.lastTs ? new Date(tsRow.lastTs).toISOString() : null,
+      distribution: distributionRows.map((d) => ({
         calibre: d.calibre,
         count: d.count,
       })),
@@ -84,6 +100,8 @@ export async function GET(request: Request) {
         mean: Math.round(mean * 100) / 100,
         stdDev: Math.round(stdDev * 100) / 100,
         variance: Math.round(variance * 100) / 100,
+        min: calibres.length > 0 ? Math.min(...calibres) : 0,
+        max: calibres.length > 0 ? Math.max(...calibres) : 0,
       },
     });
   }
