@@ -1,19 +1,61 @@
 // app/api/lotes/activity/close/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { cajaLoteSession, loteSession } from "@/db/schema";
-import { and, inArray, isNull } from "drizzle-orm";
+import { cajaLoteSession, dispositivoServicio, loteSession } from "@/db/schema";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => ({}));
+  const servicioId =
+    typeof body.servicioId === "string" ? body.servicioId.trim() : "";
+
+  if (!servicioId) {
+    return NextResponse.json(
+      { error: "servicioId is required" },
+      { status: 400 }
+    );
+  }
+
   const now = new Date();
-  const openSessions = await db
-    .select({ id: loteSession.id })
-    .from(loteSession)
-    .where(isNull(loteSession.endTime));
-  const openSessionIds = openSessions.map((session) => session.id);
+  const deviceAssignments = await db
+    .select({ dispositivoId: dispositivoServicio.dispositivoId })
+    .from(dispositivoServicio)
+    .where(
+      and(
+        eq(dispositivoServicio.servicioId, servicioId),
+        isNotNull(dispositivoServicio.fechaInicio),
+        isNull(dispositivoServicio.fechaTermino)
+      )
+    );
 
-  if (openSessionIds.length > 0) {
-    await db
+  const dispositivoIds = deviceAssignments.map(
+    (assignment) => assignment.dispositivoId
+  );
+
+  if (dispositivoIds.length === 0) {
+    return NextResponse.json(
+      { error: "No active devices found for this service" },
+      { status: 400 }
+    );
+  }
+
+  const closedSessionCount = await db.transaction(async (tx) => {
+    const openSessions = await tx
+      .select({ id: loteSession.id })
+      .from(loteSession)
+      .where(
+        and(
+          inArray(loteSession.dispositivoId, dispositivoIds),
+          isNull(loteSession.endTime)
+        )
+      );
+    const openSessionIds = openSessions.map((session) => session.id);
+
+    if (openSessionIds.length === 0) {
+      return 0;
+    }
+
+    await tx
       .update(cajaLoteSession)
       .set({ retiradoAt: now })
       .where(
@@ -22,12 +64,17 @@ export async function POST() {
           isNull(cajaLoteSession.retiradoAt)
         )
       );
-  }
 
-  await db
-    .update(loteSession)
-    .set({ endTime: now })
-    .where(isNull(loteSession.endTime));
+    await tx
+      .update(loteSession)
+      .set({ endTime: now })
+      .where(inArray(loteSession.id, openSessionIds));
 
-  return NextResponse.json({ success: true }, { status: 200 });
+    return openSessionIds.length;
+  });
+
+  return NextResponse.json(
+    { success: true, closedSessionCount },
+    { status: 200 }
+  );
 }

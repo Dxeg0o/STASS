@@ -202,11 +202,17 @@ export default function LotesPage() {
   const handleOpenSession = async (loteId: string) => {
     setSessionLoading(true);
     try {
-      await fetch("/api/lotes/activity", {
+      const res = await fetch("/api/lotes/activity", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loteId }),
+        body: JSON.stringify({ loteId, servicioId }),
       });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(error?.error ?? "Error al cambiar lote activo");
+      }
+
       const lote = lotes.find((l) => l.id === loteId) ?? null;
       setActiveLote(lote);
     } catch (err) {
@@ -219,7 +225,15 @@ export default function LotesPage() {
   const handleCloseSession = async () => {
     setSessionLoading(true);
     try {
-      await fetch("/api/lotes/activity/close", { method: "POST" });
+      const res = await fetch("/api/lotes/activity/close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ servicioId }),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(error?.error ?? "Error al cerrar sesión");
+      }
       setActiveLote(null);
     } catch (err) {
       console.error(err);
