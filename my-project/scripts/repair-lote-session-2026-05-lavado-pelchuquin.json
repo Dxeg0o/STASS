@@ -1,0 +1,40 @@
+{
+  "reason": "Cambio de lote no registrado en Lavado de Exportacion Pelchuquin 2026. Horarios originales en America/Santiago.",
+  "windows": [
+    {
+      "servicioId": "0ed78e32-1ecf-45f6-ac4f-c93386d0a31d",
+      "dispositivoId": "ab1ab1d2-14ff-4048-a36e-f9a24ae9e688",
+      "loteId": "c6a9b1a8-0124-42a0-9a2b-b2c3d448c84b",
+      "startTs": "2026-05-15T06:09:00.000Z",
+      "endTs": "2026-05-15T18:55:00.000Z"
+    },
+    {
+      "servicioId": "0ed78e32-1ecf-45f6-ac4f-c93386d0a31d",
+      "dispositivoId": "ab1ab1d2-14ff-4048-a36e-f9a24ae9e688",
+      "loteId": "af927db9-693a-4892-877f-d1cea6665dd1",
+      "startTs": "2026-05-15T18:55:00.000Z",
+      "endTs": "2026-05-18T09:37:00.000Z"
+    },
+    {
+      "servicioId": "0ed78e32-1ecf-45f6-ac4f-c93386d0a31d",
+      "dispositivoId": "ab1ab1d2-14ff-4048-a36e-f9a24ae9e688",
+      "loteId": "3bdb73f4-da46-4030-8956-10222cf89d0f",
+      "startTs": "2026-05-18T09:37:00.000Z",
+      "endTs": "2026-05-18T17:55:00.000Z"
+    },
+    {
+      "servicioId": "0ed78e32-1ecf-45f6-ac4f-c93386d0a31d",
+      "dispositivoId": "ab1ab1d2-14ff-4048-a36e-f9a24ae9e688",
+      "loteId": "c2e5d0ee-79fd-4118-9b71-b4ef7b104a1c",
+      "startTs": "2026-05-18T17:55:00.000Z",
+      "endTs": "2026-05-19T10:43:00.000Z"
+    },
+    {
+      "servicioId": "0ed78e32-1ecf-45f6-ac4f-c93386d0a31d",
+      "dispositivoId": "ab1ab1d2-14ff-4048-a36e-f9a24ae9e688",
+      "loteId": "e30e686f-382a-450f-a466-8897869c6384",
+      "startTs": "2026-05-19T10:43:00.000Z",
+      "endTs": "2026-05-19T15:58:47.009Z"
+    }
+  ]
+}
