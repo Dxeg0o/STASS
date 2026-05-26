@@ -245,14 +245,21 @@ export async function GET(request: Request) {
     servicioCount: r.servicioCount,
   }));
 
-  return NextResponse.json({
-    empresa: {
-      nombre: empresaData.nombre,
-      pais: empresaData.pais,
+  return NextResponse.json(
+    {
+      empresa: {
+        nombre: empresaData.nombre,
+        pais: empresaData.pais,
+      },
+      serviceTypeSummary,
+      activeSessions,
+      recentLotes,
+      procesosActivos,
     },
-    serviceTypeSummary,
-    activeSessions,
-    recentLotes,
-    procesosActivos,
-  });
+    {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    }
+  );
 }

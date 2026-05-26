@@ -1,10 +1,16 @@
 "use client";
 
-import React, { useContext, useEffect, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { AuthenticationContext } from "@/app/context/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
-import { Activity } from "lucide-react";
+import { Activity, RefreshCw } from "lucide-react";
 
 // ---------- Types ----------
 
@@ -48,6 +54,9 @@ interface OverviewData {
 
 // ---------- Helpers ----------
 
+const DASHBOARD_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const LAST_UPDATED_TICK_MS = 60 * 1000;
+
 function formatNumber(n: number): string {
   return n.toLocaleString("es-CL");
 }
@@ -77,6 +86,20 @@ function formatTimestamp(isoString: string | null): string {
 
 function displayLote(lote: { codigoLote?: string | null }): string {
   return lote.codigoLote?.trim() || "Sin código";
+}
+
+function getLastUpdatedLabel(lastUpdatedAt: Date | null, now: number): string {
+  if (!lastUpdatedAt) return "Esperando actualización";
+
+  const diffMinutes = Math.floor((now - lastUpdatedAt.getTime()) / 60000);
+
+  if (diffMinutes < 1) return "Actualizado recién";
+  if (diffMinutes === 1) return "Actualizado hace 1 min";
+  return `Actualizado hace ${diffMinutes} min`;
+}
+
+function getActiveSessionKey(session: ActiveSession): string {
+  return `${session.loteId}-${session.dispositivoNombre}-${session.startTime}`;
 }
 
 // ---------- Active Lote Card ----------
@@ -128,21 +151,122 @@ export default function OverviewPage() {
   const { data, loading: authLoading } = useContext(AuthenticationContext);
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const lastUpdatedAtRef = useRef<number | null>(null);
+  const activeRequestRef = useRef<AbortController | null>(null);
+  const hasOverviewRef = useRef(false);
+
+  const fetchOverview = useCallback(
+    async ({ background = false }: { background?: boolean } = {}) => {
+      if (!data?.empresaId) return;
+
+      activeRequestRef.current?.abort();
+      const controller = new AbortController();
+      activeRequestRef.current = controller;
+
+      if (background) {
+        setRefreshing(true);
+      } else {
+        setError(null);
+        setLoading(true);
+      }
+
+      try {
+        const res = await fetch(
+          `/api/dashboard/overview?empresaId=${data.empresaId}`,
+          { cache: "no-store", signal: controller.signal }
+        );
+
+        if (!res.ok) throw new Error("Error al cargar el resumen");
+
+        const nextOverview: OverviewData = await res.json();
+        if (controller.signal.aborted) return;
+
+        const updatedAt = new Date();
+        setOverview(nextOverview);
+        hasOverviewRef.current = true;
+        setLastUpdatedAt(updatedAt);
+        setNow(updatedAt.getTime());
+        lastUpdatedAtRef.current = updatedAt.getTime();
+        setError(null);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        const message =
+          err instanceof Error ? err.message : "Error al cargar el resumen";
+        setError(
+          background && hasOverviewRef.current
+            ? "No se pudo actualizar. Se mantienen los ultimos datos cargados."
+            : message
+        );
+      } finally {
+        if (activeRequestRef.current === controller) {
+          activeRequestRef.current = null;
+        }
+        if (controller.signal.aborted) return;
+        if (background) {
+          setRefreshing(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    [data?.empresaId]
+  );
 
   useEffect(() => {
-    if (!data?.empresaId) return;
-    setLoading(true);
-    setError(null);
-    fetch(`/api/dashboard/overview?empresaId=${data.empresaId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error al cargar el resumen");
-        return res.json();
-      })
-      .then((d: OverviewData) => setOverview(d))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [data?.empresaId]);
+    if (!data?.empresaId) {
+      setOverview(null);
+      setLoading(false);
+      setRefreshing(false);
+      setError(null);
+      hasOverviewRef.current = false;
+      lastUpdatedAtRef.current = null;
+      setLastUpdatedAt(null);
+      return;
+    }
+
+    void fetchOverview();
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      void fetchOverview({ background: true });
+    }, DASHBOARD_REFRESH_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+
+      const lastUpdated = lastUpdatedAtRef.current;
+      const shouldRefresh =
+        !lastUpdated || Date.now() - lastUpdated >= DASHBOARD_REFRESH_INTERVAL_MS;
+
+      if (shouldRefresh) {
+        void fetchOverview({ background: true });
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      activeRequestRef.current?.abort();
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [data?.empresaId, fetchOverview]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNow(Date.now());
+    }, LAST_UPDATED_TICK_MS);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const handleManualRefresh = () => {
+    void fetchOverview({ background: Boolean(overview) });
+  };
 
   if (authLoading) {
     return (
@@ -163,23 +287,60 @@ export default function OverviewPage() {
   return (
     <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-8">
       {/* Greeting */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">
-          Hola, {data.name}
-        </h1>
-        <p className="text-slate-400 mt-1">
-          {overview?.empresa.nombre ?? data.empresaNombre ?? ""}
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white">
+            Hola, {data.name}
+          </h1>
+          <p className="text-slate-400 mt-1">
+            {overview?.empresa.nombre ?? data.empresaNombre ?? ""}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-slate-900/40 px-3 py-2 text-xs text-slate-400">
+          <span
+            className={`h-2 w-2 rounded-full ${
+              refreshing
+                ? "animate-pulse bg-cyan-400"
+                : error
+                  ? "bg-amber-400"
+                  : "bg-emerald-400"
+            }`}
+            aria-hidden="true"
+          />
+          <span className="min-w-[128px]">
+            {refreshing
+              ? "Actualizando..."
+              : getLastUpdatedLabel(lastUpdatedAt, now)}
+          </span>
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={loading || refreshing}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 text-slate-300 transition-colors hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Actualizar dashboard"
+            title="Actualizar dashboard"
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`}
+            />
+          </button>
+        </div>
       </div>
 
-      {loading && (
+      {loading && !overview && (
         <div className="text-slate-500 text-sm animate-pulse py-4">
           Cargando datos...
         </div>
       )}
 
-      {error && (
+      {error && !overview && (
         <div className="p-4 rounded-lg bg-red-950/20 border border-red-500/20 text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+
+      {error && overview && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-950/10 px-4 py-3 text-sm text-amber-300">
           {error}
         </div>
       )}
@@ -198,8 +359,11 @@ export default function OverviewPage() {
                 </span>
               </div>
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-                {overview.activeSessions.map((session, idx) => (
-                  <ActiveLoteCard key={idx} session={session} />
+                {overview.activeSessions.map((session) => (
+                  <ActiveLoteCard
+                    key={getActiveSessionKey(session)}
+                    session={session}
+                  />
                 ))}
               </div>
             </section>
