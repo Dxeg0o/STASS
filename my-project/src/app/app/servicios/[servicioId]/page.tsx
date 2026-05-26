@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 import { DateRange } from "react-day-picker";
 import { startOfDay, endOfDay, format } from "date-fns";
+import { Check, Layers, Search } from "lucide-react";
+import { toast } from "sonner";
 import {
   LineChart,
   Line,
@@ -17,7 +19,12 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { AuthenticationContext } from "@/app/context/AuthContext";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -41,6 +48,15 @@ interface RecentLote {
   variedadNombre: string | null;
   productoNombre: string | null;
   createdAt: string | null;
+}
+
+interface Lote {
+  id: string;
+  codigoLote?: string | null;
+  fechaCreacion?: string | null;
+  variedadNombre?: string | null;
+  variedadTipo?: string | null;
+  productoNombre?: string | null;
 }
 
 interface ServicioDetail {
@@ -124,10 +140,19 @@ function displayLote(lote: { codigoLote?: string | null }): string {
 export default function ServicioDetailPage() {
   const params = useParams();
   const servicioId = params.servicioId as string;
+  const { data } = useContext(AuthenticationContext);
+  const isAdmin = data?.rol_usuario === "administrador";
 
   const [detail, setDetail] = useState<ServicioDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(true);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  const [lotes, setLotes] = useState<Lote[]>([]);
+  const [loadingLotes, setLoadingLotes] = useState(true);
+  const [loteDialogOpen, setLoteDialogOpen] = useState(false);
+  const [loteSearch, setLoteSearch] = useState("");
+  const [pendingLote, setPendingLote] = useState<Lote | null>(null);
+  const [changingLote, setChangingLote] = useState(false);
+  const [loteActionError, setLoteActionError] = useState<string | null>(null);
 
   const [conteos, setConteos] = useState<ConteoRecord[]>([]);
   const [loadingConteos, setLoadingConteos] = useState(true);
@@ -139,17 +164,42 @@ export default function ServicioDetailPage() {
 
   // ── Fetch detail ─────────────────────────────────────────────────────────────
 
-  useEffect(() => {
+  const fetchDetail = useCallback(async () => {
     if (!servicioId) return;
     setLoadingDetail(true);
-    fetch(`/api/servicios/${servicioId}/detail`)
+    setErrorDetail(null);
+    try {
+      const res = await fetch(`/api/servicios/${servicioId}/detail`);
+      if (!res.ok) throw new Error("Error al cargar el servicio");
+      const data: ServicioDetail = await res.json();
+      setDetail(data);
+    } catch (err) {
+      setErrorDetail(err instanceof Error ? err.message : "Error al cargar el servicio");
+    } finally {
+      setLoadingDetail(false);
+    }
+  }, [servicioId]);
+
+  useEffect(() => {
+    fetchDetail();
+  }, [fetchDetail]);
+
+  // ── Fetch lotes for active-lote switcher ─────────────────────────────────────
+
+  useEffect(() => {
+    if (!servicioId) return;
+    setLoadingLotes(true);
+    fetch(`/api/lotes?servicioId=${servicioId}`)
       .then((res) => {
-        if (!res.ok) throw new Error("Error al cargar el servicio");
+        if (!res.ok) throw new Error("Error al cargar lotes");
         return res.json();
       })
-      .then((data: ServicioDetail) => setDetail(data))
-      .catch((err: Error) => setErrorDetail(err.message))
-      .finally(() => setLoadingDetail(false));
+      .then((data: Lote[]) => setLotes(data))
+      .catch((err) => {
+        console.error(err);
+        setLotes([]);
+      })
+      .finally(() => setLoadingLotes(false));
   }, [servicioId]);
 
   // ── Fetch conteos for chart ───────────────────────────────────────────────────
@@ -198,6 +248,63 @@ export default function ServicioDetailPage() {
         volumen: count,
       }));
   }, [filteredConteos]);
+
+  const filteredLotes = useMemo(() => {
+    const term = loteSearch.toLowerCase().trim();
+    if (!term) return lotes;
+    return lotes.filter((lote) =>
+      [
+        lote.codigoLote,
+        lote.productoNombre,
+        lote.variedadNombre,
+        lote.variedadTipo,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(term)
+    );
+  }, [loteSearch, lotes]);
+
+  const assignedDeviceCount = detail?.devices.length ?? 0;
+
+  const resetLoteDialog = () => {
+    setLoteDialogOpen(false);
+    setPendingLote(null);
+    setLoteSearch("");
+    setLoteActionError(null);
+  };
+
+  const handleConfirmLoteChange = async () => {
+    if (!pendingLote) return;
+    setChangingLote(true);
+    setLoteActionError(null);
+
+    try {
+      const res = await fetch("/api/lotes/activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ servicioId, loteId: pendingLote.id }),
+      });
+
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(payload?.error ?? "No se pudo cambiar el lote activo");
+      }
+
+      await fetchDetail();
+      toast.success(
+        `Lote activo actualizado en ${payload?.updatedDeviceCount ?? assignedDeviceCount} dispositivos`
+      );
+      resetLoteDialog();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "No se pudo cambiar el lote activo";
+      setLoteActionError(message);
+      toast.error(message);
+    } finally {
+      setChangingLote(false);
+    }
+  };
 
   // ── Excel download ────────────────────────────────────────────────────────────
 
@@ -313,8 +420,59 @@ export default function ServicioDetailPage() {
         </p>
       </div>
 
+      {/* ── Active Lote Control ── */}
+      <Card className="bg-slate-900/50 border-cyan-500/20 shadow-[0_0_25px_rgba(34,211,238,0.06)]">
+        <CardContent className="p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="rounded-lg border border-cyan-500/30 bg-cyan-950/30 p-3">
+                <Layers className="h-5 w-5 text-cyan-300" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-400">Lote activo</p>
+                {detail.activeLote ? (
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                    <p className="truncate font-mono text-2xl font-semibold text-white">
+                      {displayLote(detail.activeLote)}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-lg italic text-slate-500">
+                    Sin lote activo
+                  </p>
+                )}
+                <p className="mt-2 text-sm text-slate-500">
+                  El cambio aplica a {assignedDeviceCount} dispositivos asignados vigentes.
+                </p>
+              </div>
+            </div>
+
+            {isAdmin && (
+              <Button
+                onClick={() => {
+                  setPendingLote(null);
+                  setLoteActionError(null);
+                  setLoteDialogOpen(true);
+                }}
+                disabled={loadingLotes || lotes.length === 0 || assignedDeviceCount === 0}
+                className="bg-cyan-500 text-slate-950 hover:bg-cyan-400"
+              >
+                Cambiar lote
+              </Button>
+            )}
+          </div>
+
+          {isAdmin && assignedDeviceCount === 0 && (
+            <p className="mt-4 rounded-md border border-amber-500/30 bg-amber-950/20 px-3 py-2 text-sm text-amber-300">
+              No hay dispositivos asignados vigentes para abrir una sesión de lote.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* ── KPI Row ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total conteo */}
         <Card className="bg-slate-900/40 border-white/10">
           <CardContent className="pt-6">
@@ -335,20 +493,6 @@ export default function ServicioDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Active lote */}
-        <Card className="bg-slate-900/40 border-white/10">
-          <CardContent className="pt-6">
-            <p className="text-sm text-slate-400 mb-1">Lote activo</p>
-            {detail.activeLote ? (
-              <p className="text-xl font-semibold text-white truncate">
-                {displayLote(detail.activeLote)}
-              </p>
-            ) : (
-              <p className="text-slate-500 italic text-sm">Sin lote activo</p>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Devices online */}
         <Card className="bg-slate-900/40 border-white/10">
           <CardContent className="pt-6">
@@ -360,6 +504,145 @@ export default function ServicioDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog
+        open={loteDialogOpen}
+        onOpenChange={(open) => {
+          if (changingLote) return;
+          if (open) setLoteDialogOpen(true);
+          else resetLoteDialog();
+        }}
+      >
+        <DialogContent className="bg-slate-900 border-white/10 text-white sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {pendingLote ? "Confirmar cambio de lote" : "Cambiar lote activo"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {pendingLote ? (
+            <div className="space-y-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-white/10 bg-slate-950/30 p-4">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">
+                    Lote actual
+                  </p>
+                  <p className="mt-2 truncate font-mono text-lg font-semibold text-white">
+                    {detail.activeLote ? displayLote(detail.activeLote) : "Sin lote activo"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-cyan-500/30 bg-cyan-950/20 p-4">
+                  <p className="text-xs uppercase tracking-wide text-cyan-500">
+                    Nuevo lote
+                  </p>
+                  <p className="mt-2 truncate font-mono text-lg font-semibold text-cyan-100">
+                    {displayLote(pendingLote)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 p-4 text-sm text-amber-200">
+                Se cerrarán las sesiones abiertas actuales y se abrirá una nueva
+                sesión para este lote en {assignedDeviceCount} dispositivos asignados vigentes.
+              </div>
+
+              {loteActionError && (
+                <p className="rounded-md border border-red-500/30 bg-red-950/20 px-3 py-2 text-sm text-red-300">
+                  {loteActionError}
+                </p>
+              )}
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  variant="ghost"
+                  onClick={() => setPendingLote(null)}
+                  disabled={changingLote}
+                  className="text-slate-400 hover:bg-white/5 hover:text-white"
+                >
+                  Volver
+                </Button>
+                <Button
+                  onClick={handleConfirmLoteChange}
+                  disabled={changingLote}
+                  className="bg-cyan-500 text-slate-950 hover:bg-cyan-400"
+                >
+                  {changingLote ? "Cambiando..." : "Confirmar cambio"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <Input
+                  placeholder="Buscar por código, producto o variedad..."
+                  value={loteSearch}
+                  onChange={(e) => setLoteSearch(e.target.value)}
+                  className="bg-slate-800/60 pl-10 border-white/10 text-white placeholder:text-slate-500 focus-visible:ring-cyan-500"
+                />
+              </div>
+
+              <ScrollArea className="h-80 rounded-lg border border-white/10">
+                {loadingLotes ? (
+                  <p className="p-4 text-sm text-slate-500">Cargando lotes...</p>
+                ) : filteredLotes.length === 0 ? (
+                  <p className="p-4 text-sm text-slate-500">
+                    No se encontraron lotes.
+                  </p>
+                ) : (
+                  <div className="space-y-1 p-2">
+                    {filteredLotes.map((lote) => {
+                      const isActive = detail.activeLote?.id === lote.id;
+                      return (
+                        <button
+                          key={lote.id}
+                          type="button"
+                          disabled={isActive}
+                          onClick={() => setPendingLote(lote)}
+                          className={`flex w-full items-center justify-between gap-3 rounded-md px-3 py-3 text-left transition ${
+                            isActive
+                              ? "cursor-default border border-emerald-500/30 bg-emerald-950/20"
+                              : "border border-transparent hover:border-cyan-500/30 hover:bg-slate-800/60"
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="truncate font-mono text-sm font-semibold text-white">
+                                {displayLote(lote)}
+                              </p>
+                              {isActive && (
+                                <Badge className="border-emerald-500/40 bg-emerald-950/30 text-emerald-300">
+                                  Activo
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="mt-1 truncate text-xs text-slate-500">
+                              {[lote.productoNombre, lote.variedadTipo, lote.variedadNombre]
+                                .filter(Boolean)
+                                .join(" · ") || "Sin producto o variedad"}
+                            </p>
+                          </div>
+                          {isActive && <Check className="h-4 w-4 text-emerald-400" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+
+              <div className="flex justify-end">
+                <Button
+                  variant="ghost"
+                  onClick={resetLoteDialog}
+                  className="text-slate-400 hover:bg-white/5 hover:text-white"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Volume Chart ── */}
       <Card className="bg-slate-900/40 border-white/10">

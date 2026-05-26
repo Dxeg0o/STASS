@@ -6,8 +6,10 @@ import {
   loteSession,
   loteServicio,
   dispositivoServicio,
+  servicio,
 } from "@/db/schema";
 import { eq, isNotNull, isNull, and, desc, inArray } from "drizzle-orm";
+import { verifyEmpresaAdminFromPayload, verifyToken } from "@/lib/auth";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -63,6 +65,28 @@ export async function POST(request: Request) {
       { error: "servicioId is required when dispositivoId is not provided" },
       { status: 400 }
     );
+  }
+
+  const [srv] = await db
+    .select({ empresaId: servicio.empresaId })
+    .from(servicio)
+    .where(eq(servicio.id, servicioId))
+    .limit(1);
+
+  if (!srv) {
+    return NextResponse.json(
+      { error: "Servicio not found" },
+      { status: 404 }
+    );
+  }
+
+  const admin = await verifyEmpresaAdminFromPayload(
+    await verifyToken(request),
+    srv.empresaId
+  );
+
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const deviceAssignments = bodyDispositivoId

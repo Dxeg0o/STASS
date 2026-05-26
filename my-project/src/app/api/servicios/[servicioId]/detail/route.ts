@@ -13,7 +13,7 @@ import {
   proceso,
   tipoProceso,
 } from "@/db/schema";
-import { eq, and, isNull, sql, desc, inArray } from "drizzle-orm";
+import { eq, and, isNotNull, isNull, sql, desc, inArray } from "drizzle-orm";
 
 export async function GET(
   request: Request,
@@ -58,6 +58,7 @@ export async function GET(
     .where(
       and(
         eq(dispositivoServicio.servicioId, servicioId),
+        isNotNull(dispositivoServicio.fechaInicio),
         isNull(dispositivoServicio.fechaTermino)
       )
     );

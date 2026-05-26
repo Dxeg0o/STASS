@@ -1,8 +1,14 @@
 // app/api/lotes/activity/close/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { cajaLoteSession, dispositivoServicio, loteSession } from "@/db/schema";
+import {
+  cajaLoteSession,
+  dispositivoServicio,
+  loteSession,
+  servicio,
+} from "@/db/schema";
 import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { verifyEmpresaAdminFromPayload, verifyToken } from "@/lib/auth";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
@@ -14,6 +20,28 @@ export async function POST(request: Request) {
       { error: "servicioId is required" },
       { status: 400 }
     );
+  }
+
+  const [srv] = await db
+    .select({ empresaId: servicio.empresaId })
+    .from(servicio)
+    .where(eq(servicio.id, servicioId))
+    .limit(1);
+
+  if (!srv) {
+    return NextResponse.json(
+      { error: "Servicio not found" },
+      { status: 404 }
+    );
+  }
+
+  const admin = await verifyEmpresaAdminFromPayload(
+    await verifyToken(request),
+    srv.empresaId
+  );
+
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const now = new Date();
