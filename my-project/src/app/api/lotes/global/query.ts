@@ -474,57 +474,58 @@ export async function getGlobalLotesPayload(
     };
   }
 
-  const [baseRows, statsRows, activeRows, assignmentRows] = await Promise.all([
-    db
-      .select({
-        id: lote.id,
-        codigoLote: lote.codigoLote,
-        createdAt: lote.createdAt,
-        variedadId: lote.variedadId,
-        variedadNombre: variedad.nombre,
-        variedadTipo: variedad.tipo,
-        subvariedadId: lote.subvariedadId,
-        subvariedadNombre: subvariedad.nombre,
-        productoId: producto.id,
-        productoNombre: producto.nombre,
-      })
-      .from(lote)
-      .leftJoin(variedad, eq(variedad.id, lote.variedadId))
-      .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
-      .leftJoin(producto, eq(producto.id, variedad.productoId))
-      .where(inArray(lote.id, uniqueLoteIds)),
-    db
-      .select({
-        loteId: loteTotalStats.loteId,
-        totalBulbs: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
-        firstTs: sql<Date | null>`MIN(${loteTotalStats.firstTs})`,
-        lastTs: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
-      })
-      .from(loteTotalStats)
-      .where(inArray(loteTotalStats.loteId, uniqueLoteIds))
-      .groupBy(loteTotalStats.loteId),
-    db
-      .select({ loteId: loteSession.loteId })
-      .from(loteSession)
-      .where(
-        and(inArray(loteSession.loteId, uniqueLoteIds), isNull(loteSession.endTime))
-      ),
-    db
-      .select({
-        loteId: loteServicio.loteId,
-        asignadoAt: loteServicio.asignadoAt,
-        servicioId: servicio.id,
-        servicioNombre: servicio.nombre,
-        tipoProcesoId: tipoProceso.id,
-        tipoProcesoNombre: tipoProceso.nombre,
-      })
-      .from(loteServicio)
-      .innerJoin(servicio, eq(servicio.id, loteServicio.servicioId))
-      .leftJoin(proceso, eq(proceso.id, servicio.procesoId))
-      .leftJoin(tipoProceso, eq(tipoProceso.id, proceso.tipoProcesoId))
-      .where(inArray(loteServicio.loteId, uniqueLoteIds))
-      .orderBy(desc(loteServicio.asignadoAt)),
-  ]);
+  const baseRows = await db
+    .select({
+      id: lote.id,
+      codigoLote: lote.codigoLote,
+      createdAt: lote.createdAt,
+      variedadId: lote.variedadId,
+      variedadNombre: variedad.nombre,
+      variedadTipo: variedad.tipo,
+      subvariedadId: lote.subvariedadId,
+      subvariedadNombre: subvariedad.nombre,
+      productoId: producto.id,
+      productoNombre: producto.nombre,
+    })
+    .from(lote)
+    .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+    .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
+    .leftJoin(producto, eq(producto.id, variedad.productoId))
+    .where(inArray(lote.id, uniqueLoteIds));
+
+  const statsRows = await db
+    .select({
+      loteId: loteTotalStats.loteId,
+      totalBulbs: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
+      firstTs: sql<Date | null>`MIN(${loteTotalStats.firstTs})`,
+      lastTs: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
+    })
+    .from(loteTotalStats)
+    .where(inArray(loteTotalStats.loteId, uniqueLoteIds))
+    .groupBy(loteTotalStats.loteId);
+
+  const activeRows = await db
+    .select({ loteId: loteSession.loteId })
+    .from(loteSession)
+    .where(
+      and(inArray(loteSession.loteId, uniqueLoteIds), isNull(loteSession.endTime))
+    );
+
+  const assignmentRows = await db
+    .select({
+      loteId: loteServicio.loteId,
+      asignadoAt: loteServicio.asignadoAt,
+      servicioId: servicio.id,
+      servicioNombre: servicio.nombre,
+      tipoProcesoId: tipoProceso.id,
+      tipoProcesoNombre: tipoProceso.nombre,
+    })
+    .from(loteServicio)
+    .innerJoin(servicio, eq(servicio.id, loteServicio.servicioId))
+    .leftJoin(proceso, eq(proceso.id, servicio.procesoId))
+    .leftJoin(tipoProceso, eq(tipoProceso.id, proceso.tipoProcesoId))
+    .where(inArray(loteServicio.loteId, uniqueLoteIds))
+    .orderBy(desc(loteServicio.asignadoAt));
 
   const statsByLote = new Map<string, StatsByLote>();
   for (const row of statsRows) {

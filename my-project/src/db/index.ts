@@ -10,10 +10,15 @@ const globalForDb = globalThis as unknown as {
   pgClient: ReturnType<typeof postgres> | undefined;
 };
 
+const poolMax = Number.parseInt(
+  process.env.DATABASE_POOL_MAX ?? (process.env.NODE_ENV === "production" ? "1" : "5"),
+  10
+);
+
 const client =
   globalForDb.pgClient ??
   postgres(connectionString, {
-    max: 10,
+    max: Number.isFinite(poolMax) && poolMax > 0 ? poolMax : 1,
     idle_timeout: 20,
     connect_timeout: 10,
   });
