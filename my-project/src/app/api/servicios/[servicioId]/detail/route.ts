@@ -9,6 +9,7 @@ import {
   dispositivo,
   dispositivoServicio,
   variedad,
+  subvariedad,
   producto,
   proceso,
   tipoProceso,
@@ -78,6 +79,7 @@ export async function GET(
     totalCount: number;
     lastTs: Date | null;
     variedadNombre: string | null;
+    subvariedadNombre: string | null;
     productoNombre: string | null;
   }[] = [];
 
@@ -90,6 +92,7 @@ export async function GET(
         totalCount: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
         lastTs: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
         variedadNombre: variedad.nombre,
+        subvariedadNombre: subvariedad.nombre,
         productoNombre: producto.nombre,
       })
       .from(lote)
@@ -101,9 +104,10 @@ export async function GET(
         )
       )
       .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+      .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
       .leftJoin(producto, eq(producto.id, variedad.productoId))
       .where(inArray(lote.id, loteIds))
-      .groupBy(lote.id, lote.codigoLote, lote.createdAt, variedad.nombre, producto.nombre)
+      .groupBy(lote.id, lote.codigoLote, lote.createdAt, variedad.nombre, subvariedad.nombre, producto.nombre)
       .orderBy(desc(lote.createdAt))
       .limit(10);
   }
@@ -180,6 +184,7 @@ export async function GET(
       totalCount: l.totalCount,
       lastTs: l.lastTs ? new Date(l.lastTs).toISOString() : null,
       variedadNombre: l.variedadNombre ?? null,
+      subvariedadNombre: l.subvariedadNombre ?? null,
       productoNombre: l.productoNombre ?? null,
       createdAt: l.createdAt ? new Date(l.createdAt).toISOString() : null,
     })),

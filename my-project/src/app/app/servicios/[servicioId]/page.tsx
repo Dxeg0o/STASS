@@ -46,6 +46,7 @@ interface RecentLote {
   totalCount: number;
   lastTs: string | null;
   variedadNombre: string | null;
+  subvariedadNombre: string | null;
   productoNombre: string | null;
   createdAt: string | null;
 }
@@ -56,6 +57,7 @@ interface Lote {
   fechaCreacion?: string | null;
   variedadNombre?: string | null;
   variedadTipo?: string | null;
+  subvariedadNombre?: string | null;
   productoNombre?: string | null;
 }
 
@@ -88,6 +90,7 @@ interface ExportLoteRow {
   codigoLote: string | null;
   producto: string | null;
   variedad: string | null;
+  subvariedad: string | null;
   fechaInicio: string | null;
   fechaTermino: string | null;
   conteoTotal: number;
@@ -258,6 +261,7 @@ export default function ServicioDetailPage() {
         lote.productoNombre,
         lote.variedadNombre,
         lote.variedadTipo,
+        lote.subvariedadNombre,
       ]
         .join(" ")
         .toLowerCase()
@@ -318,6 +322,7 @@ export default function ServicioDetailPage() {
         "Lote",
         "Producto",
         "Variedad",
+        "Subvariedad",
         "Fecha inicio",
         "Fecha término",
         "Desviación estándar",
@@ -330,6 +335,7 @@ export default function ServicioDetailPage() {
         Lote: displayLote(l),
         Producto: l.producto ?? "",
         Variedad: l.variedad ?? "",
+        Subvariedad: l.subvariedad ?? "",
         "Fecha inicio": l.fechaInicio
           ? format(new Date(l.fechaInicio), "yyyy-MM-dd HH:mm")
           : "",
@@ -617,7 +623,7 @@ export default function ServicioDetailPage() {
                               )}
                             </div>
                             <p className="mt-1 truncate text-xs text-slate-500">
-                              {[lote.productoNombre, lote.variedadTipo, lote.variedadNombre]
+                              {[lote.productoNombre, lote.variedadTipo, lote.variedadNombre, lote.subvariedadNombre]
                                 .filter(Boolean)
                                 .join(" · ") || "Sin producto o variedad"}
                             </p>
@@ -742,7 +748,7 @@ export default function ServicioDetailPage() {
                       </td>
                       <td className="py-3 pr-4 text-slate-400">
                         {lote.variedadNombre
-                          ? `${lote.productoNombre ? lote.productoNombre + " — " : ""}${lote.variedadNombre}`
+                          ? `${lote.productoNombre ? lote.productoNombre + " — " : ""}${lote.variedadNombre}${lote.subvariedadNombre ? " · " + lote.subvariedadNombre : ""}`
                           : <span className="italic text-slate-600">—</span>}
                       </td>
                       <td className="py-3 pr-4 text-right text-white font-semibold">

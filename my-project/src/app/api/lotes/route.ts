@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { lote, loteServicio, servicio, variedad, producto } from "@/db/schema";
+import { lote, loteServicio, servicio, variedad, subvariedad, producto } from "@/db/schema";
 import { eq, inArray, desc } from "drizzle-orm";
 
 export async function GET(request: Request) {
@@ -45,10 +45,12 @@ export async function GET(request: Request) {
       variedadId: lote.variedadId,
       variedadNombre: variedad.nombre,
       variedadTipo: variedad.tipo,
+      subvariedadNombre: subvariedad.nombre,
       productoNombre: producto.nombre,
     })
     .from(lote)
     .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+    .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
     .leftJoin(producto, eq(producto.id, variedad.productoId))
     .where(inArray(lote.id, uniqueLoteIds))
     .orderBy(desc(lote.createdAt));

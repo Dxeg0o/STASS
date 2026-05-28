@@ -7,6 +7,7 @@ import {
   loteTotalStats,
   servicio,
   variedad,
+  subvariedad,
   producto,
   proceso,
   tipoProceso,
@@ -29,10 +30,12 @@ export async function GET(
       variedadId: lote.variedadId,
       variedadNombre: variedad.nombre,
       variedadTipo: variedad.tipo,
+      subvariedadNombre: subvariedad.nombre,
       productoNombre: producto.nombre,
     })
     .from(lote)
     .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+    .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
     .leftJoin(producto, eq(producto.id, variedad.productoId))
     .where(eq(lote.id, loteId))
     .limit(1);
@@ -157,6 +160,7 @@ export async function GET(
     createdAt: loteInfo.createdAt,
     variedadNombre: loteInfo.variedadNombre,
     variedadTipo: loteInfo.variedadTipo,
+    subvariedadNombre: loteInfo.subvariedadNombre,
     productoNombre: loteInfo.productoNombre,
     lifecycle: steps,
     activeSessions: activeSessions.map((s) => ({

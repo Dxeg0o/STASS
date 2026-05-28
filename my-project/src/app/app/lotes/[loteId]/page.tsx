@@ -40,6 +40,7 @@ interface LoteDetail {
   createdAt: string;
   variedadNombre: string | null;
   variedadTipo: string | null;
+  subvariedadNombre: string | null;
   productoNombre: string | null;
   lifecycle: LifecycleStep[];
   activeSessions: ActiveSession[];
@@ -299,6 +300,11 @@ export default function LoteGlobalDetailPage() {
             {detail.variedadNombre && (
               <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
                 {detail.variedadNombre}
+              </Badge>
+            )}
+            {detail.subvariedadNombre && (
+              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40">
+                {detail.subvariedadNombre}
               </Badge>
             )}
             {detail.activeSessions.length > 0 && (

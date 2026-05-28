@@ -7,6 +7,7 @@ import {
   loteTotalStats,
   producto,
   variedad,
+  subvariedad,
 } from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
@@ -15,6 +16,7 @@ interface ExportAccumulator {
   codigoLote: string | null;
   producto: string | null;
   variedad: string | null;
+  subvariedad: string | null;
   fechaInicio: Date | null;
   fechaTermino: Date | null;
   conteoTotal: number;
@@ -40,11 +42,13 @@ export async function GET(
       codigoLote: lote.codigoLote,
       producto: producto.nombre,
       variedad: variedad.nombre,
+      subvariedad: subvariedad.nombre,
       createdAt: lote.createdAt,
     })
     .from(loteServicio)
     .innerJoin(lote, eq(lote.id, loteServicio.loteId))
     .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+    .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
     .leftJoin(producto, eq(producto.id, variedad.productoId))
     .where(eq(loteServicio.servicioId, servicioId))
     .orderBy(desc(lote.createdAt));
@@ -61,6 +65,7 @@ export async function GET(
       codigoLote: row.codigoLote,
       producto: row.producto ?? null,
       variedad: row.variedad ?? null,
+      subvariedad: row.subvariedad ?? null,
       fechaInicio: null,
       fechaTermino: null,
       conteoTotal: 0,
@@ -165,6 +170,7 @@ export async function GET(
       codigoLote: acc.codigoLote,
       producto: acc.producto,
       variedad: acc.variedad,
+      subvariedad: acc.subvariedad,
       fechaInicio: toIso(acc.fechaInicio),
       fechaTermino: toIso(acc.fechaTermino),
       conteoTotal: acc.conteoTotal,
