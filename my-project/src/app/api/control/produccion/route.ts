@@ -47,12 +47,26 @@ export async function GET(request: Request) {
     });
   }
 
-  // Hourly production (grouped by date + hour)
-  const hourlyRows = await db
+  // Una sola consulta agrupada por (date, hour). De aquí derivamos en JS:
+  // hourly, daily, total y jornada (inicio/fin), evitando 4 escaneos de la tabla.
+  const localTs = sql`${conteo.ts} AT TIME ZONE 'America/Santiago'`;
+  const dateExpr = sql<string>`TO_CHAR(${localTs}, 'YYYY-MM-DD')`;
+  const hourExpr = sql<number>`EXTRACT(HOUR FROM ${localTs})::int`;
+
+  const rows = await db
     .select({
-      date: sql<string>`TO_CHAR(${conteo.ts} AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD')`,
-      hour: sql<number>`EXTRACT(HOUR FROM ${conteo.ts} AT TIME ZONE 'America/Santiago')::int`,
+      date: dateExpr,
+      hour: hourExpr,
       count: sql<number>`COUNT(*)::int`,
+      // MIN/MAX sobre el ts real, convirtiendo después (correcto en cambios de DST)
+      firstMin: sql<number>`(
+        EXTRACT(HOUR FROM (MIN(${conteo.ts}) AT TIME ZONE 'America/Santiago')) * 60 +
+        EXTRACT(MINUTE FROM (MIN(${conteo.ts}) AT TIME ZONE 'America/Santiago'))
+      )::int`,
+      lastMin: sql<number>`(
+        EXTRACT(HOUR FROM (MAX(${conteo.ts}) AT TIME ZONE 'America/Santiago')) * 60 +
+        EXTRACT(MINUTE FROM (MAX(${conteo.ts}) AT TIME ZONE 'America/Santiago'))
+      )::int`,
     })
     .from(conteo)
     .where(
@@ -62,84 +76,56 @@ export async function GET(request: Request) {
         lte(conteo.ts, hastaDate)
       )
     )
-    .groupBy(
-      sql`TO_CHAR(${conteo.ts} AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD')`,
-      sql`EXTRACT(HOUR FROM ${conteo.ts} AT TIME ZONE 'America/Santiago')`
-    )
-    .orderBy(
-      sql`TO_CHAR(${conteo.ts} AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD')`,
-      sql`EXTRACT(HOUR FROM ${conteo.ts} AT TIME ZONE 'America/Santiago')`
-    );
+    .groupBy(dateExpr, hourExpr)
+    .orderBy(dateExpr, hourExpr);
 
-  // Daily production
-  const dailyRows = await db
-    .select({
-      date: sql<string>`TO_CHAR(${conteo.ts} AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD')`,
-      count: sql<number>`COUNT(*)::int`,
-    })
-    .from(conteo)
-    .where(
-      and(
-        inArray(conteo.servicioId, servicioIds),
-        gte(conteo.ts, desdeDate),
-        lte(conteo.ts, hastaDate)
-      )
-    )
-    .groupBy(
-      sql`TO_CHAR(${conteo.ts} AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD')`
-    )
-    .orderBy(
-      sql`TO_CHAR(${conteo.ts} AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD')`
-    );
+  const hourly = rows.map((r) => ({
+    date: r.date,
+    hour: r.hour,
+    count: r.count,
+  }));
 
-  // Total count
-  const [totalRow] = await db
-    .select({
-      total: sql<number>`COUNT(*)::int`,
-    })
-    .from(conteo)
-    .where(
-      and(
-        inArray(conteo.servicioId, servicioIds),
-        gte(conteo.ts, desdeDate),
-        lte(conteo.ts, hastaDate)
-      )
-    );
+  let total = 0;
+  // Mapa date -> { count, minStart, maxEnd } para derivar daily y jornada
+  const byDate = new Map<
+    string,
+    { count: number; minStart: number; maxEnd: number }
+  >();
+  for (const r of rows) {
+    total += r.count;
+    const existing = byDate.get(r.date);
+    if (existing) {
+      existing.count += r.count;
+      existing.minStart = Math.min(existing.minStart, r.firstMin);
+      existing.maxEnd = Math.max(existing.maxEnd, r.lastMin);
+    } else {
+      byDate.set(r.date, {
+        count: r.count,
+        minStart: r.firstMin,
+        maxEnd: r.lastMin,
+      });
+    }
+  }
 
-  // Average start/end times per day (first and last conteo of each day)
-  const jornadaRows = await db
-    .select({
-      date: sql<string>`TO_CHAR(${conteo.ts} AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD')`,
-      firstHour: sql<number>`EXTRACT(HOUR FROM MIN(${conteo.ts} AT TIME ZONE 'America/Santiago'))::int`,
-      firstMinute: sql<number>`EXTRACT(MINUTE FROM MIN(${conteo.ts} AT TIME ZONE 'America/Santiago'))::int`,
-      lastHour: sql<number>`EXTRACT(HOUR FROM MAX(${conteo.ts} AT TIME ZONE 'America/Santiago'))::int`,
-      lastMinute: sql<number>`EXTRACT(MINUTE FROM MAX(${conteo.ts} AT TIME ZONE 'America/Santiago'))::int`,
-    })
-    .from(conteo)
-    .where(
-      and(
-        inArray(conteo.servicioId, servicioIds),
-        gte(conteo.ts, desdeDate),
-        lte(conteo.ts, hastaDate)
-      )
-    )
-    .groupBy(
-      sql`TO_CHAR(${conteo.ts} AT TIME ZONE 'America/Santiago', 'YYYY-MM-DD')`
-    );
+  // daily ordenado por fecha (rows ya viene ordenado por date, hour)
+  const daily = Array.from(byDate.entries()).map(([date, v]) => ({
+    date,
+    count: v.count,
+  }));
 
-  // Compute averages
+  // Average start/end times: promedio por día de los inicios/términos diarios
   let avgStartTime: string | null = null;
   let avgEndTime: string | null = null;
 
-  if (jornadaRows.length > 0) {
+  if (byDate.size > 0) {
     let totalStartMinutes = 0;
     let totalEndMinutes = 0;
-    for (const row of jornadaRows) {
-      totalStartMinutes += row.firstHour * 60 + row.firstMinute;
-      totalEndMinutes += row.lastHour * 60 + row.lastMinute;
+    for (const v of byDate.values()) {
+      totalStartMinutes += v.minStart;
+      totalEndMinutes += v.maxEnd;
     }
-    const avgStartMins = Math.round(totalStartMinutes / jornadaRows.length);
-    const avgEndMins = Math.round(totalEndMinutes / jornadaRows.length);
+    const avgStartMins = Math.round(totalStartMinutes / byDate.size);
+    const avgEndMins = Math.round(totalEndMinutes / byDate.size);
     avgStartTime = `${Math.floor(avgStartMins / 60)
       .toString()
       .padStart(2, "0")}:${(avgStartMins % 60).toString().padStart(2, "0")}`;
@@ -148,14 +134,14 @@ export async function GET(request: Request) {
       .padStart(2, "0")}:${(avgEndMins % 60).toString().padStart(2, "0")}`;
   }
 
-  // Avg per hour
-  const totalHours = hourlyRows.length || 1;
-  const avgPerHour = Math.round((totalRow?.total ?? 0) / totalHours);
+  // Avg per hour: total dividido por número de franjas hora con datos
+  const totalHours = rows.length || 1;
+  const avgPerHour = Math.round(total / totalHours);
 
   return NextResponse.json({
-    hourly: hourlyRows,
-    daily: dailyRows,
-    total: totalRow?.total ?? 0,
+    hourly,
+    daily,
+    total,
     avgPerHour,
     avgStartTime,
     avgEndTime,
