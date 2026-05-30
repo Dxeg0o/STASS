@@ -11,8 +11,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   BarChart,
   Bar,
 } from "recharts";
@@ -63,6 +61,57 @@ interface Servicio {
 
 function formatNumber(n: number): string {
   return n.toLocaleString("es-CL");
+}
+
+const DOW = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const MESES_CORTOS = [
+  "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+  "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+];
+const MESES_LARGOS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+// Parse "YYYY-MM-DD" como fecha local para evitar corrimiento por zona horaria.
+function parseLocalDate(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (y && m && d) return new Date(y, m - 1, d);
+  return new Date(iso);
+}
+
+function fechaConDia(iso: string): string {
+  const d = parseLocalDate(iso);
+  return `${DOW[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+function fechaDM(iso: string): string {
+  const d = parseLocalDate(iso);
+  return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+function fechaLarga(iso: string): string {
+  const d = parseLocalDate(iso);
+  return `${DOW[d.getDay()]} ${d.getDate()} de ${MESES_LARGOS[d.getMonth()].toLowerCase()}`;
+}
+
+const MENSAJES_CARGA = [
+  "Contando bulbo por bulbo…",
+  "Ordenando los números, aguanta un toque…",
+  "Juntando la producción, ya casi…",
+  "Buscando los datos donde los dejamos…",
+  "Sacando cuentas, no paniquees…",
+];
+
+function CargandoProduccion({ mensaje }: { mensaje: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="h-1.5 w-56 rounded-full bg-slate-800 overflow-hidden">
+        <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 animate-barra" />
+      </div>
+      <p className="text-sm text-slate-400">{mensaje}</p>
+    </div>
+  );
 }
 
 const RANGE_OPTIONS = [
@@ -186,6 +235,41 @@ export default function ControlOperacionalPage() {
     }));
   }, [produccion]);
 
+  // Mensaje de carga fijo por sesión (sin parpadeo entre refetches)
+  const [mensajeCarga] = useState(
+    () => MENSAJES_CARGA[Math.floor(Math.random() * MENSAJES_CARGA.length)]
+  );
+
+  const isHorario = range === "1h" || range === "today";
+  const isAnual = range === "year";
+
+  // Agregación mensual para el rango "año" (evita 365 puntos)
+  const monthlyData = useMemo(() => {
+    if (!produccion) return [];
+    const m = new Map<number, number>();
+    for (const d of produccion.daily) {
+      const month = parseLocalDate(d.date).getMonth();
+      m.set(month, (m.get(month) ?? 0) + d.count);
+    }
+    return Array.from(m.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([month, count]) => ({ month, count }));
+  }, [produccion]);
+
+  // Datos acumulados por hora (patrón de jornada), reutilizado en ambos modos
+  const hourlyAggData = useMemo(() => {
+    if (!produccion) return [];
+    const hourMap = new Map<number, number>();
+    for (const h of produccion.hourly) {
+      hourMap.set(h.hour, (hourMap.get(h.hour) ?? 0) + h.count);
+    }
+    return Array.from(hourMap.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([hour, count]) => ({ hour, count }));
+  }, [produccion]);
+
+  const dailyChartData = isAnual ? monthlyData : produccion?.daily ?? [];
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -272,23 +356,25 @@ export default function ControlOperacionalPage() {
         </div>
       )}
 
-      {/* Loading */}
-      {loading && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-24 rounded-xl bg-slate-900/40 border border-white/5 animate-pulse"
-              />
-            ))}
-          </div>
-          <div className="h-80 rounded-xl bg-slate-900/40 border border-white/5 animate-pulse" />
+      {/* Primera carga: aún no hay datos previos */}
+      {loading && !produccion && (
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <CargandoProduccion mensaje={mensajeCarga} />
         </div>
       )}
 
-      {produccion && !loading && (
-        <>
+      {produccion && (
+        <div className="relative">
+          {loading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center">
+              <CargandoProduccion mensaje={mensajeCarga} />
+            </div>
+          )}
+          <div
+            className={`space-y-6 transition-opacity duration-200 ${
+              loading ? "opacity-40 pointer-events-none" : "opacity-100"
+            }`}
+          >
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Card className="bg-slate-900/40 border-white/10">
@@ -340,44 +426,107 @@ export default function ControlOperacionalPage() {
             </Card>
           </div>
 
-          {/* Scatter plot: production per hour */}
+          {/* Gráfico principal: detalle por hora (Hoy) o tendencia por día/mes */}
           <Card className="bg-slate-900/40 border-white/10">
             <CardHeader className="pb-2">
               <CardTitle className="text-base text-white">
-                Produccion por hora del dia
+                {isHorario
+                  ? "Producción por hora del día"
+                  : isAnual
+                  ? "Producción por mes"
+                  : "Producción por día"}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {scatterData.length === 0 ? (
+              {isHorario ? (
+                scatterData.length === 0 ? (
+                  <div className="h-[300px] flex items-center justify-center text-slate-500 text-sm">
+                    Sin datos en este periodo
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis
+                        type="number"
+                        dataKey="hour"
+                        domain={[0, 23]}
+                        ticks={Array.from({ length: 24 }, (_, i) => i)}
+                        tick={{ fill: "#64748b", fontSize: 11 }}
+                        tickFormatter={(v) => `${v}:00`}
+                        label={{
+                          value: "Hora",
+                          position: "insideBottomRight",
+                          offset: -5,
+                          fill: "#64748b",
+                          fontSize: 11,
+                        }}
+                      />
+                      <YAxis
+                        type="number"
+                        dataKey="count"
+                        tick={{ fill: "#64748b", fontSize: 11 }}
+                        tickFormatter={(v) => v.toLocaleString("es-CL")}
+                      />
+                      <Tooltip
+                        cursor={{ strokeDasharray: "3 3" }}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const p = payload[0].payload as {
+                            hour: number;
+                            count: number;
+                            date: string;
+                          };
+                          return (
+                            <div className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-xs">
+                              <div className="text-slate-400">
+                                {fechaLarga(p.date)} · {p.hour}:00
+                              </div>
+                              <div className="text-slate-200">
+                                {formatNumber(p.count)} bulbos
+                              </div>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Scatter
+                        data={scatterData}
+                        fill="#06b6d4"
+                        fillOpacity={0.7}
+                        r={5}
+                      />
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                )
+              ) : dailyChartData.length === 0 ? (
                 <div className="h-[300px] flex items-center justify-center text-slate-500 text-sm">
                   Sin datos en este periodo
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={300}>
-                  <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
+                  <BarChart
+                    data={dailyChartData}
+                    margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                     <XAxis
-                      type="number"
-                      dataKey="hour"
-                      domain={[0, 23]}
-                      ticks={Array.from({ length: 24 }, (_, i) => i)}
+                      dataKey={isAnual ? "month" : "date"}
                       tick={{ fill: "#64748b", fontSize: 11 }}
-                      tickFormatter={(v) => `${v}:00`}
-                      label={{
-                        value: "Hora",
-                        position: "insideBottomRight",
-                        offset: -5,
-                        fill: "#64748b",
-                        fontSize: 11,
-                      }}
+                      interval={range === "month" ? 4 : 0}
+                      tickFormatter={(v) =>
+                        isAnual
+                          ? MESES_CORTOS[v as number]
+                          : range === "week"
+                          ? fechaConDia(String(v))
+                          : fechaDM(String(v))
+                      }
                     />
                     <YAxis
-                      type="number"
-                      dataKey="count"
                       tick={{ fill: "#64748b", fontSize: 11 }}
                       tickFormatter={(v) => v.toLocaleString("es-CL")}
                     />
                     <Tooltip
+                      cursor={{ fill: "rgba(255,255,255,0.04)" }}
                       contentStyle={{
                         backgroundColor: "#0f172a",
                         border: "1px solid rgba(255,255,255,0.1)",
@@ -386,152 +535,79 @@ export default function ControlOperacionalPage() {
                       }}
                       labelStyle={{ color: "#94a3b8" }}
                       itemStyle={{ color: "#e2e8f0" }}
-                      formatter={(value: number) => [
-                        formatNumber(value),
-                        "Bulbos",
-                      ]}
-                      labelFormatter={(label) => `${label}:00`}
+                      formatter={(value: number) => [formatNumber(value), "Bulbos"]}
+                      labelFormatter={(label) =>
+                        isAnual
+                          ? MESES_LARGOS[label as number]
+                          : fechaLarga(String(label))
+                      }
                     />
-                    <Scatter
-                      data={scatterData}
+                    <Bar
+                      dataKey="count"
                       fill="#06b6d4"
-                      fillOpacity={0.7}
-                      r={5}
+                      fillOpacity={0.8}
+                      radius={[4, 4, 0, 0]}
                     />
-                  </ScatterChart>
+                  </BarChart>
                 </ResponsiveContainer>
               )}
             </CardContent>
           </Card>
 
-          {/* Secondary charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Daily production line chart */}
-            <Card className="bg-slate-900/40 border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-white">
-                  Produccion diaria
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {produccion.daily.length === 0 ? (
-                  <div className="h-[200px] flex items-center justify-center text-slate-500 text-sm">
-                    Sin datos
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={200}>
-                    <LineChart
-                      data={produccion.daily}
-                      margin={{ top: 5, right: 5, bottom: 5, left: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fill: "#64748b", fontSize: 10 }}
-                        tickFormatter={(v) => {
-                          const d = new Date(v);
-                          return `${d.getDate()}/${d.getMonth() + 1}`;
-                        }}
-                      />
-                      <YAxis
-                        tick={{ fill: "#64748b", fontSize: 10 }}
-                        tickFormatter={(v) => v.toLocaleString("es-CL")}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#0f172a",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          borderRadius: "8px",
-                          fontSize: 12,
-                        }}
-                        labelStyle={{ color: "#94a3b8" }}
-                        itemStyle={{ color: "#e2e8f0" }}
-                        formatter={(value: number) => [
-                          formatNumber(value),
-                          "Bulbos",
-                        ]}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="count"
-                        stroke="#06b6d4"
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: "#06b6d4" }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Heatmap approximation: bar chart grouped by hour */}
-            <Card className="bg-slate-900/40 border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-white">
-                  Produccion acumulada por hora
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {produccion.hourly.length === 0 ? (
-                  <div className="h-[200px] flex items-center justify-center text-slate-500 text-sm">
-                    Sin datos
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart
-                      data={(() => {
-                        // Aggregate by hour across all days
-                        const hourMap = new Map<number, number>();
-                        for (const h of produccion.hourly) {
-                          hourMap.set(
-                            h.hour,
-                            (hourMap.get(h.hour) ?? 0) + h.count
-                          );
-                        }
-                        return Array.from(hourMap.entries())
-                          .sort((a, b) => a[0] - b[0])
-                          .map(([hour, count]) => ({ hour, count }));
-                      })()}
-                      margin={{ top: 5, right: 5, bottom: 5, left: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis
-                        dataKey="hour"
-                        tick={{ fill: "#64748b", fontSize: 10 }}
-                        tickFormatter={(v) => `${v}h`}
-                      />
-                      <YAxis
-                        tick={{ fill: "#64748b", fontSize: 10 }}
-                        tickFormatter={(v) => v.toLocaleString("es-CL")}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#0f172a",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          borderRadius: "8px",
-                          fontSize: 12,
-                        }}
-                        labelStyle={{ color: "#94a3b8" }}
-                        itemStyle={{ color: "#e2e8f0" }}
-                        formatter={(value: number) => [
-                          formatNumber(value),
-                          "Bulbos",
-                        ]}
-                        labelFormatter={(v) => `${v}:00`}
-                      />
-                      <Bar
-                        dataKey="count"
-                        fill="#10b981"
-                        fillOpacity={0.7}
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
+          {/* Secundario: producción acumulada por hora (patrón de jornada) */}
+          <Card className="bg-slate-900/40 border-white/10">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-white">
+                Producción acumulada por hora
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {hourlyAggData.length === 0 ? (
+                <div className="h-[200px] flex items-center justify-center text-slate-500 text-sm">
+                  Sin datos
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart
+                    data={hourlyAggData}
+                    margin={{ top: 5, right: 5, bottom: 5, left: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis
+                      dataKey="hour"
+                      tick={{ fill: "#64748b", fontSize: 10 }}
+                      tickFormatter={(v) => `${v}h`}
+                    />
+                    <YAxis
+                      tick={{ fill: "#64748b", fontSize: 10 }}
+                      tickFormatter={(v) => v.toLocaleString("es-CL")}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                      contentStyle={{
+                        backgroundColor: "#0f172a",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: "8px",
+                        fontSize: 12,
+                      }}
+                      labelStyle={{ color: "#94a3b8" }}
+                      itemStyle={{ color: "#e2e8f0" }}
+                      formatter={(value: number) => [formatNumber(value), "Bulbos"]}
+                      labelFormatter={(v) => `${v}:00`}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="#10b981"
+                      fillOpacity={0.7}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
           </div>
-        </>
+        </div>
       )}
 
       {/* Empty state */}
