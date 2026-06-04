@@ -57,6 +57,9 @@ interface LoteTimelineItem {
 
 interface TimelineSegment {
   loteId: string;
+  codigoLote: string | null;
+  variedadNombre: string | null;
+  subvariedadNombre: string | null;
   start: string;
   end: string;
 }
@@ -429,6 +432,51 @@ export default function ServicioDetailPage() {
     }
   };
 
+  // ── Excel: actividad por lote (un renglón por segmento) ─────────────────────────
+
+  const downloadActivityExcel = () => {
+    if (segments.length === 0) {
+      alert("No hay actividad para exportar en este periodo");
+      return;
+    }
+    const headers = [
+      "Lote",
+      "Variedad",
+      "Subvariedad",
+      "Inicio",
+      "Fin",
+      "Duración (min)",
+    ];
+    const sheetData = [...segments]
+      .sort(
+        (a, b) =>
+          new Date(a.start).getTime() - new Date(b.start).getTime()
+      )
+      .map((s) => ({
+        Lote: s.codigoLote?.trim() || "Sin código",
+        Variedad: s.variedadNombre ?? "",
+        Subvariedad: s.subvariedadNombre ?? "",
+        Inicio: format(new Date(s.start), "yyyy-MM-dd HH:mm"),
+        Fin: format(new Date(s.end), "yyyy-MM-dd HH:mm"),
+        "Duración (min)": Math.round(
+          (new Date(s.end).getTime() - new Date(s.start).getTime()) / 60000
+        ),
+      }));
+
+    const ws = XLSX.utils.aoa_to_sheet([headers]);
+    XLSX.utils.sheet_add_json(ws, sheetData, {
+      header: headers,
+      skipHeader: true,
+      origin: "A2",
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Actividad por lote");
+    XLSX.writeFile(
+      wb,
+      `actividad_lotes_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`
+    );
+  };
+
   // ── Render states ─────────────────────────────────────────────────────────────
 
   if (loadingDetail) {
@@ -734,6 +782,13 @@ export default function ServicioDetailPage() {
                 </select>
               </label>
               <DatePickerWithRange value={dateRange} onChange={setDateRange} />
+              <button
+                onClick={downloadActivityExcel}
+                disabled={loadingSegments || segments.length === 0}
+                className="px-3 py-1.5 bg-slate-800/60 text-slate-300 border border-white/10 rounded-md hover:bg-slate-800 transition-colors text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Descargar Excel
+              </button>
             </div>
           </div>
         </CardHeader>

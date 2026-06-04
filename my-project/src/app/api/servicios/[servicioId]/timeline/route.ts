@@ -89,20 +89,32 @@ export async function GET(
         ) nxt
         WHERE nxt.m IS NOT NULL
       )
-      SELECT lote AS "loteId",
-             seg_start AS "start",
-             max(cur) + interval '1 minute' AS "end"
-      FROM walk
-      GROUP BY lote, seg_start
+      SELECT w.lote AS "loteId",
+             l.codigo_lote AS "codigoLote",
+             v.nombre AS "variedadNombre",
+             sv.nombre AS "subvariedadNombre",
+             w.seg_start AS "start",
+             max(w.cur) + interval '1 minute' AS "end"
+      FROM walk w
+      JOIN lote l ON l.id = w.lote
+      LEFT JOIN variedad v ON v.id = l.variedad_id
+      LEFT JOIN subvariedad sv ON sv.id = l.subvariedad_id
+      GROUP BY w.lote, l.codigo_lote, v.nombre, sv.nombre, w.seg_start
       ORDER BY "start" ASC
     `)) as unknown as Array<{
       loteId: string;
+      codigoLote: string | null;
+      variedadNombre: string | null;
+      subvariedadNombre: string | null;
       start: Date | string;
       end: Date | string;
     }>;
 
     const segments = rows.map((r) => ({
       loteId: r.loteId,
+      codigoLote: r.codigoLote,
+      variedadNombre: r.variedadNombre,
+      subvariedadNombre: r.subvariedadNombre,
       start: new Date(r.start).toISOString(),
       end: new Date(r.end).toISOString(),
     }));
