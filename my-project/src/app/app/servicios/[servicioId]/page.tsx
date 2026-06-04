@@ -9,8 +9,8 @@ import { startOfDay, endOfDay, format } from "date-fns";
 import { Check, Layers, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -51,6 +51,15 @@ interface RecentLote {
   createdAt: string | null;
 }
 
+interface LoteTimelineItem {
+  id: string;
+  codigoLote: string | null;
+  variedadNombre: string | null;
+  firstTs: string | null;
+  lastTs: string | null;
+  totalCount: number;
+}
+
 interface Lote {
   id: string;
   codigoLote?: string | null;
@@ -73,11 +82,7 @@ interface ServicioDetail {
   activeLote: ActiveLote | null;
   devices: Device[];
   recentLotes: RecentLote[];
-}
-
-interface ConteoRecord {
-  timestamp: string;
-  [key: string]: unknown;
+  loteTimeline: LoteTimelineItem[];
 }
 
 interface ExportCalibreRange {
@@ -157,13 +162,7 @@ export default function ServicioDetailPage() {
   const [changingLote, setChangingLote] = useState(false);
   const [loteActionError, setLoteActionError] = useState<string | null>(null);
 
-  const [conteos, setConteos] = useState<ConteoRecord[]>([]);
-  const [loadingConteos, setLoadingConteos] = useState(true);
-
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: new Date(),
-    to: new Date(),
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   // ── Fetch detail ─────────────────────────────────────────────────────────────
 
@@ -205,52 +204,50 @@ export default function ServicioDetailPage() {
       .finally(() => setLoadingLotes(false));
   }, [servicioId]);
 
-  // ── Fetch conteos for chart ───────────────────────────────────────────────────
+  // ── Gantt timeline data ───────────────────────────────────────────────────────
 
+  // Default the date range to the full span of processed activity
   useEffect(() => {
-    if (!servicioId) return;
-    setLoadingConteos(true);
-    fetch(`/api/conteos?servicioId=${servicioId}&limit=5000`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error al cargar conteos");
-        return res.json();
-      })
-      .then((data: ConteoRecord[]) => setConteos(data))
-      .catch(() => setConteos([]))
-      .finally(() => setLoadingConteos(false));
-  }, [servicioId]);
-
-  // ── Volume chart data ─────────────────────────────────────────────────────────
-
-  const filteredConteos = useMemo(() => {
-    if (!dateRange?.from || !dateRange.to) return [];
-    const start = startOfDay(dateRange.from);
-    const end = endOfDay(dateRange.to);
-    return conteos.filter((r) => {
-      const d = new Date(r.timestamp);
-      return d >= start && d <= end;
+    if (!detail || dateRange) return;
+    const timeline = detail.loteTimeline;
+    if (timeline.length === 0) return;
+    let min = Infinity;
+    let max = -Infinity;
+    timeline.forEach((l) => {
+      if (l.firstTs) min = Math.min(min, new Date(l.firstTs).getTime());
+      if (l.lastTs) max = Math.max(max, new Date(l.lastTs).getTime());
     });
-  }, [conteos, dateRange]);
+    if (min !== Infinity && max !== -Infinity) {
+      setDateRange({ from: new Date(min), to: new Date(max) });
+    }
+  }, [detail, dateRange]);
 
-  const volumeData = useMemo(() => {
-    const map = new Map<number, number>();
-    filteredConteos.forEach((r) => {
-      const d = new Date(r.timestamp);
-      d.setMinutes(0, 0, 0);
-      const key = d.getTime();
-      map.set(key, (map.get(key) ?? 0) + 1);
-    });
-    return Array.from(map.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([time, count]) => ({
-        hora: new Date(time).toLocaleString("es-CL", {
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-        }),
-        volumen: count,
-      }));
-  }, [filteredConteos]);
+  const ganttData = useMemo(() => {
+    if (!detail) return [];
+    const start = dateRange?.from ? startOfDay(dateRange.from).getTime() : -Infinity;
+    const end = dateRange?.to ? endOfDay(dateRange.to).getTime() : Infinity;
+    return detail.loteTimeline
+      .filter((l) => l.firstTs && l.lastTs)
+      .map((l) => ({
+        nombre: l.codigoLote?.trim() || "Sin código",
+        rango: [
+          new Date(l.firstTs as string).getTime(),
+          new Date(l.lastTs as string).getTime(),
+        ] as [number, number],
+        totalCount: l.totalCount,
+      }))
+      .filter((l) => l.rango[1] >= start && l.rango[0] <= end);
+  }, [detail, dateRange]);
+
+  const ganttDomain = useMemo<[number, number]>(() => {
+    const from = dateRange?.from ? startOfDay(dateRange.from).getTime() : null;
+    const to = dateRange?.to ? endOfDay(dateRange.to).getTime() : null;
+    if (from !== null && to !== null) return [from, to];
+    if (ganttData.length === 0) return [0, 0];
+    const min = Math.min(...ganttData.map((d) => d.rango[0]));
+    const max = Math.max(...ganttData.map((d) => d.rango[1]));
+    return [min, max];
+  }, [dateRange, ganttData]);
 
   const filteredLotes = useMemo(() => {
     const term = loteSearch.toLowerCase().trim();
@@ -650,52 +647,65 @@ export default function ServicioDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Volume Chart ── */}
+      {/* ── Lote Timeline (Gantt) ── */}
       <Card className="bg-slate-900/40 border-white/10">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle className="text-lg font-semibold text-white">
-              Volumen por hora
+              Línea temporal de lotes
             </CardTitle>
             <DatePickerWithRange value={dateRange} onChange={setDateRange} />
           </div>
         </CardHeader>
         <CardContent>
-          {loadingConteos ? (
+          {loadingDetail ? (
             <p className="text-center text-slate-500 py-12">Cargando datos...</p>
-          ) : volumeData.length === 0 ? (
+          ) : ganttData.length === 0 ? (
             <p className="text-center text-slate-500 py-12">
-              No hay datos registrados para este periodo
+              No hay lotes procesados en este periodo
             </p>
           ) : (
-            <div className="w-full h-64">
+            <div className="w-full" style={{ height: Math.max(160, ganttData.length * 44 + 48) }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={volumeData}>
+                <BarChart
+                  data={ganttData}
+                  layout="vertical"
+                  margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis
-                    dataKey="hora"
+                    type="number"
+                    domain={ganttDomain}
+                    scale="time"
                     stroke="#94a3b8"
-                    tick={{ fill: "#94a3b8" }}
+                    tick={{ fill: "#94a3b8", fontSize: 12 }}
+                    tickFormatter={(ms: number) => format(new Date(ms), "dd/MM HH:mm")}
                   />
-                  <YAxis stroke="#94a3b8" tick={{ fill: "#94a3b8" }} />
+                  <YAxis
+                    type="category"
+                    dataKey="nombre"
+                    width={110}
+                    stroke="#94a3b8"
+                    tick={{ fill: "#94a3b8", fontSize: 12 }}
+                  />
                   <Tooltip
+                    cursor={{ fill: "rgba(255,255,255,0.05)" }}
                     contentStyle={{
-                      backgroundColor: "rgba(15, 23, 42, 0.9)",
+                      backgroundColor: "rgba(15, 23, 42, 0.95)",
                       borderColor: "rgba(255,255,255,0.1)",
                       borderRadius: "8px",
                       color: "#f8fafc",
                     }}
-                    itemStyle={{ color: "#22d3ee" }}
+                    formatter={(value: [number, number], _name, item) => {
+                      const total = (item?.payload as { totalCount?: number })?.totalCount ?? 0;
+                      return [
+                        `${format(new Date(value[0]), "dd/MM/yyyy HH:mm")} → ${format(new Date(value[1]), "dd/MM/yyyy HH:mm")} · ${total.toLocaleString("es-CL")} conteos`,
+                        "Procesado",
+                      ];
+                    }}
                   />
-                  <Line
-                    type="monotone"
-                    dataKey="volumen"
-                    stroke="#22d3ee"
-                    strokeWidth={3}
-                    dot={{ fill: "#0f172a", stroke: "#22d3ee", strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, fill: "#22d3ee", stroke: "#fff", strokeWidth: 2 }}
-                  />
-                </LineChart>
+                  <Bar dataKey="rango" fill="#22d3ee" radius={[4, 4, 4, 4]} barSize={20} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           )}
@@ -719,7 +729,7 @@ export default function ServicioDetailPage() {
         </CardHeader>
         <CardContent>
           {detail.recentLotes.length === 0 ? (
-            <p className="text-slate-500 text-sm">No hay lotes registrados.</p>
+            <p className="text-slate-500 text-sm">Aún no hay lotes con conteos.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

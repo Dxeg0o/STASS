@@ -14,7 +14,7 @@ import {
   proceso,
   tipoProceso,
 } from "@/db/schema";
-import { eq, and, isNotNull, isNull, sql, desc, inArray } from "drizzle-orm";
+import { eq, and, isNotNull, isNull, sql, inArray } from "drizzle-orm";
 
 export async function GET(
   request: Request,
@@ -108,8 +108,44 @@ export async function GET(
       .leftJoin(producto, eq(producto.id, variedad.productoId))
       .where(inArray(lote.id, loteIds))
       .groupBy(lote.id, lote.codigoLote, lote.createdAt, variedad.nombre, subvariedad.nombre, producto.nombre)
-      .orderBy(desc(lote.createdAt))
+      .having(sql`MAX(${loteTotalStats.lastTs}) IS NOT NULL`)
+      .orderBy(sql`MAX(${loteTotalStats.lastTs}) DESC NULLS LAST`)
       .limit(10);
+  }
+
+  // 3b. Build Gantt timeline for all processed lotes in this servicio
+  let timelineRows: {
+    id: string;
+    codigoLote: string | null;
+    variedadNombre: string | null;
+    firstTs: Date | null;
+    lastTs: Date | null;
+    totalCount: number;
+  }[] = [];
+
+  if (loteIds.length > 0) {
+    timelineRows = await db
+      .select({
+        id: lote.id,
+        codigoLote: lote.codigoLote,
+        variedadNombre: variedad.nombre,
+        firstTs: sql<Date | null>`MIN(${loteTotalStats.firstTs})`,
+        lastTs: sql<Date | null>`MAX(${loteTotalStats.lastTs})`,
+        totalCount: sql<number>`COALESCE(SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut}), 0)::int`,
+      })
+      .from(lote)
+      .innerJoin(
+        loteTotalStats,
+        and(
+          eq(loteTotalStats.loteId, lote.id),
+          eq(loteTotalStats.servicioId, servicioId)
+        )
+      )
+      .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+      .where(inArray(lote.id, loteIds))
+      .groupBy(lote.id, lote.codigoLote, variedad.nombre)
+      .having(sql`MIN(${loteTotalStats.firstTs}) IS NOT NULL`)
+      .orderBy(sql`MIN(${loteTotalStats.firstTs}) ASC`);
   }
 
   // 4. Get active loteSession for this servicio's lotes
@@ -187,6 +223,14 @@ export async function GET(
       subvariedadNombre: l.subvariedadNombre ?? null,
       productoNombre: l.productoNombre ?? null,
       createdAt: l.createdAt ? new Date(l.createdAt).toISOString() : null,
+    })),
+    loteTimeline: timelineRows.map((l) => ({
+      id: l.id,
+      codigoLote: l.codigoLote,
+      variedadNombre: l.variedadNombre ?? null,
+      firstTs: l.firstTs ? new Date(l.firstTs).toISOString() : null,
+      lastTs: l.lastTs ? new Date(l.lastTs).toISOString() : null,
+      totalCount: l.totalCount,
     })),
   });
 }
