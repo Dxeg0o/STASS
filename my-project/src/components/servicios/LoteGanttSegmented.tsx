@@ -6,6 +6,9 @@ import { format } from "date-fns";
 export interface GanttSegment {
   start: number; // epoch ms
   end: number; // epoch ms
+  conflict?: boolean; // solapamiento detectado (>1 min)
+  ongoing?: boolean; // sesión en curso (sin fin)
+  label?: string; // texto extra para el tooltip (ej. dispositivo)
 }
 
 export interface GanttRow {
@@ -115,7 +118,11 @@ export function LoteGanttSegmented({
                 return (
                   <div
                     key={i}
-                    className="absolute top-1/2 -translate-y-1/2 rounded-[3px] bg-cyan-400 hover:bg-cyan-300 transition-colors cursor-pointer"
+                    className={`absolute top-1/2 -translate-y-1/2 rounded-[3px] transition-colors cursor-pointer ${
+                      seg.conflict
+                        ? "bg-red-500 hover:bg-red-400 ring-1 ring-red-300"
+                        : "bg-cyan-400 hover:bg-cyan-300"
+                    } ${seg.ongoing ? "opacity-70 [background-image:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(255,255,255,0.25)_4px,rgba(255,255,255,0.25)_8px)]" : ""}`}
                     style={{
                       left: `${left}%`,
                       width: `max(${MIN_SEG_PX}px, ${rawW}%)`,
@@ -152,14 +159,22 @@ export function LoteGanttSegmented({
             top: hover.y + 12,
           }}
         >
-          <div className="font-semibold text-cyan-300">{hover.nombre}</div>
+          <div className={`font-semibold ${hover.seg.conflict ? "text-red-300" : "text-cyan-300"}`}>
+            {hover.nombre}
+          </div>
           <div className="text-slate-300">
             {format(new Date(hover.seg.start), "dd/MM/yyyy HH:mm")} →{" "}
-            {format(new Date(hover.seg.end), "dd/MM/yyyy HH:mm")}
+            {hover.seg.ongoing
+              ? "en curso"
+              : format(new Date(hover.seg.end), "dd/MM/yyyy HH:mm")}
           </div>
           <div className="text-slate-400">
             Duración: {fmtDur(hover.seg.end - hover.seg.start)}
+            {hover.seg.label ? ` · ${hover.seg.label}` : ""}
           </div>
+          {hover.seg.conflict && (
+            <div className="mt-1 text-red-300">⚠ Solapamiento detectado</div>
+          )}
         </div>
       )}
     </div>

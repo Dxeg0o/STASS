@@ -3,23 +3,22 @@ import { db } from "@/db";
 import { sql } from "drizzle-orm";
 
 /**
- * Segmentos de actividad real por lote para la línea temporal (Gantt).
+ * Línea temporal de lotes (Gantt) basada en SESIONES de lote (lote_session).
  *
- * A diferencia de /detail (que devuelve una sola barra MIN(first_ts)→MAX(last_ts)
- * y por eso "rellena" los huecos muertos generando solapamientos visuales), este
- * endpoint reconstruye los bloques contiguos de actividad real cortando cada vez
- * que hay un hueco mayor a `gap` minutos.
+ * Cada fila/segmento es una sesión: el periodo en que un lote estuvo asignado
+ * como activo en un dispositivo (start_time → end_time). Una sesión sin
+ * end_time está en curso (se dibuja hasta "ahora").
  *
- * Implementación: NO usa tablas materializadas. Hace un "loose index scan"
- * recursivo sobre `conteo` apoyado en el índice idx_conteo_lote (lote_id, ts):
- * salta de actividad en actividad de a `gap` minutos en lugar de leer las
- * millones de filas del servicio. La lista de lotes con actividad sale de
- * `lote_total_stats` (ya agregada, sin escanear conteo). Para el servicio más
- * cargado (25M de conteos) corre en ~25 ms.
+ * El alcance al servicio se hace por la existencia de la combinación
+ * (lote, servicio, dispositivo) en lote_total_stats, que es la prueba de que
+ * ese lote+dispositivo realmente operó en este servicio.
  *
- * Query params:
- *   - from / to : ISO timestamps para acotar el rango (opcional).
- *   - gap       : minutos de inactividad que separan dos segmentos (default 10).
+ * Detección de solapamientos: en un mismo dispositivo no puede haber dos lotes
+ * activos a la vez, así que cualquier traslape > 1 min entre sesiones es una
+ * anomalía. El cliente la marca en rojo y muestra una alerta; aquí solo se
+ * entregan las sesiones ordenadas por inicio.
+ *
+ * Query params: from / to (ISO) para acotar el rango (opcional).
  */
 export async function GET(
   request: Request,
@@ -27,103 +26,64 @@ export async function GET(
 ) {
   const { servicioId } = await params;
   const { searchParams } = new URL(request.url);
-
   const from = searchParams.get("from");
   const to = searchParams.get("to");
-  const gapMinRaw = Number(searchParams.get("gap"));
-  const gapMin =
-    Number.isFinite(gapMinRaw) && gapMinRaw > 0
-      ? Math.min(240, Math.max(1, Math.round(gapMinRaw)))
-      : 10;
-
-  // Filtros de rango reutilizables (se aplican a cada sub-scan de conteo)
-  const fromSeed = from ? sql`AND ts >= ${from}` : sql``;
-  const toSeed = to ? sql`AND ts <= ${to}` : sql``;
 
   try {
     const rows = (await db.execute(sql`
-      WITH RECURSIVE
-      params AS (
-        SELECT ${servicioId}::uuid AS svc,
-               (${gapMin} * interval '1 minute') AS gap
-      ),
-      cand AS (
-        SELECT DISTINCT lts.lote_id AS lote
-        FROM lote_total_stats lts, params p
-        WHERE lts.servicio_id = p.svc
-          AND lts.first_ts IS NOT NULL
-          ${to ? sql`AND lts.first_ts <= ${to}` : sql``}
-          ${from ? sql`AND lts.last_ts >= ${from}` : sql``}
-      ),
-      seed AS (
-        SELECT c.lote, x.m AS cur, x.m AS seg_start
-        FROM cand c, params p
-        CROSS JOIN LATERAL (
-          SELECT date_trunc('minute', min(ts)) AS m
-          FROM conteo
-          WHERE lote_id = c.lote AND servicio_id = p.svc
-            ${fromSeed} ${toSeed}
-        ) x
-        WHERE x.m IS NOT NULL
-      ),
-      walk AS (
-        SELECT lote, cur, seg_start FROM seed
-        UNION ALL
-        SELECT w.lote, nxt.m,
-               CASE WHEN nxt.gap_found THEN nxt.m ELSE w.seg_start END
-        FROM walk w, params p
-        CROSS JOIN LATERAL (
-          SELECT COALESCE(inwin.mx, after.mn) AS m, (inwin.mx IS NULL) AS gap_found
-          FROM
-            (SELECT date_trunc('minute', max(ts)) AS mx
-             FROM conteo
-             WHERE lote_id = w.lote AND servicio_id = p.svc
-               AND ts >  w.cur + interval '1 minute'
-               AND ts <= w.cur + p.gap + interval '1 minute'
-               ${toSeed}) inwin,
-            (SELECT date_trunc('minute', min(ts)) AS mn
-             FROM conteo
-             WHERE lote_id = w.lote AND servicio_id = p.svc
-               AND ts > w.cur + p.gap + interval '1 minute'
-               ${toSeed}) after
-        ) nxt
-        WHERE nxt.m IS NOT NULL
-      )
-      SELECT w.lote AS "loteId",
-             l.codigo_lote AS "codigoLote",
-             v.nombre AS "variedadNombre",
-             sv.nombre AS "subvariedadNombre",
-             w.seg_start AS "start",
-             max(w.cur) + interval '1 minute' AS "end"
-      FROM walk w
-      JOIN lote l ON l.id = w.lote
+      SELECT
+        ls.id                AS "sessionId",
+        ls.lote_id           AS "loteId",
+        l.codigo_lote        AS "codigoLote",
+        v.nombre             AS "variedadNombre",
+        sv.nombre            AS "subvariedadNombre",
+        ls.dispositivo_id    AS "dispositivoId",
+        d.nombre             AS "dispositivoNombre",
+        ls.start_time        AS "start",
+        ls.end_time          AS "end"
+      FROM lote_session ls
+      JOIN lote l ON l.id = ls.lote_id
       LEFT JOIN variedad v ON v.id = l.variedad_id
       LEFT JOIN subvariedad sv ON sv.id = l.subvariedad_id
-      GROUP BY w.lote, l.codigo_lote, v.nombre, sv.nombre, w.seg_start
-      ORDER BY "start" ASC
+      LEFT JOIN dispositivo d ON d.id = ls.dispositivo_id
+      WHERE EXISTS (
+        SELECT 1 FROM lote_total_stats lts
+        WHERE lts.servicio_id = ${servicioId}::uuid
+          AND lts.lote_id = ls.lote_id
+          AND lts.dispositivo_id = ls.dispositivo_id
+      )
+      ${to ? sql`AND ls.start_time <= ${to}` : sql``}
+      ${from ? sql`AND COALESCE(ls.end_time, now()) >= ${from}` : sql``}
+      ORDER BY ls.start_time ASC
     `)) as unknown as Array<{
+      sessionId: string;
       loteId: string;
       codigoLote: string | null;
       variedadNombre: string | null;
       subvariedadNombre: string | null;
+      dispositivoId: string | null;
+      dispositivoNombre: string | null;
       start: Date | string;
-      end: Date | string;
+      end: Date | string | null;
     }>;
 
-    const segments = rows.map((r) => ({
+    const sessions = rows.map((r) => ({
+      sessionId: r.sessionId,
       loteId: r.loteId,
       codigoLote: r.codigoLote,
       variedadNombre: r.variedadNombre,
       subvariedadNombre: r.subvariedadNombre,
+      dispositivoId: r.dispositivoId,
+      dispositivoNombre: r.dispositivoNombre,
       start: new Date(r.start).toISOString(),
-      end: new Date(r.end).toISOString(),
+      end: r.end ? new Date(r.end).toISOString() : null,
     }));
 
-    return NextResponse.json({ gapMin, segments });
+    return NextResponse.json({ sessions });
   } catch (err) {
     console.error("[timeline] error", err);
     return NextResponse.json(
-      { error: "Error al calcular segmentos de actividad" },
+      { error: "Error al cargar la línea temporal" },
       { status: 500 }
     );
   }

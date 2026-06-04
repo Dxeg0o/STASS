@@ -55,13 +55,29 @@ interface LoteTimelineItem {
   totalCount: number;
 }
 
-interface TimelineSegment {
+interface TimelineSession {
+  sessionId: string;
   loteId: string;
   codigoLote: string | null;
   variedadNombre: string | null;
   subvariedadNombre: string | null;
+  dispositivoId: string | null;
+  dispositivoNombre: string | null;
   start: string;
-  end: string;
+  end: string | null; // null = en curso
+}
+
+interface SessionResolved extends TimelineSession {
+  startMs: number;
+  endMs: number;
+  ongoing: boolean;
+}
+
+interface OverlapPair {
+  a: SessionResolved;
+  b: SessionResolved;
+  overlapMs: number;
+  sameDevice: boolean;
 }
 
 interface Lote {
@@ -168,10 +184,12 @@ export default function ServicioDetailPage() {
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
-  // Segmentos de actividad real (gaps-and-islands sobre conteo)
-  const [segments, setSegments] = useState<TimelineSegment[]>([]);
+  // Sesiones de lote (lote_session) para la línea temporal
+  const [sessions, setSessions] = useState<TimelineSession[]>([]);
   const [loadingSegments, setLoadingSegments] = useState(false);
-  const [gapMin, setGapMin] = useState(10);
+
+  // Umbral de solapamiento considerado anómalo
+  const OVERLAP_THRESHOLD_MS = 60_000; // 1 minuto
 
   // ── Fetch detail ─────────────────────────────────────────────────────────────
 
@@ -231,37 +249,10 @@ export default function ServicioDetailPage() {
     }
   }, [detail, dateRange]);
 
-  const ganttData = useMemo(() => {
-    if (!detail) return [];
-    const start = dateRange?.from ? startOfDay(dateRange.from).getTime() : -Infinity;
-    const end = dateRange?.to ? endOfDay(dateRange.to).getTime() : Infinity;
-    return detail.loteTimeline
-      .filter((l) => l.firstTs && l.lastTs)
-      .map((l) => ({
-        nombre: l.codigoLote?.trim() || "Sin código",
-        rango: [
-          new Date(l.firstTs as string).getTime(),
-          new Date(l.lastTs as string).getTime(),
-        ] as [number, number],
-        totalCount: l.totalCount,
-      }))
-      .filter((l) => l.rango[1] >= start && l.rango[0] <= end);
-  }, [detail, dateRange]);
-
-  const ganttDomain = useMemo<[number, number]>(() => {
-    const from = dateRange?.from ? startOfDay(dateRange.from).getTime() : null;
-    const to = dateRange?.to ? endOfDay(dateRange.to).getTime() : null;
-    if (from !== null && to !== null) return [from, to];
-    if (ganttData.length === 0) return [0, 0];
-    const min = Math.min(...ganttData.map((d) => d.rango[0]));
-    const max = Math.max(...ganttData.map((d) => d.rango[1]));
-    return [min, max];
-  }, [dateRange, ganttData]);
-
-  // Trae los segmentos de actividad real cuando cambia el servicio, el rango o el gap
+  // Trae las sesiones de lote cuando cambia el servicio o el rango
   useEffect(() => {
     if (!servicioId || !detail) return;
-    const qs = new URLSearchParams({ gap: String(gapMin) });
+    const qs = new URLSearchParams();
     if (dateRange?.from) qs.set("from", startOfDay(dateRange.from).toISOString());
     if (dateRange?.to) qs.set("to", endOfDay(dateRange.to).toISOString());
 
@@ -269,15 +260,15 @@ export default function ServicioDetailPage() {
     setLoadingSegments(true);
     fetch(`/api/servicios/${servicioId}/timeline?${qs.toString()}`)
       .then((res) => {
-        if (!res.ok) throw new Error("Error al cargar segmentos");
+        if (!res.ok) throw new Error("Error al cargar la línea temporal");
         return res.json();
       })
-      .then((data: { segments: TimelineSegment[] }) => {
-        if (!cancelled) setSegments(data.segments ?? []);
+      .then((data: { sessions: TimelineSession[] }) => {
+        if (!cancelled) setSessions(data.sessions ?? []);
       })
       .catch((err) => {
         console.error(err);
-        if (!cancelled) setSegments([]);
+        if (!cancelled) setSessions([]);
       })
       .finally(() => {
         if (!cancelled) setLoadingSegments(false);
@@ -285,32 +276,80 @@ export default function ServicioDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [servicioId, detail, dateRange, gapMin]);
+  }, [servicioId, detail, dateRange]);
 
-  // Filas del Gantt: una por lote (orden del timeline) con sus segmentos reales
-  const ganttRows = useMemo<GanttRow[]>(() => {
-    if (!detail) return [];
-    const start = dateRange?.from ? startOfDay(dateRange.from).getTime() : -Infinity;
-    const end = dateRange?.to ? endOfDay(dateRange.to).getTime() : Infinity;
-
-    const byLote = new Map<string, GanttRow["segments"]>();
-    for (const s of segments) {
-      const a = new Date(s.start).getTime();
-      const b = new Date(s.end).getTime();
-      if (b < start || a > end) continue; // fuera del rango visible
-      if (!byLote.has(s.loteId)) byLote.set(s.loteId, []);
-      byLote.get(s.loteId)!.push({ start: a, end: b });
-    }
-
-    return detail.loteTimeline
-      .map((l) => ({
-        id: l.id,
-        nombre: l.codigoLote?.trim() || "Sin código",
-        totalCount: l.totalCount,
-        segments: byLote.get(l.id) ?? [],
+  // Sesiones acotadas al rango visible, con start/end resueltos a epoch ms
+  const visibleSessions = useMemo(() => {
+    const lo = dateRange?.from ? startOfDay(dateRange.from).getTime() : -Infinity;
+    const hi = dateRange?.to ? endOfDay(dateRange.to).getTime() : Infinity;
+    const nowMs = Date.now();
+    return sessions
+      .map((s) => ({
+        ...s,
+        startMs: new Date(s.start).getTime(),
+        endMs: s.end ? new Date(s.end).getTime() : nowMs,
+        ongoing: s.end === null,
       }))
-      .filter((r) => r.segments.length > 0);
-  }, [detail, segments, dateRange]);
+      .filter((s) => s.endMs >= lo && s.startMs <= hi);
+  }, [sessions, dateRange]);
+
+  // Detección de solapamientos > 1 min entre sesiones (anomalía)
+  const { overlaps, conflictedIds } = useMemo(() => {
+    const pairs: OverlapPair[] = [];
+    const ids = new Set<string>();
+    const arr = [...visibleSessions].sort((a, b) => a.startMs - b.startMs);
+    for (let i = 0; i < arr.length; i++) {
+      for (let j = i + 1; j < arr.length; j++) {
+        if (arr[j].startMs >= arr[i].endMs) break; // ordenadas: no habrá más traslapes con i
+        const overlapMs =
+          Math.min(arr[i].endMs, arr[j].endMs) - arr[j].startMs;
+        if (overlapMs > OVERLAP_THRESHOLD_MS) {
+          pairs.push({
+            a: arr[i],
+            b: arr[j],
+            overlapMs,
+            sameDevice: arr[i].dispositivoId === arr[j].dispositivoId,
+          });
+          ids.add(arr[i].sessionId);
+          ids.add(arr[j].sessionId);
+        }
+      }
+    }
+    return { overlaps: pairs, conflictedIds: ids };
+  }, [visibleSessions]);
+
+  const ganttDomain = useMemo<[number, number]>(() => {
+    const from = dateRange?.from ? startOfDay(dateRange.from).getTime() : null;
+    const to = dateRange?.to ? endOfDay(dateRange.to).getTime() : null;
+    if (from !== null && to !== null) return [from, to];
+    if (visibleSessions.length === 0) return [0, 0];
+    const min = Math.min(...visibleSessions.map((s) => s.startMs));
+    const max = Math.max(...visibleSessions.map((s) => s.endMs));
+    return [min, max];
+  }, [dateRange, visibleSessions]);
+
+  // Filas del Gantt: una por lote, con cada sesión como un segmento
+  const ganttRows = useMemo<GanttRow[]>(() => {
+    const byLote = new Map<string, { nombre: string; segments: GanttRow["segments"] }>();
+    for (const s of visibleSessions) {
+      const nombre = s.codigoLote?.trim() || "Sin código";
+      if (!byLote.has(s.loteId)) byLote.set(s.loteId, { nombre, segments: [] });
+      byLote.get(s.loteId)!.segments.push({
+        start: s.startMs,
+        end: s.endMs,
+        ongoing: s.ongoing,
+        conflict: conflictedIds.has(s.sessionId),
+        label: s.dispositivoNombre ?? undefined,
+      });
+    }
+    return Array.from(byLote.entries())
+      .map(([id, v]) => ({ id, nombre: v.nombre, totalCount: 0, segments: v.segments }))
+      .sort((a, b) => {
+        const am = Math.min(...a.segments.map((s) => s.start));
+        const bm = Math.min(...b.segments.map((s) => s.start));
+        return am - bm;
+      });
+  }, [visibleSessions, conflictedIds]);
 
   const filteredLotes = useMemo(() => {
     const term = loteSearch.toLowerCase().trim();
@@ -432,10 +471,10 @@ export default function ServicioDetailPage() {
     }
   };
 
-  // ── Excel: actividad por lote (un renglón por segmento) ─────────────────────────
+  // ── Excel: actividad por lote (un renglón por sesión de lote_session) ────────────
 
   const downloadActivityExcel = () => {
-    if (segments.length === 0) {
+    if (visibleSessions.length === 0) {
       alert("No hay actividad para exportar en este periodo");
       return;
     }
@@ -443,24 +482,23 @@ export default function ServicioDetailPage() {
       "Lote",
       "Variedad",
       "Subvariedad",
+      "Dispositivo",
       "Inicio",
       "Fin",
       "Duración (min)",
+      "Solapamiento",
     ];
-    const sheetData = [...segments]
-      .sort(
-        (a, b) =>
-          new Date(a.start).getTime() - new Date(b.start).getTime()
-      )
+    const sheetData = [...visibleSessions]
+      .sort((a, b) => a.startMs - b.startMs)
       .map((s) => ({
         Lote: s.codigoLote?.trim() || "Sin código",
         Variedad: s.variedadNombre ?? "",
         Subvariedad: s.subvariedadNombre ?? "",
-        Inicio: format(new Date(s.start), "yyyy-MM-dd HH:mm"),
-        Fin: format(new Date(s.end), "yyyy-MM-dd HH:mm"),
-        "Duración (min)": Math.round(
-          (new Date(s.end).getTime() - new Date(s.start).getTime()) / 60000
-        ),
+        Dispositivo: s.dispositivoNombre ?? "",
+        Inicio: format(new Date(s.startMs), "yyyy-MM-dd HH:mm"),
+        Fin: s.ongoing ? "En curso" : format(new Date(s.endMs), "yyyy-MM-dd HH:mm"),
+        "Duración (min)": Math.round((s.endMs - s.startMs) / 60000),
+        Solapamiento: conflictedIds.has(s.sessionId) ? "SÍ" : "No",
       }));
 
     const ws = XLSX.utils.aoa_to_sheet([headers]);
@@ -471,6 +509,42 @@ export default function ServicioDetailPage() {
     });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Actividad por lote");
+
+    // Hoja extra con el detalle de los solapamientos detectados
+    if (overlaps.length > 0) {
+      const ovHeaders = [
+        "Lote A",
+        "Lote B",
+        "Desde",
+        "Hasta",
+        "Solapamiento (min)",
+        "Dispositivo",
+        "Mismo dispositivo",
+      ];
+      const ovData = overlaps.map((o) => {
+        const desde = Math.max(o.a.startMs, o.b.startMs);
+        const hasta = Math.min(o.a.endMs, o.b.endMs);
+        return {
+          "Lote A": o.a.codigoLote?.trim() || "Sin código",
+          "Lote B": o.b.codigoLote?.trim() || "Sin código",
+          Desde: format(new Date(desde), "yyyy-MM-dd HH:mm"),
+          Hasta: format(new Date(hasta), "yyyy-MM-dd HH:mm"),
+          "Solapamiento (min)": Math.round(o.overlapMs / 60000),
+          Dispositivo: o.sameDevice
+            ? o.a.dispositivoNombre ?? ""
+            : `${o.a.dispositivoNombre ?? "?"} / ${o.b.dispositivoNombre ?? "?"}`,
+          "Mismo dispositivo": o.sameDevice ? "SÍ" : "No",
+        };
+      });
+      const ovWs = XLSX.utils.aoa_to_sheet([ovHeaders]);
+      XLSX.utils.sheet_add_json(ovWs, ovData, {
+        header: ovHeaders,
+        skipHeader: true,
+        origin: "A2",
+      });
+      XLSX.utils.book_append_sheet(wb, ovWs, "Solapamientos");
+    }
+
     XLSX.writeFile(
       wb,
       `actividad_lotes_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`
@@ -764,27 +838,15 @@ export default function ServicioDetailPage() {
                 Línea temporal de lotes
               </CardTitle>
               <p className="mt-1 text-xs text-slate-500">
-                Bloques de actividad real (se cortan tras {gapMin} min sin conteos)
+                Cada barra es una sesión del lote (lote_session). En un mismo
+                dispositivo no debería haber solapamiento.
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1.5 text-xs text-slate-400">
-                Pausa
-                <select
-                  value={gapMin}
-                  onChange={(e) => setGapMin(Number(e.target.value))}
-                  className="rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-xs text-slate-200"
-                >
-                  <option value={5}>5 min</option>
-                  <option value={10}>10 min</option>
-                  <option value={30}>30 min</option>
-                  <option value={60}>60 min</option>
-                </select>
-              </label>
               <DatePickerWithRange value={dateRange} onChange={setDateRange} />
               <button
                 onClick={downloadActivityExcel}
-                disabled={loadingSegments || segments.length === 0}
+                disabled={loadingSegments || visibleSessions.length === 0}
                 className="px-3 py-1.5 bg-slate-800/60 text-slate-300 border border-white/10 rounded-md hover:bg-slate-800 transition-colors text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Descargar Excel
@@ -797,11 +859,38 @@ export default function ServicioDetailPage() {
             <p className="text-center text-slate-500 py-12">Cargando datos...</p>
           ) : ganttRows.length === 0 ? (
             <p className="text-center text-slate-500 py-12">
-              No hay lotes procesados en este periodo
+              No hay sesiones de lote en este periodo
             </p>
           ) : (
-            <div className="w-full overflow-x-auto">
-              <LoteGanttSegmented rows={ganttRows} domain={ganttDomain} />
+            <div className="space-y-4">
+              {overlaps.length > 0 && (
+                <div className="rounded-lg border border-red-500/40 bg-red-950/30 px-4 py-3 text-sm text-red-200">
+                  <p className="font-semibold">
+                    ⚠ {overlaps.length} solapamiento{overlaps.length > 1 ? "s" : ""} detectado
+                    {overlaps.length > 1 ? "s" : ""} (&gt; 1 min)
+                    {overlaps.some((o) => o.sameDevice) &&
+                      " — incluye sesiones en el mismo dispositivo, físicamente imposible"}
+                  </p>
+                  <ul className="mt-2 space-y-1 text-xs text-red-300/90">
+                    {overlaps.slice(0, 5).map((o, i) => (
+                      <li key={i}>
+                        {(o.a.codigoLote?.trim() || "Sin código")} ↔{" "}
+                        {(o.b.codigoLote?.trim() || "Sin código")} ·{" "}
+                        {Math.round(o.overlapMs / 60000)} min ·{" "}
+                        {o.sameDevice
+                          ? `mismo dispositivo (${o.a.dispositivoNombre ?? "?"})`
+                          : "distinto dispositivo"}
+                      </li>
+                    ))}
+                    {overlaps.length > 5 && (
+                      <li>… y {overlaps.length - 5} más (ver Excel)</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+              <div className="w-full overflow-x-auto">
+                <LoteGanttSegmented rows={ganttRows} domain={ganttDomain} />
+              </div>
             </div>
           )}
         </CardContent>
