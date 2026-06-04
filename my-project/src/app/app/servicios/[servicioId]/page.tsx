@@ -318,6 +318,31 @@ export default function ServicioDetailPage() {
     return { overlaps: pairs, conflictedIds: ids };
   }, [visibleSessions]);
 
+  // Agrupa los traslapes por par de lotes para una alerta compacta
+  const overlapGroups = useMemo(() => {
+    const map = new Map<
+      string,
+      { a: string; b: string; count: number; maxMs: number; sameDevice: boolean; devices: Set<string> }
+    >();
+    for (const o of overlaps) {
+      const an = o.a.codigoLote?.trim() || "Sin código";
+      const bn = o.b.codigoLote?.trim() || "Sin código";
+      const [x, y] = [an, bn].sort();
+      const key = `${x}__${y}`;
+      let g = map.get(key);
+      if (!g) {
+        g = { a: x, b: y, count: 0, maxMs: 0, sameDevice: false, devices: new Set() };
+        map.set(key, g);
+      }
+      g.count++;
+      g.maxMs = Math.max(g.maxMs, o.overlapMs);
+      g.sameDevice = g.sameDevice || o.sameDevice;
+      if (o.a.dispositivoNombre) g.devices.add(o.a.dispositivoNombre);
+      if (o.b.dispositivoNombre) g.devices.add(o.b.dispositivoNombre);
+    }
+    return Array.from(map.values()).sort((a, b) => b.maxMs - a.maxMs);
+  }, [overlaps]);
+
   const ganttDomain = useMemo<[number, number]>(() => {
     const from = dateRange?.from ? startOfDay(dateRange.from).getTime() : null;
     const to = dateRange?.to ? endOfDay(dateRange.to).getTime() : null;
@@ -863,27 +888,21 @@ export default function ServicioDetailPage() {
             </p>
           ) : (
             <div className="space-y-4">
-              {overlaps.length > 0 && (
+              {overlapGroups.length > 0 && (
                 <div className="rounded-lg border border-red-500/40 bg-red-950/30 px-4 py-3 text-sm text-red-200">
                   <p className="font-semibold">
-                    ⚠ {overlaps.length} solapamiento{overlaps.length > 1 ? "s" : ""} detectado
-                    {overlaps.length > 1 ? "s" : ""} (&gt; 1 min)
-                    {overlaps.some((o) => o.sameDevice) &&
-                      " — incluye sesiones en el mismo dispositivo, físicamente imposible"}
+                    ⚠ {overlapGroups.length} solapamiento{overlapGroups.length > 1 ? "s" : ""} (&gt; 1 min)
+                    {overlapGroups.some((g) => g.sameDevice) && " · mismo dispositivo"}
                   </p>
-                  <ul className="mt-2 space-y-1 text-xs text-red-300/90">
-                    {overlaps.slice(0, 5).map((o, i) => (
+                  <ul className="mt-1.5 space-y-0.5 text-xs text-red-300/90">
+                    {overlapGroups.slice(0, 4).map((g, i) => (
                       <li key={i}>
-                        {(o.a.codigoLote?.trim() || "Sin código")} ↔{" "}
-                        {(o.b.codigoLote?.trim() || "Sin código")} ·{" "}
-                        {Math.round(o.overlapMs / 60000)} min ·{" "}
-                        {o.sameDevice
-                          ? `mismo dispositivo (${o.a.dispositivoNombre ?? "?"})`
-                          : "distinto dispositivo"}
+                        {g.a} ↔ {g.b} · hasta {Math.round(g.maxMs / 60000)} min
+                        {g.count > 1 ? ` (${g.count}×)` : ""} · {[...g.devices].join(", ")}
                       </li>
                     ))}
-                    {overlaps.length > 5 && (
-                      <li>… y {overlaps.length - 5} más (ver Excel)</li>
+                    {overlapGroups.length > 4 && (
+                      <li>… y {overlapGroups.length - 4} más (ver Excel)</li>
                     )}
                   </ul>
                 </div>
