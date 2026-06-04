@@ -8,16 +8,11 @@ import { DateRange } from "react-day-picker";
 import { startOfDay, endOfDay, format } from "date-fns";
 import { Check, Layers, Search } from "lucide-react";
 import { toast } from "sonner";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  LoteGanttSegmented,
+  type GanttRow,
+} from "@/components/servicios/LoteGanttSegmented";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -58,6 +53,12 @@ interface LoteTimelineItem {
   firstTs: string | null;
   lastTs: string | null;
   totalCount: number;
+}
+
+interface TimelineSegment {
+  loteId: string;
+  start: string;
+  end: string;
 }
 
 interface Lote {
@@ -164,6 +165,11 @@ export default function ServicioDetailPage() {
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
+  // Segmentos de actividad real (gaps-and-islands sobre conteo)
+  const [segments, setSegments] = useState<TimelineSegment[]>([]);
+  const [loadingSegments, setLoadingSegments] = useState(false);
+  const [gapMin, setGapMin] = useState(10);
+
   // ── Fetch detail ─────────────────────────────────────────────────────────────
 
   const fetchDetail = useCallback(async () => {
@@ -248,6 +254,60 @@ export default function ServicioDetailPage() {
     const max = Math.max(...ganttData.map((d) => d.rango[1]));
     return [min, max];
   }, [dateRange, ganttData]);
+
+  // Trae los segmentos de actividad real cuando cambia el servicio, el rango o el gap
+  useEffect(() => {
+    if (!servicioId || !detail) return;
+    const qs = new URLSearchParams({ gap: String(gapMin) });
+    if (dateRange?.from) qs.set("from", startOfDay(dateRange.from).toISOString());
+    if (dateRange?.to) qs.set("to", endOfDay(dateRange.to).toISOString());
+
+    let cancelled = false;
+    setLoadingSegments(true);
+    fetch(`/api/servicios/${servicioId}/timeline?${qs.toString()}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al cargar segmentos");
+        return res.json();
+      })
+      .then((data: { segments: TimelineSegment[] }) => {
+        if (!cancelled) setSegments(data.segments ?? []);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) setSegments([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSegments(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [servicioId, detail, dateRange, gapMin]);
+
+  // Filas del Gantt: una por lote (orden del timeline) con sus segmentos reales
+  const ganttRows = useMemo<GanttRow[]>(() => {
+    if (!detail) return [];
+    const start = dateRange?.from ? startOfDay(dateRange.from).getTime() : -Infinity;
+    const end = dateRange?.to ? endOfDay(dateRange.to).getTime() : Infinity;
+
+    const byLote = new Map<string, GanttRow["segments"]>();
+    for (const s of segments) {
+      const a = new Date(s.start).getTime();
+      const b = new Date(s.end).getTime();
+      if (b < start || a > end) continue; // fuera del rango visible
+      if (!byLote.has(s.loteId)) byLote.set(s.loteId, []);
+      byLote.get(s.loteId)!.push({ start: a, end: b });
+    }
+
+    return detail.loteTimeline
+      .map((l) => ({
+        id: l.id,
+        nombre: l.codigoLote?.trim() || "Sin código",
+        totalCount: l.totalCount,
+        segments: byLote.get(l.id) ?? [],
+      }))
+      .filter((r) => r.segments.length > 0);
+  }, [detail, segments, dateRange]);
 
   const filteredLotes = useMemo(() => {
     const term = loteSearch.toLowerCase().trim();
@@ -651,62 +711,42 @@ export default function ServicioDetailPage() {
       <Card className="bg-slate-900/40 border-white/10">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardTitle className="text-lg font-semibold text-white">
-              Línea temporal de lotes
-            </CardTitle>
-            <DatePickerWithRange value={dateRange} onChange={setDateRange} />
+            <div>
+              <CardTitle className="text-lg font-semibold text-white">
+                Línea temporal de lotes
+              </CardTitle>
+              <p className="mt-1 text-xs text-slate-500">
+                Bloques de actividad real (se cortan tras {gapMin} min sin conteos)
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-xs text-slate-400">
+                Pausa
+                <select
+                  value={gapMin}
+                  onChange={(e) => setGapMin(Number(e.target.value))}
+                  className="rounded-md border border-white/10 bg-slate-900 px-2 py-1 text-xs text-slate-200"
+                >
+                  <option value={5}>5 min</option>
+                  <option value={10}>10 min</option>
+                  <option value={30}>30 min</option>
+                  <option value={60}>60 min</option>
+                </select>
+              </label>
+              <DatePickerWithRange value={dateRange} onChange={setDateRange} />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          {loadingDetail ? (
+          {loadingDetail || loadingSegments ? (
             <p className="text-center text-slate-500 py-12">Cargando datos...</p>
-          ) : ganttData.length === 0 ? (
+          ) : ganttRows.length === 0 ? (
             <p className="text-center text-slate-500 py-12">
               No hay lotes procesados en este periodo
             </p>
           ) : (
-            <div className="w-full" style={{ height: Math.max(160, ganttData.length * 44 + 48) }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={ganttData}
-                  layout="vertical"
-                  margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis
-                    type="number"
-                    domain={ganttDomain}
-                    scale="time"
-                    stroke="#94a3b8"
-                    tick={{ fill: "#94a3b8", fontSize: 12 }}
-                    tickFormatter={(ms: number) => format(new Date(ms), "dd/MM HH:mm")}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="nombre"
-                    width={110}
-                    stroke="#94a3b8"
-                    tick={{ fill: "#94a3b8", fontSize: 12 }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "rgba(255,255,255,0.05)" }}
-                    contentStyle={{
-                      backgroundColor: "rgba(15, 23, 42, 0.95)",
-                      borderColor: "rgba(255,255,255,0.1)",
-                      borderRadius: "8px",
-                      color: "#f8fafc",
-                    }}
-                    formatter={(value: [number, number], _name, item) => {
-                      const total = (item?.payload as { totalCount?: number })?.totalCount ?? 0;
-                      return [
-                        `${format(new Date(value[0]), "dd/MM/yyyy HH:mm")} → ${format(new Date(value[1]), "dd/MM/yyyy HH:mm")} · ${total.toLocaleString("es-CL")} conteos`,
-                        "Procesado",
-                      ];
-                    }}
-                  />
-                  <Bar dataKey="rango" fill="#22d3ee" radius={[4, 4, 4, 4]} barSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="w-full overflow-x-auto">
+              <LoteGanttSegmented rows={ganttRows} domain={ganttDomain} />
             </div>
           )}
         </CardContent>
