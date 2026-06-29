@@ -20,7 +20,9 @@ import {
   Building2,
   CalendarClock,
   Cpu,
+  Download,
   History,
+  Loader2,
   PackageOpen,
   Smartphone,
 } from "lucide-react";
@@ -228,6 +230,7 @@ export default function DispositivoDetailPage() {
     null
   );
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchDispositivo();
@@ -243,6 +246,38 @@ export default function DispositivoDetailPage() {
       setDispositivo(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!dispositivo) return;
+    setExporting(true);
+    try {
+      const res = await axios.get(
+        `/api/admin/dispositivos/${dispositivoId}/export`,
+        { responseType: "blob" }
+      );
+
+      // Intentar respetar el nombre de archivo sugerido por el servidor.
+      const disposition = res.headers["content-disposition"] as
+        | string
+        | undefined;
+      const match = disposition?.match(/filename="?([^"]+)"?/);
+      const filename = match?.[1] ?? `${dispositivo.nombre}_ventanas.xlsx`;
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exportando ventanas:", error);
+      alert("No se pudo generar el Excel. Revisa la consola para más detalle.");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -325,13 +360,27 @@ export default function DispositivoDetailPage() {
               {dispositivo.tipo} · historial operativo y lote activo
             </p>
           </div>
-          <Badge
-            variant="outline"
-            className="w-fit border-white/10 text-slate-400"
-          >
-            {historial.length} registro{historial.length === 1 ? "" : "s"} en
-            historial
-          </Badge>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              onClick={handleExport}
+              disabled={exporting}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white"
+            >
+              {exporting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              {exporting ? "Generando..." : "Descargar Excel (ventanas)"}
+            </Button>
+            <Badge
+              variant="outline"
+              className="w-fit border-white/10 text-slate-400"
+            >
+              {historial.length} registro{historial.length === 1 ? "" : "s"} en
+              historial
+            </Badge>
+          </div>
         </div>
       </div>
 
