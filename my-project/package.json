@@ -12,7 +12,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:push": "drizzle-kit push",
-    "repair:lote-session": "tsx scripts/repair-lote-session.ts"
+    "repair:lote-session": "tsx scripts/repair-lote-session.ts",
+    "export:ventanas": "tsx scripts/export-dispositivo-ventanas.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
