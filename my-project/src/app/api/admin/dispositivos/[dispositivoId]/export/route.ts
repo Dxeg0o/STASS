@@ -5,6 +5,12 @@ import { verifyAdmin } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 
+// La tabla `conteo` es de alto volumen: damos margen a la función y forzamos
+// runtime Node + render dinámico (la consulta agrega muchas filas).
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 // Bins de calibre: floor(perimeter) de 4 a 34  →  "Calibre 4-5 cm" ... "Calibre 34-35 cm"
 const BIN_MIN = 4;
 const BIN_MAX = 34;
@@ -86,46 +92,52 @@ export async function GET(
       ORDER BY s.start_time
     `)) as unknown as SessionRow[];
 
-    // 2. Histograma de calibre por sesión (atribución por ventana de tiempo).
-    const hist = (await db.execute(sql`
-      SELECT s.id AS session_id, floor(c.perimeter)::int AS bin, COUNT(*)::int AS cnt
-      FROM conteo c
-      JOIN lote_session s
-        ON s.dispositivo_id = c.dispositivo_id
-       AND c.ts >= s.start_time
-       AND (s.end_time IS NULL OR c.ts < s.end_time)
-      WHERE c.dispositivo_id = ${dispositivoId}
-        AND c.perimeter IS NOT NULL
-        AND ${dirCond}
-      GROUP BY s.id, floor(c.perimeter)
-    `)) as unknown as { session_id: string; bin: number; cnt: number }[];
-
-    // 3. Total y desviación estándar por sesión.
-    const stats = (await db.execute(sql`
-      SELECT s.id AS session_id,
-             COUNT(*)::int AS total,
-             stddev_samp(c.perimeter) AS stddev
-      FROM conteo c
-      JOIN lote_session s
-        ON s.dispositivo_id = c.dispositivo_id
-       AND c.ts >= s.start_time
-       AND (s.end_time IS NULL OR c.ts < s.end_time)
-      WHERE c.dispositivo_id = ${dispositivoId}
-        AND c.perimeter IS NOT NULL
-        AND ${dirCond}
-      GROUP BY s.id
+    // 2. Histograma + total + desviación por sesión, en UNA sola pasada.
+    //    LATERAL hace de lote_session el lado externo (~pocas filas) y por cada
+    //    sesión escanea solo su ventana [start_time, end_time) usando el índice
+    //    idx_conteo_dispositivo (dispositivo_id, ts). GROUPING SETS devuelve:
+    //      - filas con bin != NULL  → conteo por calibre
+    //      - fila  con bin == NULL  → total y stddev de toda la sesión
+    const agg = (await db.execute(sql`
+      SELECT s.id AS session_id, g.bin, g.cnt, g.stddev
+      FROM lote_session s
+      LEFT JOIN LATERAL (
+        SELECT floor(c.perimeter)::int AS bin,
+               COUNT(*)::int AS cnt,
+               stddev_samp(c.perimeter) AS stddev
+        FROM conteo c
+        WHERE c.dispositivo_id = s.dispositivo_id
+          AND c.ts >= s.start_time
+          AND c.ts < COALESCE(s.end_time, now())
+          AND c.perimeter IS NOT NULL
+          AND ${dirCond}
+        GROUP BY GROUPING SETS ((floor(c.perimeter)), ())
+      ) g ON TRUE
+      WHERE s.dispositivo_id = ${dispositivoId}
     `)) as unknown as {
       session_id: string;
-      total: number;
+      bin: number | null;
+      cnt: number | null;
       stddev: number | string | null;
     }[];
 
     const histMap = new Map<string, Map<number, number>>();
-    for (const r of hist) {
-      if (!histMap.has(r.session_id)) histMap.set(r.session_id, new Map());
-      histMap.get(r.session_id)!.set(Number(r.bin), Number(r.cnt));
+    const statsMap = new Map<
+      string,
+      { total: number; stddev: number | string | null }
+    >();
+    for (const r of agg) {
+      if (r.bin === null) {
+        // fila de rollup () → total + stddev de la sesión completa
+        statsMap.set(r.session_id, {
+          total: Number(r.cnt ?? 0),
+          stddev: r.stddev,
+        });
+      } else {
+        if (!histMap.has(r.session_id)) histMap.set(r.session_id, new Map());
+        histMap.get(r.session_id)!.set(Number(r.bin), Number(r.cnt ?? 0));
+      }
     }
-    const statsMap = new Map(stats.map((s) => [s.session_id, s]));
 
     // 4. Construir filas con el orden de columnas del CSV original.
     const header = [
