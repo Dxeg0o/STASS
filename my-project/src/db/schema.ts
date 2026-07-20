@@ -370,6 +370,22 @@ export const dispositivoRelations = relations(dispositivo, ({ many }) => ({
   dispositivoServicios: many(dispositivoServicio),
 }));
 
+// ─── Tablet (consola de operador) ──────────────────────────
+//
+// La app Flutter corre en tablets sin login de usuario. Cada tablet se
+// autentica contra la API con un x-app-key propio (hash SHA-256 almacenado,
+// nunca el plaintext), igual que el dispositivo de conteo con x-device-key.
+// Tener un credencial por tablet permite revocar una sin afectar a las demás,
+// y es lo que habilita prender RLS cerrando el acceso directo del anon key.
+
+export const tablet = pgTable("tablet", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nombre: text("nombre").unique().notNull(),
+  apiKeyHash: text("api_key_hash"),
+  activo: boolean("activo").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 // ─── Dispositivo ↔ Servicio ────────────────────────────────
 
 export const dispositivoServicio = pgTable(
