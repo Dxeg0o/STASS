@@ -36,6 +36,7 @@ interface PostBody {
   servicio_id?: unknown;
   codigo_lote?: unknown;
   variedad_id?: unknown;
+  subvariedad_id?: unknown;
   id?: unknown;
 }
 
@@ -81,6 +82,10 @@ export async function POST(request: Request) {
     typeof body.variedad_id === "string" && body.variedad_id
       ? body.variedad_id
       : null;
+  const subvariedadId =
+    typeof body.subvariedad_id === "string" && body.subvariedad_id
+      ? body.subvariedad_id
+      : null;
   const clientId = typeof body.id === "string" && body.id ? body.id : null;
 
   // Deduplicación: mismo código (case/trim insensible) ya asignado a este
@@ -112,6 +117,7 @@ export async function POST(request: Request) {
           ...(clientId ? { id: clientId } : {}),
           codigoLote,
           variedadId,
+          subvariedadId,
           createdAt: new Date(),
         })
         .returning({ id: lote.id });
