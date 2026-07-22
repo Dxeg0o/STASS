@@ -9,7 +9,7 @@ import {
   producto,
   servicio,
 } from "@/db/schema";
-import { eq, inArray, desc, isNull, and } from "drizzle-orm";
+import { eq, inArray, desc, isNull, isNotNull, and, ilike } from "drizzle-orm";
 import { verifyAdmin } from "@/lib/auth";
 
 interface RouteContext {
@@ -181,23 +181,40 @@ export async function POST(req: Request, context: RouteContext) {
 
         return null;
       };
-      const existingRows = await db
+      const empresaId = srv.empresaId;
+
+      // Códigos ya vinculados a ESTE servicio (para "ya está aquí")
+      const linkedRows = await db
         .select({ codigoLote: lote.codigoLote })
         .from(loteServicio)
         .innerJoin(lote, eq(lote.id, loteServicio.loteId))
         .where(eq(loteServicio.servicioId, servicioId));
-
-      const existingCodes = new Set(
-        existingRows
+      const linkedCodes = new Set(
+        linkedRows
           .map((row) => row.codigoLote)
           .filter((value): value is string => Boolean(value))
           .map(normalizeCode)
       );
 
+      // Lotes existentes en la EMPRESA por código normalizado (unicidad por empresa)
+      const empresaByCode = new Map<string, string>();
+      if (empresaId) {
+        const empresaRows = await db
+          .select({ id: lote.id, codigoLote: lote.codigoLote })
+          .from(lote)
+          .where(and(eq(lote.empresaId, empresaId), isNotNull(lote.codigoLote)));
+        for (const row of empresaRows) {
+          if (row.codigoLote)
+            empresaByCode.set(normalizeCode(row.codigoLote), row.id);
+        }
+      }
+
       const seenCodes = new Set<string>();
       const skippedDuplicates: string[] = [];
+      const reuseLoteIds: string[] = [];
       const loteValues: Array<{
         codigoLote: string;
+        empresaId: string | null;
         variedadId: string | null;
         subvariedadId: string | null;
         createdAt: Date;
@@ -214,12 +231,24 @@ export async function POST(req: Request, context: RouteContext) {
           if (!code) continue;
 
           const normalizedCode = normalizeCode(code);
-          if (seenCodes.has(normalizedCode) || existingCodes.has(normalizedCode)) {
+          if (seenCodes.has(normalizedCode)) {
+            skippedDuplicates.push(code);
+            continue;
+          }
+          seenCodes.add(normalizedCode);
+
+          // Ya está en este servicio → nada que hacer
+          if (linkedCodes.has(normalizedCode)) {
             skippedDuplicates.push(code);
             continue;
           }
 
-          seenCodes.add(normalizedCode);
+          // Ya existe en la empresa (otro servicio/proceso) → reutilizar la fila
+          const existingId = empresaByCode.get(normalizedCode);
+          if (existingId) {
+            reuseLoteIds.push(existingId);
+            continue;
+          }
 
           const itemVariedadId =
             typeof item.variedadId === "string" && item.variedadId
@@ -228,13 +257,14 @@ export async function POST(req: Request, context: RouteContext) {
 
           loteValues.push({
             codigoLote: code,
+            empresaId,
             variedadId: itemVariedadId,
             subvariedadId: await resolveSubvariedadId(item),
             createdAt: new Date(),
           });
         }
 
-      if (loteValues.length === 0) {
+      if (loteValues.length === 0 && reuseLoteIds.length === 0) {
         return NextResponse.json({
           created: 0,
           lotes: [],
@@ -242,46 +272,62 @@ export async function POST(req: Request, context: RouteContext) {
         });
       }
 
-      const createdLotes = await db.transaction(async (tx) => {
-        const inserted = await tx
-          .insert(lote)
-          .values(loteValues)
-          .returning({
-            id: lote.id,
-            codigoLote: lote.codigoLote,
-            fechaCreacion: lote.createdAt,
-            variedadId: lote.variedadId,
-            subvariedadId: lote.subvariedadId,
-          });
+      const linkedIds = await db.transaction(async (tx) => {
+        let insertedIds: string[] = [];
+        if (loteValues.length > 0) {
+          // onConflictDoNothing cubre una posible carrera con el índice único por empresa
+          const inserted = await tx
+            .insert(lote)
+            .values(loteValues)
+            .onConflictDoNothing()
+            .returning({ id: lote.id });
+          insertedIds = inserted.map((l) => l.id);
+        }
 
-        await tx.insert(loteServicio).values(
-          inserted.map((l) => ({
-            loteId: l.id,
-            servicioId,
-          }))
-        );
+        // Resolver ids finales de códigos nuevos (incluye los que perdió el onConflict)
+        let resolvedNewIds = insertedIds;
+        if (empresaId && insertedIds.length < loteValues.length) {
+          const newCodesNorm = loteValues.map((v) => normalizeCode(v.codigoLote));
+          const rows = await tx
+            .select({ id: lote.id, codigoLote: lote.codigoLote })
+            .from(lote)
+            .where(and(eq(lote.empresaId, empresaId), isNotNull(lote.codigoLote)));
+          const map = new Map<string, string>();
+          for (const r of rows) if (r.codigoLote) map.set(normalizeCode(r.codigoLote), r.id);
+          resolvedNewIds = newCodesNorm
+            .map((c) => map.get(c))
+            .filter((v): v is string => Boolean(v));
+        }
 
-        return inserted;
+        const allLinkIds = [...new Set([...reuseLoteIds, ...resolvedNewIds])];
+        if (allLinkIds.length > 0) {
+          await tx
+            .insert(loteServicio)
+            .values(allLinkIds.map((loteId) => ({ loteId, servicioId })))
+            .onConflictDoNothing();
+        }
+        return allLinkIds;
       });
 
-      const createdIds = createdLotes.map((l) => l.id);
-      const enrichedLotes = await db
-        .select({
-          id: lote.id,
-          codigoLote: lote.codigoLote,
-          fechaCreacion: lote.createdAt,
-          variedadId: lote.variedadId,
-          variedadNombre: variedad.nombre,
-          variedadTipo: variedad.tipo,
-          subvariedadId: lote.subvariedadId,
-          subvariedadNombre: subvariedad.nombre,
-          productoNombre: producto.nombre,
-        })
-        .from(lote)
-        .leftJoin(variedad, eq(variedad.id, lote.variedadId))
-        .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
-        .leftJoin(producto, eq(producto.id, variedad.productoId))
-        .where(inArray(lote.id, createdIds));
+      const enrichedLotes = linkedIds.length
+        ? await db
+            .select({
+              id: lote.id,
+              codigoLote: lote.codigoLote,
+              fechaCreacion: lote.createdAt,
+              variedadId: lote.variedadId,
+              variedadNombre: variedad.nombre,
+              variedadTipo: variedad.tipo,
+              subvariedadId: lote.subvariedadId,
+              subvariedadNombre: subvariedad.nombre,
+              productoNombre: producto.nombre,
+            })
+            .from(lote)
+            .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+            .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
+            .leftJoin(producto, eq(producto.id, variedad.productoId))
+            .where(inArray(lote.id, linkedIds))
+        : [];
 
       return NextResponse.json(
         {
@@ -294,10 +340,49 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     const count = Math.min(Math.max(cantidad ?? 1, 1), 500);
+    const empresaId = srv.empresaId;
+    const trimmedCode = count === 1 ? (codigoLote?.trim() || null) : null;
+
+    // Reutilizar la fila si el código ya existe en la empresa (unicidad por empresa)
+    if (count === 1 && trimmedCode && empresaId) {
+      const [existing] = await db
+        .select({ id: lote.id })
+        .from(lote)
+        .where(and(eq(lote.empresaId, empresaId), ilike(lote.codigoLote, trimmedCode)))
+        .limit(1);
+      if (existing) {
+        await db
+          .insert(loteServicio)
+          .values({ loteId: existing.id, servicioId })
+          .onConflictDoNothing();
+        const [enriched] = await db
+          .select({
+            id: lote.id,
+            codigoLote: lote.codigoLote,
+            fechaCreacion: lote.createdAt,
+            variedadId: lote.variedadId,
+            variedadNombre: variedad.nombre,
+            variedadTipo: variedad.tipo,
+            subvariedadId: lote.subvariedadId,
+            subvariedadNombre: subvariedad.nombre,
+            productoNombre: producto.nombre,
+          })
+          .from(lote)
+          .leftJoin(variedad, eq(variedad.id, lote.variedadId))
+          .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
+          .leftJoin(producto, eq(producto.id, variedad.productoId))
+          .where(eq(lote.id, existing.id));
+        return NextResponse.json(
+          { created: 1, lotes: [enriched], reused: true },
+          { status: 201 }
+        );
+      }
+    }
 
     // Build values arrays (codigoLote only meaningful for individual creation)
     const loteValues = Array.from({ length: count }, () => ({
-      codigoLote: count === 1 ? (codigoLote?.trim() || null) : null,
+      codigoLote: trimmedCode,
+      empresaId,
       variedadId: variedadId || null,
       subvariedadId: subvariedadId || null,
       createdAt: new Date(),
@@ -431,10 +516,35 @@ export async function DELETE(req: Request, context: RouteContext) {
       );
     }
 
-    // Delete lotes (cascade handles lote_servicio, lote_session, lote_stats)
-    await db.delete(lote).where(inArray(lote.id, targetIds));
+    // Un lote puede estar compartido entre servicios/procesos de la empresa.
+    // "Borrar desde este servicio" = desvincular (quitar la fila de lote_servicio).
+    // Solo hard-delete cuando el lote no queda vinculado a ningún otro servicio.
+    const deleted = await db.transaction(async (tx) => {
+      await tx
+        .delete(loteServicio)
+        .where(
+          and(
+            eq(loteServicio.servicioId, servicioId),
+            inArray(loteServicio.loteId, targetIds)
+          )
+        );
 
-    return NextResponse.json({ deleted: targetIds.length });
+      const remaining = await tx
+        .select({ loteId: loteServicio.loteId })
+        .from(loteServicio)
+        .where(inArray(loteServicio.loteId, targetIds));
+      const stillLinked = new Set(remaining.map((r) => r.loteId));
+      const orphanIds = targetIds.filter((id) => !stillLinked.has(id));
+
+      if (orphanIds.length > 0) {
+        // cascade elimina lote_session/lote_stats/etc. de los lotes ya sin servicio
+        await tx.delete(lote).where(inArray(lote.id, orphanIds));
+      }
+
+      return targetIds.length;
+    });
+
+    return NextResponse.json({ deleted });
   } catch (error) {
     console.error("Error deleting lotes:", error);
     return NextResponse.json(

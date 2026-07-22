@@ -44,6 +44,7 @@ import {
   Unlink,
   FileSpreadsheet,
   Edit2,
+  Download,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────
@@ -168,6 +169,24 @@ interface ImportPreviewRow {
   skipReason?: string;
 }
 
+interface ImportSource {
+  id: string;
+  nombre: string;
+  tipo: string;
+  loteCount: number;
+}
+
+interface ImportableLote {
+  id: string;
+  codigoLote: string | null;
+  variedadNombre: string | null;
+  variedadTipo: string | null;
+  subvariedadNombre: string | null;
+  productoNombre: string | null;
+  sourceServicioId: string;
+  sourceServicioNombre: string;
+}
+
 const MAPPING_LABELS: Record<ColumnMapping, string> = {
   ignore: "Ignorar",
   codigoLote: "Código de lote",
@@ -242,6 +261,17 @@ export default function AdminServicioLotesPage() {
   const [deviceMaquina, setDeviceMaquina] = useState("");
   const [assigningDevice, setAssigningDevice] = useState(false);
   const [unassigningDeviceId, setUnassigningDeviceId] = useState<string | null>(null);
+
+  // Import lotes dialog
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importSources, setImportSources] = useState<ImportSource[]>([]);
+  const [importableLotes, setImportableLotes] = useState<ImportableLote[]>([]);
+  const [selectedSourceId, setSelectedSourceId] = useState("");
+  const [selectedImportIds, setSelectedImportIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [importing, setImporting] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
 
   // ── Fetch data ──────────────────────────────────────────────
 
@@ -809,6 +839,84 @@ export default function AdminServicioLotesPage() {
     }
   };
 
+  // ── Import lotes desde otro servicio del mismo proceso ──────
+  const importableForSource = useMemo(
+    () => importableLotes.filter((l) => l.sourceServicioId === selectedSourceId),
+    [importableLotes, selectedSourceId]
+  );
+
+  const openImportDialog = async () => {
+    setImportDialogOpen(true);
+    setImportLoading(true);
+    setSelectedSourceId("");
+    setSelectedImportIds(new Set());
+    try {
+      const res = await axios.get(
+        `/api/admin/servicios/${servicioId}/lotes/import`
+      );
+      setImportSources(res.data.sources ?? []);
+      setImportableLotes(res.data.lotes ?? []);
+    } catch {
+      toast.error("Error al cargar lotes para importar");
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleSelectSource = (sourceId: string) => {
+    setSelectedSourceId(sourceId);
+    // "como preferencia": por defecto todos los lotes del origen quedan marcados
+    const ids = importableLotes
+      .filter((l) => l.sourceServicioId === sourceId)
+      .map((l) => l.id);
+    setSelectedImportIds(new Set(ids));
+  };
+
+  const handleToggleImport = (id: string) => {
+    setSelectedImportIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleToggleImportAll = () => {
+    const ids = importableForSource.map((l) => l.id);
+    const allSelected = ids.length > 0 && ids.every((id) => selectedImportIds.has(id));
+    setSelectedImportIds(allSelected ? new Set() : new Set(ids));
+  };
+
+  const handleImport = async () => {
+    const ids = Array.from(selectedImportIds);
+    if (ids.length === 0) {
+      toast.error("Selecciona al menos un lote");
+      return;
+    }
+    setImporting(true);
+    try {
+      const res = await axios.post(
+        `/api/admin/servicios/${servicioId}/lotes/import`,
+        { sourceServicioId: selectedSourceId || undefined, loteIds: ids }
+      );
+      const { imported = 0, skipped = 0 } = res.data;
+      const lotesRes = await axios.get(
+        `/api/admin/servicios/${servicioId}/lotes`
+      );
+      setLotes(lotesRes.data);
+      setImportDialogOpen(false);
+      toast.success(
+        `Se importaron ${imported} lote(s)${
+          skipped ? `; ${skipped} omitido(s)` : ""
+        }`
+      );
+    } catch {
+      toast.error("Error al importar lotes");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const handleUpdate = async () => {
     if (!editingLote) return;
     if (!editCodigoLote.trim()) {
@@ -1108,6 +1216,17 @@ export default function AdminServicioLotesPage() {
                         Gestionar
                       </Button>
                     </>
+                  )}
+                  {servicioInfo?.proceso && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={openImportDialog}
+                      className="border-white/10 text-slate-400 hover:text-white"
+                    >
+                      <Download className="w-4 h-4 mr-1.5" />
+                      Importar
+                    </Button>
                   )}
                   <Button
                     size="sm"
@@ -1932,6 +2051,148 @@ export default function AdminServicioLotesPage() {
               className="bg-red-600 hover:bg-red-500 text-white font-semibold"
             >
               {deleting ? "Eliminando..." : "Sí, eliminar todos"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Import Dialog ──────────────────────────────────────── */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="bg-slate-900 border-white/10 text-white sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              Importar lotes de otro servicio
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <p className="text-slate-400 text-sm">
+              Trae los mismos lotes desde otro servicio del mismo proceso. Se
+              reutilizan las filas existentes (no se duplican); los conteos de
+              cada servicio siguen siendo independientes.
+            </p>
+
+            {importLoading ? (
+              <div className="text-center py-10 text-slate-500">Cargando…</div>
+            ) : importSources.length === 0 ? (
+              <div className="text-center py-10 text-slate-500">
+                No hay otros servicios en este proceso desde donde importar.
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="text-sm text-slate-400 mb-1.5 block">
+                    Servicio origen
+                  </label>
+                  <Select
+                    value={selectedSourceId}
+                    onValueChange={handleSelectSource}
+                  >
+                    <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                      <SelectValue placeholder="Seleccionar servicio…" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-white/10">
+                      {importSources.map((s) => (
+                        <SelectItem
+                          key={s.id}
+                          value={s.id}
+                          className="text-white"
+                        >
+                          {s.nombre} ({s.loteCount})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedSourceId && (
+                  <div className="border border-white/10 rounded-lg overflow-hidden">
+                    {importableForSource.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500 text-sm">
+                        Este servicio no tiene lotes nuevos para importar.
+                      </div>
+                    ) : (
+                      <div className="max-h-72 overflow-y-auto">
+                        <Table>
+                          <TableHeader className="sticky top-0 bg-slate-900">
+                            <TableRow className="border-white/10 hover:bg-transparent">
+                              <TableHead className="w-10">
+                                <button
+                                  onClick={handleToggleImportAll}
+                                  className="text-slate-400 hover:text-white"
+                                >
+                                  {importableForSource.length > 0 &&
+                                  importableForSource.every((l) =>
+                                    selectedImportIds.has(l.id)
+                                  ) ? (
+                                    <CheckSquare className="w-4 h-4" />
+                                  ) : (
+                                    <Square className="w-4 h-4" />
+                                  )}
+                                </button>
+                              </TableHead>
+                              <TableHead className="text-slate-400 text-xs uppercase">
+                                Código
+                              </TableHead>
+                              <TableHead className="text-slate-400 text-xs uppercase">
+                                Variedad
+                              </TableHead>
+                              <TableHead className="text-slate-400 text-xs uppercase">
+                                Subvariedad
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {importableForSource.map((l) => (
+                              <TableRow
+                                key={l.id}
+                                className="border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                                onClick={() => handleToggleImport(l.id)}
+                              >
+                                <TableCell>
+                                  {selectedImportIds.has(l.id) ? (
+                                    <CheckSquare className="w-4 h-4 text-amber-400" />
+                                  ) : (
+                                    <Square className="w-4 h-4 text-slate-500" />
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-white font-medium">
+                                  {l.codigoLote ?? "—"}
+                                </TableCell>
+                                <TableCell className="text-slate-400">
+                                  {l.variedadNombre ?? "—"}
+                                </TableCell>
+                                <TableCell className="text-slate-400">
+                                  {l.subvariedadNombre ?? "—"}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setImportDialogOpen(false)}
+              className="border-white/10 text-slate-400 hover:text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleImport}
+              disabled={importing || selectedImportIds.size === 0}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+            >
+              {importing
+                ? "Importando…"
+                : `Importar (${selectedImportIds.size})`}
             </Button>
           </DialogFooter>
         </DialogContent>

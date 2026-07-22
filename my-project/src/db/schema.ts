@@ -12,6 +12,7 @@ import {
   primaryKey,
   index,
   integer,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -308,15 +309,31 @@ export const subvariedadRelations = relations(subvariedad, ({ one, many }) => ({
 
 // ─── Lote ──────────────────────────────────────────────────
 
-export const lote = pgTable("lote", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  codigoLote: text("codigo_lote"), // ID de empresa, ej. "320.22C.S"
-  variedadId: uuid("variedad_id").references(() => variedad.id),
-  subvariedadId: uuid("subvariedad_id").references(() => subvariedad.id),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+// NOTE: codigo_lote es único por empresa. La unicidad la enforza el índice
+// parcial+expresión `uq_lote_codigo_empresa` (lower(trim(codigo_lote)),
+// empresa_id) que vive SOLO en SQL crudo (migración 0025), porque drizzle-kit
+// no expresa índices únicos parciales sobre expresiones. NO correr
+// `drizzle-kit push` contra esta BD (dropearía ese índice).
+export const lote = pgTable(
+  "lote",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    codigoLote: text("codigo_lote"), // ID de empresa, ej. "320.22C.S"
+    empresaId: uuid("empresa_id").references(() => empresa.id, {
+      onDelete: "set null",
+    }),
+    variedadId: uuid("variedad_id").references(() => variedad.id),
+    subvariedadId: uuid("subvariedad_id").references(() => subvariedad.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [index("idx_lote_empresa_id").on(t.empresaId)]
+);
 
 export const loteRelations = relations(lote, ({ one, many }) => ({
+  empresa: one(empresa, {
+    fields: [lote.empresaId],
+    references: [empresa.id],
+  }),
   variedad: one(variedad, {
     fields: [lote.variedadId],
     references: [variedad.id],
@@ -579,6 +596,32 @@ export const loteStats = pgTable(
     primaryKey({
       columns: [t.loteId, t.servicioId, t.dispositivoId, t.calibre],
     }),
+  ]
+);
+
+// ─── Cierre manual de lote por calibre ─────────────────────────────────────
+
+export const loteCierreCalibreBin = pgTable(
+  "lote_cierre_calibre_bin",
+  {
+    loteId: uuid("lote_id").notNull(),
+    servicioId: uuid("servicio_id").notNull(),
+    calibreBucket: integer("calibre_bucket").notNull(),
+    bins: integer("bins").notNull(),
+    tabletId: uuid("tablet_id").references(() => tablet.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [
+    primaryKey({
+      columns: [t.loteId, t.servicioId, t.calibreBucket],
+    }),
+    foreignKey({
+      columns: [t.loteId, t.servicioId],
+      foreignColumns: [loteServicio.loteId, loteServicio.servicioId],
+      name: "lote_cierre_calibre_bin_lote_servicio_fk",
+    }).onDelete("cascade"),
+    index("idx_lote_cierre_calibre_servicio").on(t.servicioId),
   ]
 );
 

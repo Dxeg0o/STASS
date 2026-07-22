@@ -87,23 +87,25 @@ export async function POST(request: Request) {
       ? body.subvariedad_id
       : null;
   const clientId = typeof body.id === "string" && body.id ? body.id : null;
+  const empresaId = srv.empresaId;
 
-  // Deduplicación: mismo código (case/trim insensible) ya asignado a este
-  // servicio → se devuelve tal cual, sin crear nada nuevo.
-  if (codigoLote) {
+  // Deduplicación por EMPRESA: el código de lote es único por empresa. Si ya
+  // existe (en cualquier servicio/proceso de la empresa) se reutiliza esa fila
+  // y solo se asegura el vínculo con este servicio.
+  if (codigoLote && empresaId) {
     const [existing] = await db
       .select({ id: lote.id })
-      .from(loteServicio)
-      .innerJoin(lote, eq(lote.id, loteServicio.loteId))
+      .from(lote)
       .where(
-        and(
-          eq(loteServicio.servicioId, servicioId),
-          ilike(lote.codigoLote, codigoLote)
-        )
+        and(eq(lote.empresaId, empresaId), ilike(lote.codigoLote, codigoLote))
       )
       .limit(1);
 
     if (existing) {
+      await db
+        .insert(loteServicio)
+        .values({ loteId: existing.id, servicioId })
+        .onConflictDoNothing();
       const dto = await fetchLoteById(existing.id);
       return NextResponse.json({ ...dto, ya_existia: true }, { status: 200 });
     }
@@ -116,6 +118,7 @@ export async function POST(request: Request) {
         .values({
           ...(clientId ? { id: clientId } : {}),
           codigoLote,
+          empresaId,
           variedadId,
           subvariedadId,
           createdAt: new Date(),
@@ -133,17 +136,38 @@ export async function POST(request: Request) {
     const dto = await fetchLoteById(createdId);
     return NextResponse.json({ ...dto, ya_existia: false }, { status: 201 });
   } catch (e) {
-    // Reintento offline con el mismo id de cliente: idempotente.
-    if (isUniqueViolation(e) && clientId) {
-      const dto = await fetchLoteById(clientId);
-      if (dto) {
-        // Asegura que también quedó la asignación al servicio (por si el
-        // primer intento se cortó justo entre los dos inserts).
-        await db
-          .insert(loteServicio)
-          .values({ loteId: clientId, servicioId })
-          .onConflictDoNothing();
-        return NextResponse.json({ ...dto, ya_existia: true }, { status: 200 });
+    if (isUniqueViolation(e)) {
+      // Reintento offline con el mismo id de cliente: idempotente.
+      if (clientId) {
+        const dto = await fetchLoteById(clientId);
+        if (dto) {
+          // Asegura que también quedó la asignación al servicio (por si el
+          // primer intento se cortó justo entre los dos inserts).
+          await db
+            .insert(loteServicio)
+            .values({ loteId: clientId, servicioId })
+            .onConflictDoNothing();
+          return NextResponse.json({ ...dto, ya_existia: true }, { status: 200 });
+        }
+      }
+      // Violación del índice único por empresa (carrera con otro request con el
+      // mismo código): reutilizar la fila existente y vincularla al servicio.
+      if (codigoLote && empresaId) {
+        const [existing] = await db
+          .select({ id: lote.id })
+          .from(lote)
+          .where(
+            and(eq(lote.empresaId, empresaId), ilike(lote.codigoLote, codigoLote))
+          )
+          .limit(1);
+        if (existing) {
+          await db
+            .insert(loteServicio)
+            .values({ loteId: existing.id, servicioId })
+            .onConflictDoNothing();
+          const dto = await fetchLoteById(existing.id);
+          return NextResponse.json({ ...dto, ya_existia: true }, { status: 200 });
+        }
       }
     }
     throw e;
