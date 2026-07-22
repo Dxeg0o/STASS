@@ -106,7 +106,7 @@ export async function PATCH(
       updateData.fechaInicio = transitionAt;
     }
     if ((inferredEstado === "completado" || inferredEstado === "cancelado") && transitionAt) {
-      updateData.fechaInicio = sql`COALESCE(${servicio.fechaInicio}, ${transitionAt})`;
+      updateData.fechaInicio = sql`COALESCE(${servicio.fechaInicio}, ${transitionAt.toISOString()})`;
       updateData.fechaFin = transitionAt;
     }
 
@@ -140,7 +140,7 @@ export async function PATCH(
             .update(proceso)
             .set({
               estado: "en_curso",
-              fechaInicio: sql`COALESCE(${proceso.fechaInicio}, ${transitionAt})`,
+              fechaInicio: sql`COALESCE(${proceso.fechaInicio}, ${transitionAt.toISOString()})`,
             })
             .where(
               and(
@@ -155,7 +155,7 @@ export async function PATCH(
         await tx
           .update(dispositivoServicio)
           .set({
-            fechaInicio: sql`COALESCE(${dispositivoServicio.fechaInicio}, ${transitionAt})`,
+            fechaInicio: sql`COALESCE(${dispositivoServicio.fechaInicio}, ${transitionAt.toISOString()})`,
             fechaTermino: transitionAt,
           })
           .where(

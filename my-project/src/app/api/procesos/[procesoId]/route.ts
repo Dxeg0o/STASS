@@ -190,7 +190,7 @@ export async function PATCH(
           .update(servicio)
           .set({
             estado: nextEstado,
-            fechaInicio: sql`COALESCE(${servicio.fechaInicio}, ${transitionAt})`,
+            fechaInicio: sql`COALESCE(${servicio.fechaInicio}, ${transitionAt.toISOString()})`,
             fechaFin: transitionAt,
           })
           .where(
@@ -203,7 +203,7 @@ export async function PATCH(
         await tx
           .update(dispositivoServicio)
           .set({
-            fechaInicio: sql`COALESCE(${dispositivoServicio.fechaInicio}, ${transitionAt})`,
+            fechaInicio: sql`COALESCE(${dispositivoServicio.fechaInicio}, ${transitionAt.toISOString()})`,
             fechaTermino: transitionAt,
           })
           .where(
