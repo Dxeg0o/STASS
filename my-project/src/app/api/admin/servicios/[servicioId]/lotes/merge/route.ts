@@ -1,8 +1,24 @@
 import { NextResponse } from "next/server";
 import { and, eq, inArray, ilike, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { lote, loteServicio, servicio } from "@/db/schema";
+import {
+  lote,
+  loteServicio,
+  loteStats,
+  loteTotalStats,
+  conteo,
+  servicio,
+} from "@/db/schema";
 import { verifyAdmin } from "@/lib/auth";
+
+// Helper para pasar un array de uuids a SQL crudo como lista IN(...) — pasar el
+// array directamente a `sql` (p.ej. `= ANY(${arr})`) produce "malformed array
+// literal" con postgres.js, así que cada elemento va como su propio parámetro.
+const uuidList = (ids: string[]) =>
+  sql.join(
+    ids.map((id) => sql`${id}::uuid`),
+    sql`, `
+  );
 
 interface RouteContext {
   params: Promise<{ servicioId: string }>;
@@ -158,34 +174,42 @@ export async function POST(req: Request, context: RouteContext) {
     try {
       const deletedSources = await db.transaction(async (tx) => {
         // 1. Mover conteos (solo este servicio) al lote destino
-        await tx.execute(sql`
-          UPDATE conteo SET lote_id = ${targetId}
-          WHERE servicio_id = ${servicioId} AND lote_id = ANY(${sources})
-        `);
+        await tx
+          .update(conteo)
+          .set({ loteId: targetId })
+          .where(and(eq(conteo.servicioId, servicioId), inArray(conteo.loteId, sources)));
 
         // 2. Re-apuntar las sesiones del servicio al lote destino (así las
         //    caja_lote_session y caja_*_stats quedan bajo el destino)
         await tx.execute(sql`
-          UPDATE lote_session ls SET lote_id = ${targetId}
-          WHERE ls.lote_id = ANY(${sources})
+          UPDATE lote_session ls SET lote_id = ${targetId}::uuid
+          WHERE ls.lote_id IN (${uuidList(sources)})
             AND EXISTS (
               SELECT 1 FROM dispositivo_servicio ds
               WHERE ds.dispositivo_id = ls.dispositivo_id
-                AND ds.servicio_id = ${servicioId}
+                AND ds.servicio_id = ${servicioId}::uuid
                 AND ls.start_time >= ds.fecha_inicio
                 AND (ds.fecha_termino IS NULL OR ls.start_time < ds.fecha_termino)
             )
         `);
 
         // 3. Reconstruir stats de lote para (destino, servicio)
-        await tx.execute(sql`
-          DELETE FROM lote_total_stats
-          WHERE servicio_id = ${servicioId} AND lote_id = ANY(${allInvolved})
-        `);
-        await tx.execute(sql`
-          DELETE FROM lote_stats
-          WHERE servicio_id = ${servicioId} AND lote_id = ANY(${allInvolved})
-        `);
+        await tx
+          .delete(loteTotalStats)
+          .where(
+            and(
+              eq(loteTotalStats.servicioId, servicioId),
+              inArray(loteTotalStats.loteId, allInvolved)
+            )
+          );
+        await tx
+          .delete(loteStats)
+          .where(
+            and(
+              eq(loteStats.servicioId, servicioId),
+              inArray(loteStats.loteId, allInvolved)
+            )
+          );
         await tx.execute(sql`
           INSERT INTO lote_total_stats (lote_id, servicio_id, dispositivo_id, count_in, count_out, first_ts, last_ts)
           SELECT lote_id, servicio_id, dispositivo_id,
@@ -193,7 +217,7 @@ export async function POST(req: Request, context: RouteContext) {
             SUM(CASE WHEN direction = 1 THEN 1 ELSE 0 END)::int,
             MIN(ts), MAX(ts)
           FROM conteo
-          WHERE servicio_id = ${servicioId} AND lote_id = ${targetId}
+          WHERE servicio_id = ${servicioId}::uuid AND lote_id = ${targetId}::uuid
           GROUP BY lote_id, servicio_id, dispositivo_id
         `);
         await tx.execute(sql`
@@ -203,21 +227,23 @@ export async function POST(req: Request, context: RouteContext) {
             SUM(CASE WHEN direction = 1 THEN 1 ELSE 0 END)::int,
             MIN(ts), MAX(ts)
           FROM conteo
-          WHERE servicio_id = ${servicioId} AND lote_id = ${targetId} AND perimeter IS NOT NULL
+          WHERE servicio_id = ${servicioId}::uuid AND lote_id = ${targetId}::uuid AND perimeter IS NOT NULL
           GROUP BY lote_id, servicio_id, dispositivo_id, ROUND(perimeter::numeric, 1)::real
         `);
 
-        // 4. Repuntar referencias de batches de recalibración (sin FK)
+        // 4. Repuntar referencias de batches de recalibración (sin FK, sin
+        //    modelo drizzle)
         await tx.execute(sql`
-          UPDATE perimeter_recal_batches SET lote_id = ${targetId}
-          WHERE lote_id = ANY(${sources})
+          UPDATE perimeter_recal_batches SET lote_id = ${targetId}::uuid
+          WHERE lote_id IN (${uuidList(sources)})
         `);
 
         // 5. Desvincular los lotes origen de este servicio
-        await tx.execute(sql`
-          DELETE FROM lote_servicio
-          WHERE servicio_id = ${servicioId} AND lote_id = ANY(${sources})
-        `);
+        await tx
+          .delete(loteServicio)
+          .where(
+            and(eq(loteServicio.servicioId, servicioId), inArray(loteServicio.loteId, sources))
+          );
 
         // 6. Asegurar que el destino queda enlazado al servicio
         await tx
@@ -229,7 +255,7 @@ export async function POST(req: Request, context: RouteContext) {
         //    otro servicio)
         const deleted = await tx.execute(sql`
           DELETE FROM lote l
-          WHERE l.id = ANY(${sources})
+          WHERE l.id IN (${uuidList(sources)})
             AND NOT EXISTS (SELECT 1 FROM lote_servicio ls WHERE ls.lote_id = l.id)
             AND NOT EXISTS (SELECT 1 FROM conteo c WHERE c.lote_id = l.id)
             AND NOT EXISTS (SELECT 1 FROM lote_session s WHERE s.lote_id = l.id)
