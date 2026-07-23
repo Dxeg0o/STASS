@@ -245,6 +245,42 @@ export const servicioRelations = relations(servicio, ({ one, many }) => ({
   }),
   loteServicios: many(loteServicio),
   dispositivoServicios: many(dispositivoServicio),
+  reportDeliveries: many(reportDelivery),
+}));
+
+// ─── Entregas de reportería automática ─────────────────────
+
+export const reportDelivery = pgTable(
+  "report_delivery",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    servicioId: uuid("servicio_id")
+      .notNull()
+      .references(() => servicio.id, { onDelete: "cascade" }),
+    recipientCorreo: text("recipient_correo").notNull(),
+    reportDate: timestamp("report_date", { withTimezone: false, mode: "date" }).notNull(),
+    status: text("status").notNull().default("pending"), // pending|sending|sent|failed
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [
+    unique("report_delivery_service_recipient_date").on(
+      t.servicioId,
+      t.recipientCorreo,
+      t.reportDate
+    ),
+    index("idx_report_delivery_status").on(t.status, t.reportDate),
+  ]
+);
+
+export const reportDeliveryRelations = relations(reportDelivery, ({ one }) => ({
+  servicio: one(servicio, {
+    fields: [reportDelivery.servicioId],
+    references: [servicio.id],
+  }),
 }));
 
 // ─── Producto ──────────────────────────────────────────────
