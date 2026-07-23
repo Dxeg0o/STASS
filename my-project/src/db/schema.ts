@@ -12,6 +12,7 @@ import {
   primaryKey,
   index,
   integer,
+  numeric,
   foreignKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -606,15 +607,16 @@ export const loteCierreCalibreBin = pgTable(
   {
     loteId: uuid("lote_id").notNull(),
     servicioId: uuid("servicio_id").notNull(),
-    calibreBucket: integer("calibre_bucket").notNull(),
-    bins: integer("bins").notNull(),
+    calibreFrom: integer("calibre_from").notNull(),
+    calibreTo: integer("calibre_to").notNull(),
+    bins: numeric("bins", { precision: 10, scale: 1, mode: "number" }).notNull(),
     tabletId: uuid("tablet_id").references(() => tablet.id),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
   (t) => [
     primaryKey({
-      columns: [t.loteId, t.servicioId, t.calibreBucket],
+      columns: [t.loteId, t.servicioId, t.calibreFrom, t.calibreTo],
     }),
     foreignKey({
       columns: [t.loteId, t.servicioId],

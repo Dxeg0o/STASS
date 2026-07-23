@@ -12,15 +12,15 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- lote_stats
-ALTER TABLE "lote_stats" DROP CONSTRAINT "lote_stats_lote_id_servicio_id_dispositivo_id_calibre_pk";
+ALTER TABLE "lote_stats" DROP CONSTRAINT IF EXISTS "lote_stats_lote_id_servicio_id_dispositivo_id_calibre_pk";
 ALTER TABLE "lote_stats" ALTER COLUMN "calibre" DROP NOT NULL;
-CREATE UNIQUE INDEX "lote_stats_unique_key"
+CREATE UNIQUE INDEX IF NOT EXISTS "lote_stats_unique_key"
   ON "lote_stats" ("lote_id", "servicio_id", "dispositivo_id", "calibre")
   NULLS NOT DISTINCT;
 
 -- caja_stats
-ALTER TABLE "caja_stats" DROP CONSTRAINT "caja_stats_caja_lote_session_id_dispositivo_id_calibre_pk";
+ALTER TABLE "caja_stats" DROP CONSTRAINT IF EXISTS "caja_stats_caja_lote_session_id_dispositivo_id_calibre_pk";
 ALTER TABLE "caja_stats" ALTER COLUMN "calibre" DROP NOT NULL;
-CREATE UNIQUE INDEX "caja_stats_unique_key"
+CREATE UNIQUE INDEX IF NOT EXISTS "caja_stats_unique_key"
   ON "caja_stats" ("caja_lote_session_id", "dispositivo_id", "calibre")
   NULLS NOT DISTINCT;

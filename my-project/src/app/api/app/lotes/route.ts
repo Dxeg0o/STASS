@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
-import { and, eq, ilike } from "drizzle-orm";
+import { and, eq, ilike, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { lote, loteServicio, servicio } from "@/db/schema";
+import {
+  lote,
+  loteCierreCalibreBin,
+  loteServicio,
+  loteStats,
+  servicio,
+} from "@/db/schema";
 import { verifyAppKey } from "@/lib/app-auth";
 import { isUniqueViolation } from "@/lib/app-idempotent";
 import { fetchLoteById, fetchLotesByIds, sortLotes } from "@/lib/app-lote";
@@ -27,9 +33,44 @@ export async function GET(request: Request) {
     .where(eq(loteServicio.servicioId, servicioId));
 
   const loteIds = [...new Set(links.map((l) => l.loteId))];
-  const lotes = sortLotes(await fetchLotesByIds(loteIds));
+  const lotes = await fetchLotesByIds(loteIds);
+  const [statsRows, cierreRows] = await Promise.all([
+    loteIds.length === 0
+      ? Promise.resolve([])
+      : db
+          .selectDistinct({ loteId: loteStats.loteId })
+          .from(loteStats)
+          .where(
+            and(
+              eq(loteStats.servicioId, servicioId),
+              inArray(loteStats.loteId, loteIds),
+            ),
+          ),
+    loteIds.length === 0
+      ? Promise.resolve([])
+      : db
+          .selectDistinct({ loteId: loteCierreCalibreBin.loteId })
+          .from(loteCierreCalibreBin)
+          .where(
+            and(
+              eq(loteCierreCalibreBin.servicioId, servicioId),
+              inArray(loteCierreCalibreBin.loteId, loteIds),
+            ),
+          ),
+  ]);
+  const procesados = new Set([
+    ...statsRows.map((row) => row.loteId),
+    ...cierreRows.map((row) => row.loteId),
+  ]);
 
-  return NextResponse.json({ lotes }, { status: 200 });
+  return NextResponse.json(
+    {
+      lotes: sortLotes(
+        lotes.map((item) => ({ ...item, procesado: procesados.has(item.id) })),
+      ),
+    },
+    { status: 200 },
+  );
 }
 
 interface PostBody {

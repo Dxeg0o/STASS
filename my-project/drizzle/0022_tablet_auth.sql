@@ -6,7 +6,7 @@
 -- acceso directo del anon key.
 -- ═══════════════════════════════════════════════════════════════════════════
 
-CREATE TABLE "tablet" (
+CREATE TABLE IF NOT EXISTS "tablet" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"nombre" text NOT NULL,
 	"api_key_hash" text,
@@ -16,6 +16,6 @@ CREATE TABLE "tablet" (
 );
 --> statement-breakpoint
 
-CREATE UNIQUE INDEX "idx_tablet_api_key"
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_tablet_api_key"
   ON "tablet" ("api_key_hash")
   WHERE "api_key_hash" IS NOT NULL;
