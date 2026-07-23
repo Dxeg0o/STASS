@@ -45,6 +45,7 @@ import {
   FileSpreadsheet,
   Edit2,
   Download,
+  GitMerge,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────
@@ -246,6 +247,18 @@ export default function AdminServicioLotesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Merge (unificar) dialog
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [mergeTargetMode, setMergeTargetMode] = useState<"existing" | "custom">(
+    "existing"
+  );
+  const [mergeTargetLoteId, setMergeTargetLoteId] = useState("");
+  const [mergeCustomCodigo, setMergeCustomCodigo] = useState("");
+  const [mergeProductoId, setMergeProductoId] = useState("");
+  const [mergeVariedadId, setMergeVariedadId] = useState("");
+  const [mergeSubvariedadId, setMergeSubvariedadId] = useState("");
+  const [merging, setMerging] = useState(false);
 
   // Edit dialog
   const [editingLote, setEditingLote] = useState<Lote | null>(null);
@@ -966,6 +979,87 @@ export default function AdminServicioLotesPage() {
     setSelectedIds(new Set());
   };
 
+  // ── Unificar lotes (merge) ──────────────────────────────────
+  const selectedLotesList = useMemo(
+    () => lotes.filter((l) => selectedIds.has(l.id)),
+    [lotes, selectedIds]
+  );
+
+  const mergeVariedades = useMemo(
+    () => productos.find((p) => p.id === mergeProductoId)?.variedades ?? [],
+    [productos, mergeProductoId]
+  );
+  const mergeSubvariedades = useMemo(
+    () =>
+      mergeVariedades.find((v) => v.id === mergeVariedadId)?.subvariedades ?? [],
+    [mergeVariedades, mergeVariedadId]
+  );
+
+  const openMergeDialog = () => {
+    const first = Array.from(selectedIds)[0] ?? "";
+    setMergeTargetMode("existing");
+    setMergeTargetLoteId(first);
+    setMergeCustomCodigo("");
+    setMergeProductoId("");
+    setMergeVariedadId("");
+    setMergeSubvariedadId("");
+    setMergeDialogOpen(true);
+  };
+
+  const handleMerge = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length < 2) {
+      toast.error("Selecciona al menos 2 lotes");
+      return;
+    }
+    const payload: {
+      loteIds: string[];
+      targetLoteId?: string;
+      custom?: { codigoLote: string; variedadId?: string; subvariedadId?: string };
+    } = { loteIds: ids };
+
+    if (mergeTargetMode === "existing") {
+      if (!mergeTargetLoteId) {
+        toast.error("Elige el lote resultante");
+        return;
+      }
+      payload.targetLoteId = mergeTargetLoteId;
+    } else {
+      if (!mergeCustomCodigo.trim()) {
+        toast.error("Ingresa el código del lote resultante");
+        return;
+      }
+      payload.custom = {
+        codigoLote: mergeCustomCodigo.trim(),
+        variedadId: mergeVariedadId || undefined,
+        subvariedadId: mergeSubvariedadId || undefined,
+      };
+    }
+
+    setMerging(true);
+    try {
+      await axios.post(
+        `/api/admin/servicios/${servicioId}/lotes/merge`,
+        payload
+      );
+      const lotesRes = await axios.get(
+        `/api/admin/servicios/${servicioId}/lotes`
+      );
+      setLotes(lotesRes.data);
+      setMergeDialogOpen(false);
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+      toast.success("Lotes unificados");
+    } catch (err: unknown) {
+      const error = err as {
+        response?: { status?: number; data?: { error?: string } };
+      };
+      toast.error(error.response?.data?.error ?? "Error al unificar lotes");
+    } finally {
+      setMerging(false);
+    }
+  };
+
   const handleDelete = async () => {
     const ids = Array.from(selectedIds);
     setDeleting(true);
@@ -1183,6 +1277,16 @@ export default function AdminServicioLotesPage() {
                     className="border-white/10 text-slate-400 hover:text-white"
                   >
                     Cancelar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={selectedIds.size < 2}
+                    onClick={openMergeDialog}
+                    className="border-amber-500/30 text-amber-400 hover:text-amber-300 hover:bg-amber-950/30"
+                  >
+                    <GitMerge className="w-4 h-4 mr-1.5" />
+                    Unificar ({selectedIds.size})
                   </Button>
                   <Button
                     size="sm"
@@ -2193,6 +2297,174 @@ export default function AdminServicioLotesPage() {
               {importing
                 ? "Importando…"
                 : `Importar (${selectedImportIds.size})`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Merge (Unificar) Dialog ────────────────────────────── */}
+      <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
+        <DialogContent className="bg-slate-900 border-white/10 text-white sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white">Unificar lotes</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-3 text-sm text-amber-200/90">
+              Se combinarán los conteos de los{" "}
+              <span className="font-semibold">{selectedIds.size}</span> lotes
+              seleccionados <span className="font-semibold">solo en este
+              servicio</span>, bajo un único lote resultante. Los demás lotes se
+              quitarán de este servicio (y se eliminarán si no se usan en otro).
+              Esta acción no se puede deshacer.
+            </div>
+
+            <div>
+              <p className="text-sm text-slate-400 mb-1.5">Lotes a unificar</p>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedLotesList.map((l) => (
+                  <Badge
+                    key={l.id}
+                    variant="outline"
+                    className="border-white/10 text-slate-300"
+                  >
+                    {l.codigoLote ?? "—"}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400">Lote resultante</p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMergeTargetMode("existing")}
+                  className={
+                    mergeTargetMode === "existing"
+                      ? "border-amber-500/50 text-amber-400 bg-amber-950/30"
+                      : "border-white/10 text-slate-400"
+                  }
+                >
+                  Usar uno existente
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMergeTargetMode("custom")}
+                  className={
+                    mergeTargetMode === "custom"
+                      ? "border-amber-500/50 text-amber-400 bg-amber-950/30"
+                      : "border-white/10 text-slate-400"
+                  }
+                >
+                  Nombre personalizado
+                </Button>
+              </div>
+
+              {mergeTargetMode === "existing" ? (
+                <Select
+                  value={mergeTargetLoteId}
+                  onValueChange={setMergeTargetLoteId}
+                >
+                  <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                    <SelectValue placeholder="Elegir lote resultante…" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-white/10">
+                    {selectedLotesList.map((l) => (
+                      <SelectItem key={l.id} value={l.id} className="text-white">
+                        {l.codigoLote ?? "—"}
+                        {l.variedadNombre ? ` · ${l.variedadNombre}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="space-y-3">
+                  <Input
+                    placeholder="Código del nuevo lote (ej: 320.22C.S)"
+                    value={mergeCustomCodigo}
+                    onChange={(e) => setMergeCustomCodigo(e.target.value)}
+                    className="bg-slate-800/50 border-white/10 text-white"
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <Select
+                      value={mergeProductoId}
+                      onValueChange={(id) => {
+                        setMergeProductoId(id);
+                        setMergeVariedadId("");
+                        setMergeSubvariedadId("");
+                      }}
+                    >
+                      <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                        <SelectValue placeholder="Producto" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        {productos.map((p) => (
+                          <SelectItem key={p.id} value={p.id} className="text-white">
+                            {p.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={mergeVariedadId}
+                      onValueChange={(id) => {
+                        setMergeVariedadId(id);
+                        setMergeSubvariedadId("");
+                      }}
+                      disabled={!mergeProductoId || mergeVariedades.length === 0}
+                    >
+                      <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                        <SelectValue placeholder="Variedad" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        {mergeVariedades.map((v) => (
+                          <SelectItem key={v.id} value={v.id} className="text-white">
+                            {v.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={mergeSubvariedadId}
+                      onValueChange={setMergeSubvariedadId}
+                      disabled={!mergeVariedadId || mergeSubvariedades.length === 0}
+                    >
+                      <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+                        <SelectValue placeholder="Subvariedad" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10">
+                        {mergeSubvariedades.map((s) => (
+                          <SelectItem key={s.id} value={s.id} className="text-white">
+                            {s.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setMergeDialogOpen(false)}
+              className="border-white/10 text-slate-400 hover:text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleMerge}
+              disabled={merging || selectedIds.size < 2}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+            >
+              {merging ? "Unificando…" : "Unificar lotes"}
             </Button>
           </DialogFooter>
         </DialogContent>
