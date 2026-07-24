@@ -351,16 +351,23 @@ async function handleV2(
       (calibreTo === null || Number.isInteger(calibreTo)) &&
       (calibreFrom === null || calibreTo === null || calibreTo > calibreFrom);
 
+    // Rango abierto (merma, ej. "<6" o ">10") = falta calibre_from o calibre_to.
+    // En ese caso los bins son opcionales (0 permitido) — una merma frecuentemente no
+    // lleva conteo de bins. Rango cerrado (calibre normal) sigue exigiendo bins > 0.
+    // Coincide con el CHECK de la migración 0030.
+    const isOpenRange = calibreFrom === null || calibreTo === null;
+
     if (
       !rangeValido ||
       !Number.isFinite(bins) ||
       Math.abs(bins * 10 - Math.round(bins * 10)) > 1e-9 ||
-      bins <= 0
+      bins < 0 ||
+      (!isOpenRange && bins <= 0)
     ) {
       return NextResponse.json(
         {
           error:
-            "calibre_from/calibre_to deben ser enteros válidos (al menos uno no nulo, from < to); bins debe ser mayor que cero y tener como máximo un decimal",
+            "calibre_from/calibre_to deben ser enteros válidos (al menos uno no nulo, from < to); bins no puede ser negativo, y debe ser mayor que cero salvo en rangos abiertos (merma); máximo un decimal",
         },
         { status: 400 }
       );
