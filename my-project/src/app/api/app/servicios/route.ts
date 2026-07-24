@@ -28,6 +28,7 @@ export async function GET(request: Request) {
       procesoId: servicio.procesoId,
       tipo: servicio.tipo,
       usaCajas: servicio.usaCajas,
+      modoCalibre: servicio.modoCalibre,
     })
     .from(servicio)
     .where(and(eq(servicio.procesoId, procesoId), eq(servicio.empresaId, empresaId)))
@@ -40,6 +41,7 @@ export async function GET(request: Request) {
     proceso_id: r.procesoId,
     tipo: r.tipo,
     usa_cajas: r.usaCajas,
+    modo_calibre: r.modoCalibre,
   }));
 
   return NextResponse.json({ servicios }, { status: 200 });

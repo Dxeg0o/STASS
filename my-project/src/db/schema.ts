@@ -1,5 +1,6 @@
 import {
   pgTable,
+  pgView,
   uuid,
   text,
   timestamp,
@@ -14,6 +15,7 @@ import {
   integer,
   numeric,
   foreignKey,
+  bigint,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -215,6 +217,11 @@ export const procesoRelations = relations(proceso, ({ one, many }) => ({
 
 // ─── Servicio ──────────────────────────────────────────────
 
+// modoCalibre: 'medido' (default, comportamiento actual — calibre calculado por QB desde
+// perimetro) | 'declarado' (el cliente tiene un calibrador de N salidas; el calibre que
+// manda es el que la operaria declara por salida al cerrar el lote — ver
+// docs/plan_calibre_declarado_por_salida.md en qualiblick-app). Se lee en un único lugar,
+// calibre-resolver.ts — nada más decide la fuente por su cuenta.
 export const servicio = pgTable("servicio", {
   id: uuid("id").primaryKey().defaultRandom(),
   nombre: text("nombre").notNull(),
@@ -228,6 +235,7 @@ export const servicio = pgTable("servicio", {
   estado: text("estado").notNull().default("planificado"), // planificado|en_curso|completado|cancelado
   fechaInicio: timestamp("fecha_inicio", { withTimezone: true }),
   fechaFin: timestamp("fecha_fin", { withTimezone: true }),
+  modoCalibre: text("modo_calibre").notNull().default("medido"), // 'medido' | 'declarado'
 });
 
 export const servicioRelations = relations(servicio, ({ one, many }) => ({
@@ -438,6 +446,11 @@ export const tablet = pgTable("tablet", {
   apiKeyHash: text("api_key_hash"),
   activo: boolean("activo").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  // Telemetría de versión (F2.6 del plan de calibre por salida): sin esto no hay forma
+  // de saber cuándo todas las tablets ya actualizaron y se puede retirar el soporte del
+  // payload viejo de /cierre-calibres (F6). Se actualiza en cada request autenticado.
+  appVersion: text("app_version"),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
 });
 
 // ─── Dispositivo ↔ Servicio ────────────────────────────────
@@ -456,6 +469,11 @@ export const dispositivoServicio = pgTable(
     asignadoAt: timestamp("asignado_at", { withTimezone: true }).defaultNow(),
     fechaInicio: timestamp("fecha_inicio", { withTimezone: true }),
     fechaTermino: timestamp("fecha_termino", { withTimezone: true }),
+    // Identidad de salida física en el calibrador (1..N, configurable por servicio).
+    // Único por (servicio_id, salida_orden) mientras el vínculo esté activo
+    // (fecha_termino IS NULL) — ver dispositivo_servicio_salida_uq en la migración 0029.
+    salidaOrden: smallint("salida_orden"),
+    salidaNombre: text("salida_nombre"),
   }
 );
 
@@ -636,30 +654,45 @@ export const loteStats = pgTable(
   ]
 );
 
-// ─── Cierre manual de lote por calibre ─────────────────────────────────────
-
+// ─── Cierre de lote por calibre (declarado por salida, con vigencia temporal) ──────
+//
+// Dos regímenes conviven en la misma tabla, distinguidos por dispositivoId:
+//   - dispositivoId IS NULL  → legacy: declaración a nivel de lote (como era antes de
+//     calibre-por-salida). calibreFrom/calibreTo únicos por (lote, servicio, rango).
+//   - dispositivoId IS NOT NULL → un tramo de una salida específica, con vigencia
+//     temporal (vigenteDesde/vigenteHasta, NULL = abierto en ese extremo). Una misma
+//     salida puede tener varios tramos en el mismo lote (recalibración a mitad de
+//     proceso) siempre que sus ventanas no se solapen — enforced por el exclusion
+//     constraint `lcc_sin_solape` (requiere btree_gist), no expresable en drizzle-kit.
+//
+// calibreFrom/calibreTo son nullable para soportar merma con rango abierto (p.ej. "<6"
+// o ">10"): al menos uno de los dos debe venir. Ver migración 0029 para los CHECK/
+// EXCLUDE reales — NO correr `drizzle-kit push` contra esta tabla, dropearía el
+// exclusion constraint igual que con el índice de `lote`.
 export const loteCierreCalibreBin = pgTable(
   "lote_cierre_calibre_bin",
   {
+    id: uuid("id").primaryKey().defaultRandom(),
     loteId: uuid("lote_id").notNull(),
     servicioId: uuid("servicio_id").notNull(),
-    calibreFrom: integer("calibre_from").notNull(),
-    calibreTo: integer("calibre_to").notNull(),
+    dispositivoId: uuid("dispositivo_id").references(() => dispositivo.id),
+    calibreFrom: integer("calibre_from"),
+    calibreTo: integer("calibre_to"),
     bins: numeric("bins", { precision: 10, scale: 1, mode: "number" }).notNull(),
+    vigenteDesde: timestamp("vigente_desde", { withTimezone: true }),
+    vigenteHasta: timestamp("vigente_hasta", { withTimezone: true }),
     tabletId: uuid("tablet_id").references(() => tablet.id),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
   (t) => [
-    primaryKey({
-      columns: [t.loteId, t.servicioId, t.calibreFrom, t.calibreTo],
-    }),
     foreignKey({
       columns: [t.loteId, t.servicioId],
       foreignColumns: [loteServicio.loteId, loteServicio.servicioId],
       name: "lote_cierre_calibre_bin_lote_servicio_fk",
     }).onDelete("cascade"),
     index("idx_lote_cierre_calibre_servicio").on(t.servicioId),
+    index("idx_lote_cierre_calibre_dispositivo").on(t.loteId, t.servicioId, t.dispositivoId),
   ]
 );
 
@@ -766,3 +799,47 @@ export const invitationLinkRelations = relations(
     }),
   })
 );
+
+// ─── Vistas de resolución de calibre declarado ─────────────────────────────
+//
+// Definidas en SQL crudo (migración 0029), no vía drizzle-kit — `.existing()` le dice a
+// drizzle que solo las tipe para queries, sin intentar crearlas/gestionarlas. Única
+// fuente de verdad para calibre-resolver.ts: dashboard y correos consumen el resolver,
+// nunca estas vistas ni las tablas base directamente, para que la dualidad
+// medido/declarado no se reimplemente en cada lugar.
+
+export const vLoteCalibreDeclarado = pgView("v_lote_calibre_declarado", {
+  loteId: uuid("lote_id"),
+  servicioId: uuid("servicio_id"),
+  calibreFrom: integer("calibre_from"),
+  calibreTo: integer("calibre_to"),
+  sinDeclarar: boolean("sin_declarar"),
+  bins: numeric("bins", { mode: "number" }),
+  unidades: bigint("unidades", { mode: "number" }),
+  salidas: uuid("salidas").array(),
+}).existing();
+
+export const vCajaCalibreDeclarado = pgView("v_caja_calibre_declarado", {
+  cajaLoteSessionId: uuid("caja_lote_session_id"),
+  loteId: uuid("lote_id"),
+  servicioId: uuid("servicio_id"),
+  calibreFrom: integer("calibre_from"),
+  calibreTo: integer("calibre_to"),
+  sinDeclarar: boolean("sin_declarar"),
+  unidades: bigint("unidades", { mode: "number" }),
+  bins: numeric("bins", { mode: "number" }),
+  salidas: uuid("salidas").array(),
+}).existing();
+
+export const vLoteCalibreDiscrepancia = pgView("v_lote_calibre_discrepancia", {
+  loteId: uuid("lote_id"),
+  servicioId: uuid("servicio_id"),
+  dispositivoId: uuid("dispositivo_id"),
+  tramoId: uuid("tramo_id"),
+  calibreFrom: integer("calibre_from"),
+  calibreTo: integer("calibre_to"),
+  total: bigint("total", { mode: "number" }),
+  dentroDeRango: bigint("dentro_de_rango", { mode: "number" }),
+  bajo: bigint("bajo", { mode: "number" }),
+  sobre: bigint("sobre", { mode: "number" }),
+}).existing();

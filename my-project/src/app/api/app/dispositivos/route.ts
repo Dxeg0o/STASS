@@ -6,7 +6,13 @@ import { verifyAppKey } from "@/lib/app-auth";
 
 // Dispositivos activos asignados a un servicio (sin filtrar por vigencia
 // temporal — igual que hoy hace el cliente Supabase, que solo filtra
-// dispositivo.activo).
+// dispositivo.activo). Se mantiene así a propósito: no filtramos por
+// fecha_termino acá, solo lo hace el índice parcial de unicidad de salida.
+//
+// salida_orden/salida_nombre: identidad de salida física en el calibrador (plan de
+// calibre por salida). Servicios que todavía no configuraron salidas devuelven estos
+// campos en null — la tablet debe degradar a mostrar el nombre del dispositivo, no
+// romper.
 export async function GET(request: Request) {
   const tablet = await verifyAppKey(request);
   if (!tablet) {
@@ -28,6 +34,8 @@ export async function GET(request: Request) {
       nombre: dispositivo.nombre,
       tipo: dispositivo.tipo,
       activo: dispositivo.activo,
+      salidaOrden: dispositivoServicio.salidaOrden,
+      salidaNombre: dispositivoServicio.salidaNombre,
     })
     .from(dispositivoServicio)
     .innerJoin(dispositivo, eq(dispositivo.id, dispositivoServicio.dispositivoId))
@@ -35,7 +43,24 @@ export async function GET(request: Request) {
 
   const dispositivos = rows
     .filter((d) => d.activo)
-    .sort((a, b) => a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase()));
+    .sort((a, b) => {
+      // Con salida configurada: ordenar por número de salida. Sin salida: al final,
+      // por nombre — así un servicio a mitad de migrar a salidas no queda desordenado.
+      if (a.salidaOrden != null && b.salidaOrden != null) {
+        return a.salidaOrden - b.salidaOrden;
+      }
+      if (a.salidaOrden != null) return -1;
+      if (b.salidaOrden != null) return 1;
+      return a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase());
+    })
+    .map((d) => ({
+      id: d.id,
+      nombre: d.nombre,
+      tipo: d.tipo,
+      activo: d.activo,
+      salida_orden: d.salidaOrden,
+      salida_nombre: d.salidaNombre,
+    }));
 
   return NextResponse.json({ dispositivos }, { status: 200 });
 }

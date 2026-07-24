@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   loteCierreCalibreBin,
@@ -66,7 +66,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ groups: [] }, { status: 200 });
   }
 
-  const manualRows = await db
+  // Este endpoint es la "Calibres por lote" de revisión interna (calibre medido QB) y
+  // predata la calibración por salida: se acota explícitamente a las declaraciones
+  // LEGACY a nivel de lote (dispositivo_id IS NULL). Las declaraciones por salida
+  // (plan de calibre declarado) tienen su propia resolución en calibre-resolver.ts +
+  // v_lote_calibre_declarado — no se mezclan acá.
+  const manualRowsRaw = await db
     .select({
       loteId: loteCierreCalibreBin.loteId,
       calibreFrom: loteCierreCalibreBin.calibreFrom,
@@ -77,13 +82,21 @@ export async function GET(request: Request) {
     .where(
       and(
         eq(loteCierreCalibreBin.servicioId, servicioId),
-        inArray(loteCierreCalibreBin.loteId, loteIds)
+        inArray(loteCierreCalibreBin.loteId, loteIds),
+        isNull(loteCierreCalibreBin.dispositivoId)
       )
     )
     .orderBy(
       asc(loteCierreCalibreBin.calibreFrom),
       asc(loteCierreCalibreBin.calibreTo)
     );
+
+  // Las declaraciones legacy siempre traen from/to no-nulos (el POST v1 los exige);
+  // el filtro de abajo solo achica el tipo para TS, no descarta filas en la práctica.
+  const manualRows = manualRowsRaw.filter(
+    (row): row is typeof row & { calibreFrom: number; calibreTo: number } =>
+      row.calibreFrom !== null && row.calibreTo !== null
+  );
 
   const manualRangesByLote = new Map<string, ManualRange[]>();
   for (const row of manualRows) {

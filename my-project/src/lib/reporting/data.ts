@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   conteo,
@@ -76,6 +76,23 @@ export function shiftLocalDate(date: string, days: number) {
   const value = new Date(`${date}T12:00:00Z`);
   value.setUTCDate(value.getUTCDate() + days);
   return formatDateUtc(value);
+}
+
+/**
+ * Dates that the automatic weekday job must report.
+ * Monday catches up Friday, Saturday and Sunday in chronological order;
+ * Tuesday through Friday report the immediately preceding local day.
+ */
+export function automaticReportDates(now: Date = new Date()) {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: REPORT_TIME_ZONE,
+    weekday: "long",
+  }).format(now);
+  if (weekday === "Saturday" || weekday === "Sunday") return [];
+
+  const today = formatLocalDate(now);
+  const offsets = weekday === "Monday" ? [-3, -2, -1] : [-1];
+  return offsets.map((offset) => shiftLocalDate(today, offset));
 }
 
 function formatDateUtc(date: Date) {
@@ -293,7 +310,11 @@ export async function buildServiceReport(
     .where(inArray(lote.id, [...new Set(counts.map((row) => row.loteId))]));
   const nameMap = new Map(names.map((row) => [row.id, row.codigo ?? row.id.slice(0, 8)]));
 
-  const manualRows = await db
+  // Igual que en /lotes/resumen-calibres: este reporte usa el calibre MEDIDO (QB) y se
+  // acota a las declaraciones legacy a nivel de lote (dispositivo_id IS NULL). Los
+  // servicios en modo 'declarado' se resuelven aparte vía calibre-resolver.ts — ver
+  // plan de calibre declarado por salida (F4, pendiente de integrar acá).
+  const manualRowsRaw = await db
     .select({
       loteId: loteCierreCalibreBin.loteId,
       from: loteCierreCalibreBin.calibreFrom,
@@ -304,10 +325,15 @@ export async function buildServiceReport(
     .where(
       and(
         eq(loteCierreCalibreBin.servicioId, serviceId),
-        inArray(loteCierreCalibreBin.loteId, loteIds)
+        inArray(loteCierreCalibreBin.loteId, loteIds),
+        isNull(loteCierreCalibreBin.dispositivoId)
       )
     )
     .orderBy(asc(loteCierreCalibreBin.calibreFrom));
+  const manualRows = manualRowsRaw.filter(
+    (row): row is typeof row & { from: number; to: number } =>
+      row.from !== null && row.to !== null
+  );
   const rangeMap = new Map<string, ManualRange[]>();
   for (const row of manualRows) {
     const ranges = rangeMap.get(row.loteId) ?? [];
