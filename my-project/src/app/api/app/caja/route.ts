@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { caja } from "@/db/schema";
 import { verifyAppKey } from "@/lib/app-auth";
@@ -47,11 +47,27 @@ export async function POST(request: Request) {
 
     return NextResponse.json(serializeCaja(created), { status: 201 });
   } catch (e) {
-    // Reintento offline (mismo id y código): idempotente.
-    if (isUniqueViolation(e) && typeof body.id === "string") {
-      const existing = await db.query.caja.findFirst({
-        where: eq(caja.id, body.id),
-      });
+    if (isUniqueViolation(e)) {
+      // Dos casos de choque, ambos idempotentes:
+      // 1. Mismo id: reintento exacto de la misma request (se cortó la red
+      //    justo después de guardar, antes de que llegara la respuesta).
+      // 2. Mismo código, id distinto: la caja es "reutilizable" y la tablet
+      //    generó un id local nuevo sin saber que ya existía (típico al
+      //    trabajar offline). En ambos casos se devuelve la fila que ya
+      //    existe — el cliente es responsable de corregir cualquier
+      //    operación ya encolada que referencie el id local si no coincide
+      //    con el id real devuelto acá (ver SyncEngine._executeOp /
+      //    remapCajaId en offline_repository.dart).
+      const existing =
+        (typeof body.id === "string"
+          ? await db.query.caja.findFirst({ where: eq(caja.id, body.id) })
+          : undefined) ??
+        (await db.query.caja.findFirst({
+          where: and(
+            eq(caja.codigo, body.codigo as string),
+            eq(caja.empresaId, body.empresa_id as string)
+          ),
+        }));
       if (existing) {
         return NextResponse.json(serializeCaja(existing), { status: 200 });
       }
