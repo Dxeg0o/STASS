@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { loteSession } from "@/db/schema";
 import { verifyAppKey } from "@/lib/app-auth";
+import { closeLoteSessionIdempotent } from "@/lib/app-session";
 import { serializeLoteSession } from "@/lib/app-serialize";
 
 interface Body {
@@ -35,15 +33,14 @@ export async function POST(
     return NextResponse.json({ error: "end_time inválido" }, { status: 400 });
   }
 
-  const [updated] = await db
-    .update(loteSession)
-    .set({ endTime })
-    .where(eq(loteSession.id, id))
-    .returning();
+  // No pisa un end_time ya resuelto: el POST de apertura cierra la sesión
+  // anterior por su cuenta, así que este cierre puede llegar cuando la frontera
+  // ya está bien puesta. Moverla sería corromper la ventana.
+  const session = await closeLoteSessionIdempotent(id, endTime);
 
-  if (!updated) {
+  if (!session) {
     return NextResponse.json({ error: "lote_session no encontrada" }, { status: 404 });
   }
 
-  return NextResponse.json(serializeLoteSession(updated), { status: 200 });
+  return NextResponse.json(serializeLoteSession(session), { status: 200 });
 }

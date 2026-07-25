@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { loteSession } from "@/db/schema";
 import { verifyAppKey } from "@/lib/app-auth";
-import { isUniqueViolation } from "@/lib/app-idempotent";
+import { openLoteSessionExclusive } from "@/lib/app-session";
 import { serializeLoteSession } from "@/lib/app-serialize";
 
 interface Body {
@@ -40,29 +37,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "start_time inválido" }, { status: 400 });
   }
 
-  try {
-    const [created] = await db
-      .insert(loteSession)
-      .values({
-        ...(typeof body.id === "string" ? { id: body.id } : {}),
-        loteId: body.lote_id,
-        dispositivoId: body.dispositivo_id,
-        startTime,
-      })
-      .returning();
+  // Abrir una sesión implica cerrar la que el dispositivo tuviera abierta: es
+  // la misma frontera y tiene que resolverse en una sola transacción. Que el
+  // cierre lo decidiera el cliente era el origen de las ventanas solapadas con
+  // dos tablets sobre los mismos dispositivos (ver openLoteSessionExclusive).
+  const { session, alreadyExisted } = await openLoteSessionExclusive({
+    ...(typeof body.id === "string" ? { id: body.id } : {}),
+    loteId: body.lote_id,
+    dispositivoId: body.dispositivo_id,
+    startTime,
+  });
 
-    return NextResponse.json(serializeLoteSession(created), { status: 201 });
-  } catch (e) {
-    // Reintento offline con el mismo id: idempotente, se devuelve lo que ya
-    // quedó guardado (no un error).
-    if (isUniqueViolation(e) && typeof body.id === "string") {
-      const existing = await db.query.loteSession.findFirst({
-        where: eq(loteSession.id, body.id),
-      });
-      if (existing) {
-        return NextResponse.json(serializeLoteSession(existing), { status: 200 });
-      }
-    }
-    throw e;
-  }
+  // Reintento offline con el mismo id: idempotente, se devuelve lo que ya
+  // quedó guardado (no un error).
+  return NextResponse.json(serializeLoteSession(session), {
+    status: alreadyExisted ? 200 : 201,
+  });
 }
