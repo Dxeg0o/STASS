@@ -66,6 +66,16 @@ interface DistributionResponse {
   series: { loteId: string }[];
 }
 
+interface CalibreBreakdownResponse {
+  source: "medido" | "declarado";
+  rows: Array<{
+    calibre_from: number | null;
+    label: string;
+    unidades: number;
+  }>;
+  sin_declarar: { unidades: number } | null;
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SERIES_COLORS = ["#06b6d4", "#6366f1", "#f97316", "#10b981", "#ec4899"];
@@ -109,6 +119,7 @@ export default function LoteGlobalDetailPage() {
   // Calibres tab
   const [chartData, setChartData] = useState<CaliberDataPoint[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
+  const [calibreSource, setCalibreSource] = useState<"medido" | "declarado" | null>(null);
   const [viewMode, setViewMode] = useState<"quantity" | "percentage">(
     "quantity"
   );
@@ -166,16 +177,56 @@ export default function LoteGlobalDetailPage() {
   useEffect(() => {
     if (!loteId) return;
     setChartLoading(true);
+
+    // "Ver todo" conserva su propósito técnico: agrega las etapas del lote
+    // desde lote_stats. Al elegir una etapa, el bloque pasa a ser comercial y
+    // resuelve la fuente del servicio seleccionado.
+    if (selectedServicioId) {
+      fetch(`/api/calibres/breakdown?servicioId=${selectedServicioId}&loteId=${loteId}`)
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Error al cargar distribución");
+          const payload: CalibreBreakdownResponse = await res.json();
+          const rows = payload.sin_declarar
+            ? [
+                ...payload.rows,
+                {
+                  calibre_from: null,
+                  label: "Sin declarar",
+                  unidades: payload.sin_declarar.unidades,
+                },
+              ]
+            : payload.rows;
+
+          setCalibreSource(payload.source);
+          setChartData(
+            rows.map((row, index) => ({
+              perimeter: payload.source === "medido" ? row.calibre_from ?? index : index,
+              label: row.label,
+              [loteId]: row.unidades,
+            }))
+          );
+        })
+        .catch(() => {
+          setCalibreSource(null);
+          setChartData([]);
+        })
+        .finally(() => setChartLoading(false));
+      return;
+    }
+
     const params = new URLSearchParams({ loteId });
-    if (selectedServicioId) params.set("servicioId", selectedServicioId);
 
     fetch(`/api/stats/distribution?${params.toString()}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Error al cargar distribucion");
         const payload: DistributionResponse = await res.json();
+        setCalibreSource(null);
         setChartData(payload.data);
       })
-      .catch(() => setChartData([]))
+      .catch(() => {
+        setCalibreSource(null);
+        setChartData([]);
+      })
       .finally(() => setChartLoading(false));
   }, [loteId, selectedServicioId]);
 
@@ -219,7 +270,11 @@ export default function LoteGlobalDetailPage() {
         typeof val === "number" && loteTotal > 0
           ? (val / loteTotal) * 100
           : 0;
-      return { perimeter: point.perimeter, [loteId]: pct };
+      return {
+        perimeter: point.perimeter,
+        ...(point.label ? { label: point.label } : {}),
+        [loteId]: pct,
+      };
     });
   }, [chartData, viewMode, loteId, loteTotal]);
 
@@ -501,6 +556,20 @@ export default function LoteGlobalDetailPage() {
                   </span>
                 )}
               </CardTitle>
+              {calibreSource && (
+                <Badge
+                  variant="outline"
+                  className={
+                    calibreSource === "declarado"
+                      ? "border-amber-500/40 text-amber-300"
+                      : "border-cyan-500/40 text-cyan-300"
+                  }
+                >
+                  {calibreSource === "declarado"
+                    ? "Declarado por salida"
+                    : "Medido por QB"}
+                </Badge>
+              )}
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -539,6 +608,7 @@ export default function LoteGlobalDetailPage() {
                 <CaliberChart
                   data={displayData}
                   series={series}
+                  xAxis={calibreSource === "declarado" ? "label" : "perimeter"}
                   yAxisTickFormatter={(val) =>
                     viewMode === "percentage"
                       ? `${val.toFixed(0)}%`

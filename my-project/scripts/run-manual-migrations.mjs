@@ -23,6 +23,10 @@ const migrations = [
   "0026_lote_cierre_calibre_rangos.sql",
   "0027_lote_cierre_calibre_bins_decimal.sql",
   "0028_report_delivery.sql",
+  "0029_calibre_declarado_por_salida.sql",
+  "0030_permitir_bins_cero_en_merma.sql",
+  "0031_tablet_app_version_last_seen_at.sql",
+  "0032_lote_calibre_declarado_dia.sql",
 ];
 const sql = postgres(databaseUrl, { max: 1 });
 

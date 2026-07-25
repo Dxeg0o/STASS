@@ -37,17 +37,20 @@ export interface CalibreBreakdown {
   sinDeclarar?: { unidades: number };
 }
 
+export type CalibreSource = CalibreBreakdown["source"];
+
 function label(from: number | null, to: number | null): string {
   if (from === null && to !== null) return `Calibre <${to} cm`;
   if (to === null && from !== null) return `Calibre >${from} cm`;
+  // Un punto medido usa el mismo valor en ambos límites. No se debe convertir
+  // en un rango entero: el dashboard histórico muestra lote_stats con su
+  // precisión decimal (por ejemplo, 6.1 cm).
+  if (from !== null && to === from) return `Calibre ${from} cm`;
   if (from !== null && to !== null) return `Calibre ${from}-${to} cm`;
   return "Sin declarar";
 }
 
-export async function getCalibreBreakdown(
-  servicioId: string,
-  opts: { loteId?: string } = {}
-): Promise<CalibreBreakdown> {
+export async function getCalibreSource(servicioId: string): Promise<CalibreSource> {
   const svc = await db.query.servicio.findFirst({
     where: eq(servicio.id, servicioId),
     columns: { id: true, modoCalibre: true },
@@ -56,7 +59,16 @@ export async function getCalibreBreakdown(
     throw new Error(`Servicio ${servicioId} no encontrado`);
   }
 
-  if (svc.modoCalibre === "declarado") {
+  return svc.modoCalibre === "declarado" ? "declarado" : "medido";
+}
+
+export async function getCalibreBreakdown(
+  servicioId: string,
+  opts: { loteId?: string } = {}
+): Promise<CalibreBreakdown> {
+  const source = await getCalibreSource(servicioId);
+
+  if (source === "declarado") {
     return getDeclarado(servicioId, opts.loteId);
   }
   return getMedido(servicioId, opts.loteId);
@@ -147,20 +159,24 @@ async function getMedido(
     )
     .groupBy(loteStats.calibre);
 
-  const byBucket = new Map<number, number>();
+  const byCalibre = new Map<number, number>();
   for (const row of statRows) {
     const calibre = Number(row.calibre);
     if (!Number.isFinite(calibre)) continue;
-    const bucket = Math.floor(calibre);
-    byBucket.set(bucket, (byBucket.get(bucket) ?? 0) + (Number(row.unidades) || 0));
+    byCalibre.set(
+      calibre,
+      (byCalibre.get(calibre) ?? 0) + (Number(row.unidades) || 0)
+    );
   }
 
-  const rows: CalibreRow[] = [...byBucket.entries()]
+  // No se agrupa con Math.floor(): en modo medido el contrato visual actual es
+  // una distribución por calibre decimal proveniente directamente de lote_stats.
+  const rows: CalibreRow[] = [...byCalibre.entries()]
     .sort(([a], [b]) => a - b)
-    .map(([bucket, unidades]) => ({
-      calibreFrom: bucket,
-      calibreTo: bucket + 1,
-      label: label(bucket, bucket + 1),
+    .map(([calibre, unidades]) => ({
+      calibreFrom: calibre,
+      calibreTo: calibre,
+      label: label(calibre, calibre),
       bins: 0,
       unidades,
       salidas: null,

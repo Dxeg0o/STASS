@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { loteCierreCalibreBin, dispositivoServicio, dispositivo } from "@/db/schema";
 import { verifyAppKey } from "@/lib/app-auth";
@@ -456,6 +456,11 @@ async function handleV2(
           out.push(...inserted);
         }
       }
+      // Una sola lectura acotada al lote al guardar/corregir tramos. Los correos
+      // posteriores consultan lote_calibre_declarado_dia, nunca conteo.
+      await tx.execute(
+        sql`SELECT refresh_lote_calibre_declarado_dia(${loteId}::uuid, ${servicioId}::uuid)`
+      );
       return out;
     });
 

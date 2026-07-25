@@ -14,13 +14,6 @@ export interface ReportLote {
   bulbs: number;
   percent: number;
   rows: ReportCalibreRow[];
-  activeDays: ReportActiveDay[];
-}
-
-export interface ReportActiveDay {
-  date: string;
-  startTime: string;
-  endTime: string;
 }
 
 export interface ServiceReport {
@@ -32,8 +25,6 @@ export interface ServiceReport {
   reportDate: string;
   generatedAt: string;
   totalBulbs: number;
-  workedHours: number;
-  workedDays: number;
   rows: ReportCalibreRow[];
   lotes: ReportLote[];
 }

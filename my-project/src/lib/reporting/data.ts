@@ -12,7 +12,6 @@ import {
 } from "@/db/schema";
 import type {
   ReportCalibreRow,
-  ReportActiveDay,
   ReportKind,
   ReportLote,
   ServiceReport,
@@ -146,33 +145,11 @@ function bucketFor(
   return { key: "manual-sin-rango", label: "Sin rango manual / No manual range", bins: 0 };
 }
 
-function formatTime(value: Date) {
-  return new Intl.DateTimeFormat("es-CL", {
-    timeZone: REPORT_TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(value);
-}
-
-function formatActiveDay(date: string, firstTs: Date, lastTs: Date): ReportActiveDay {
-  return { date, startTime: formatTime(firstTs), endTime: formatTime(lastTs) };
-}
-
-function workedHoursByDay(days: Map<string, { firstTs: Date; lastTs: Date }>) {
-  let hours = 0;
-  for (const day of days.values()) {
-    hours += Math.max(0, day.lastTs.getTime() - day.firstTs.getTime()) / 3_600_000;
-  }
-  return Math.round(hours * 10) / 10;
-}
-
 function buildLote(
   row: CountRow,
   rows: CountRow[],
   codigoLote: string,
-  ranges: ManualRange[],
-  activeDays: ReportActiveDay[]
+  ranges: ManualRange[]
 ): ReportLote {
   const buckets = new Map<string, LoteBucket>();
   for (const item of rows) {
@@ -196,7 +173,6 @@ function buildLote(
     codigoLote,
     bulbs,
     percent: 0,
-    activeDays,
     rows: [...buckets.values()]
       .sort(sortCalibreRows)
       .map((bucket) => ({
@@ -262,8 +238,6 @@ export async function buildServiceReport(
       reportDate,
       generatedAt: new Date().toISOString(),
       totalBulbs: 0,
-      workedHours: 0,
-      workedDays: 0,
       rows: [],
       lotes: [],
     };
@@ -285,24 +259,6 @@ export async function buildServiceReport(
     .from(conteo)
     .where(and(...conditions))
     .groupBy(conteo.loteId, conteo.perimeter);
-
-  const activityConditions = [eq(conteo.servicioId, serviceId), inArray(conteo.loteId, loteIds)];
-  if (kind === "daily") {
-    activityConditions.push(
-      sql`(${conteo.ts} AT TIME ZONE ${REPORT_TIME_ZONE_SQL})::date = ${reportDate}`
-    );
-  }
-  const localDateExpr = sql<string>`TO_CHAR(${conteo.ts} AT TIME ZONE ${REPORT_TIME_ZONE_SQL}, 'YYYY-MM-DD')`;
-  const activityRows = await db
-    .select({
-      loteId: conteo.loteId,
-      date: localDateExpr,
-      firstTs: sql<Date>`MIN(${conteo.ts})`,
-      lastTs: sql<Date>`MAX(${conteo.ts})`,
-    })
-    .from(conteo)
-    .where(and(...activityConditions))
-    .groupBy(conteo.loteId, localDateExpr);
 
   const names = await db
     .select({ id: lote.id, codigo: lote.codigoLote })
@@ -348,32 +304,12 @@ export async function buildServiceReport(
     grouped.set(row.loteId, current);
   }
 
-  const activeDaysByLote = new Map<string, ReportActiveDay[]>();
-  const serviceDays = new Map<string, { firstTs: Date; lastTs: Date }>();
-  for (const row of activityRows) {
-    const firstTs = new Date(row.firstTs);
-    const lastTs = new Date(row.lastTs);
-    const date = String(row.date).slice(0, 10);
-    const days = activeDaysByLote.get(row.loteId) ?? [];
-    days.push(formatActiveDay(date, firstTs, lastTs));
-    days.sort((left, right) => left.date.localeCompare(right.date));
-    activeDaysByLote.set(row.loteId, days);
-    const serviceDay = serviceDays.get(date);
-    if (serviceDay) {
-      serviceDay.firstTs = firstTs < serviceDay.firstTs ? firstTs : serviceDay.firstTs;
-      serviceDay.lastTs = lastTs > serviceDay.lastTs ? lastTs : serviceDay.lastTs;
-    } else {
-      serviceDays.set(date, { firstTs, lastTs });
-    }
-  }
-
   const lotes = [...grouped.entries()]
     .map(([loteId, rows]) => buildLote(
       rows[0],
       rows,
       nameMap.get(loteId) ?? loteId.slice(0, 8),
-      rangeMap.get(loteId) ?? [],
-      activeDaysByLote.get(loteId) ?? []
+      rangeMap.get(loteId) ?? []
     ))
     .sort((left, right) => left.codigoLote.localeCompare(right.codigoLote, "es"));
   const totalBulbs = lotes.reduce((sum, current) => sum + current.bulbs, 0);
@@ -388,8 +324,6 @@ export async function buildServiceReport(
     reportDate,
     generatedAt: new Date().toISOString(),
     totalBulbs,
-    workedHours: workedHoursByDay(serviceDays),
-    workedDays: serviceDays.size,
     rows: mergeServiceRows(lotes),
     lotes,
   };

@@ -16,6 +16,7 @@ import {
   numeric,
   foreignKey,
   bigint,
+  date,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -843,3 +844,27 @@ export const vLoteCalibreDiscrepancia = pgView("v_lote_calibre_discrepancia", {
   bajo: bigint("bajo", { mode: "number" }),
   sobre: bigint("sobre", { mode: "number" }),
 }).existing();
+
+// Resumen diario materializado al cerrar/corregir tramos declarados. Reporterías
+// leen esta tabla pequeña; no vuelven a escanear la hypertable conteo.
+export const loteCalibreDeclaradoDia = pgTable(
+  "lote_calibre_declarado_dia",
+  {
+    dia: date("dia").notNull(),
+    loteId: uuid("lote_id").notNull(),
+    servicioId: uuid("servicio_id").notNull(),
+    dispositivoId: uuid("dispositivo_id").notNull(),
+    calibreKey: text("calibre_key").notNull(),
+    calibreFrom: integer("calibre_from"),
+    calibreTo: integer("calibre_to"),
+    sinDeclarar: boolean("sin_declarar").notNull().default(false),
+    unidades: bigint("unidades", { mode: "number" }).notNull(),
+    refreshedAt: timestamp("refreshed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({
+      columns: [t.dia, t.loteId, t.servicioId, t.dispositivoId, t.calibreKey],
+    }),
+    index("lote_calibre_declarado_dia_reporte_idx").on(t.servicioId, t.dia, t.loteId),
+  ]
+);

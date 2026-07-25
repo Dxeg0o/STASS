@@ -23,7 +23,8 @@ export interface CaliberSeries {
 
 export interface CaliberDataPoint {
   perimeter: number;
-  [key: string]: number;
+  label?: string;
+  [key: string]: number | string | undefined;
 }
 
 interface CaliberChartProps {
@@ -31,6 +32,7 @@ interface CaliberChartProps {
   series: CaliberSeries[];
   yAxisTickFormatter?: (value: number) => string;
   tooltipValueFormatter?: (value: number) => string;
+  xAxis?: "perimeter" | "label";
 }
 
 export function CaliberChart({
@@ -38,6 +40,7 @@ export function CaliberChart({
   series,
   yAxisTickFormatter,
   tooltipValueFormatter,
+  xAxis = "perimeter",
 }: CaliberChartProps) {
   const config = React.useMemo(() => {
     return series.reduce<ChartConfig>((acc, item) => {
@@ -57,8 +60,10 @@ export function CaliberChart({
       <AreaChart data={data} margin={{ left: 12, right: 12, top: 10 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis
-          dataKey="perimeter"
-          tickFormatter={(value) => Number(value).toFixed(1)}
+          dataKey={xAxis === "label" ? "label" : "perimeter"}
+          tickFormatter={(value) =>
+            xAxis === "label" ? String(value) : Number(value).toFixed(1)
+          }
           tickMargin={8}
         />
         <YAxis tickFormatter={yFormatter} tickMargin={8} />
@@ -66,7 +71,11 @@ export function CaliberChart({
           content={
             <ChartTooltipContent
               labelFormatter={(_, payload) => {
-                const perimeter = payload?.[0]?.payload?.perimeter;
+                const point = payload?.[0]?.payload as CaliberDataPoint | undefined;
+                if (xAxis === "label" && typeof point?.label === "string") {
+                  return point.label;
+                }
+                const perimeter = point?.perimeter;
                 if (typeof perimeter === "number") {
                   return `Calibre: ${perimeter.toFixed(1)}`;
                 }

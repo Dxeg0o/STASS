@@ -46,9 +46,17 @@ interface Conteo {
   perimeter: number | null;
 }
 
-interface DistributionResponse {
-  data: CaliberDataPoint[];
-  series: { loteId: string }[];
+interface CalibreBreakdownResponse {
+  source: "medido" | "declarado";
+  rows: Array<{
+    calibre_from: number | null;
+    calibre_to: number | null;
+    label: string;
+    bins: number;
+    unidades: number;
+    salidas: string[] | null;
+  }>;
+  sin_declarar: { unidades: number } | null;
 }
 
 interface HistorialEntry {
@@ -104,6 +112,7 @@ export default function LoteDetailPage() {
   // Calibres tab
   const [chartData, setChartData] = useState<CaliberDataPoint[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
+  const [calibreSource, setCalibreSource] = useState<"medido" | "declarado" | null>(null);
   const [viewMode, setViewMode] = useState<"quantity" | "percentage">("quantity");
 
   // Historial tab
@@ -163,13 +172,40 @@ export default function LoteDetailPage() {
   useEffect(() => {
     if (!servicioId || !loteId) return;
     setChartLoading(true);
-    fetch(`/api/stats/distribution?servicioId=${servicioId}&loteId=${loteId}`)
+    fetch(`/api/calibres/breakdown?servicioId=${servicioId}&loteId=${loteId}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Error al cargar distribución");
-        const payload: DistributionResponse = await res.json();
-        setChartData(payload.data);
+        const payload: CalibreBreakdownResponse = await res.json();
+        const rows = payload.sin_declarar
+          ? [
+              ...payload.rows,
+              {
+                calibre_from: null,
+                calibre_to: null,
+                label: "Sin declarar",
+                bins: 0,
+                unidades: payload.sin_declarar.unidades,
+                salidas: null,
+              },
+            ]
+          : payload.rows;
+
+        setCalibreSource(payload.source);
+        setChartData(
+          rows.map((row, index) => ({
+            // El modo medido conserva el eje decimal histórico. En declarado,
+            // perimeter solo fija el orden y el eje muestra el label del rango.
+            perimeter: payload.source === "medido" ? row.calibre_from ?? index : index,
+            label: row.label,
+            [loteId]: row.unidades,
+          }))
+        );
       })
-      .catch(console.error)
+      .catch((error) => {
+        console.error(error);
+        setCalibreSource(null);
+        setChartData([]);
+      })
       .finally(() => setChartLoading(false));
   }, [servicioId, loteId]);
 
@@ -212,7 +248,11 @@ export default function LoteDetailPage() {
       const val = point[loteId];
       const pct =
         typeof val === "number" && loteTotal > 0 ? (val / loteTotal) * 100 : 0;
-      return { perimeter: point.perimeter, [loteId]: pct };
+      return {
+        perimeter: point.perimeter,
+        ...(point.label ? { label: point.label } : {}),
+        [loteId]: pct,
+      };
     });
   }, [chartData, viewMode, loteId, loteTotal]);
 
@@ -375,7 +415,23 @@ export default function LoteDetailPage() {
         <TabsContent value="calibres">
           <Card className="border-white/10 bg-slate-900/40">
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-white">Distribución por calibre</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-white">Distribución por calibre</CardTitle>
+                {calibreSource && (
+                  <Badge
+                    variant="outline"
+                    className={
+                      calibreSource === "declarado"
+                        ? "border-amber-500/40 text-amber-300"
+                        : "border-cyan-500/40 text-cyan-300"
+                    }
+                  >
+                    {calibreSource === "declarado"
+                      ? "Declarado por salida"
+                      : "Medido por QB"}
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -414,6 +470,7 @@ export default function LoteDetailPage() {
                 <CaliberChart
                   data={displayData}
                   series={series}
+                  xAxis={calibreSource === "declarado" ? "label" : "perimeter"}
                   yAxisTickFormatter={(val) =>
                     viewMode === "percentage"
                       ? `${val.toFixed(0)}%`

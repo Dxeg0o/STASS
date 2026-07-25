@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   Shield,
   Link2,
+  ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -85,6 +86,7 @@ export function AdminSidebar({
       items: [
         { href: "/admin/productos", label: "Productos & Variedades", icon: Package, exact: false },
         { href: "/admin/dispositivos", label: "Dispositivos", icon: Cpu, exact: false },
+        { href: "/admin/revision-qb", label: "Revisión QB", icon: ClipboardCheck, exact: false },
       ],
     },
   ];
