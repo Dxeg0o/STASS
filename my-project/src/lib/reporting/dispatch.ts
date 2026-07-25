@@ -2,6 +2,7 @@ import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
 import React from "react";
 import { db } from "@/db";
 import {
+  conteo,
   empresaUsuario,
   reportDelivery,
   servicio,
@@ -109,10 +110,13 @@ export async function sendReportToRecipient(
   pair: ReportPair,
   recipient: { correo: string; nombre?: string | null },
   trackDelivery: boolean,
-  reportDate: string
+  reportDate: string,
+  reservedDeliveryId?: string
 ) {
   const delivery = trackDelivery
-    ? await reserveDelivery(pair.daily.serviceId, recipient.correo, reportDate)
+    ? reservedDeliveryId
+      ? { id: reservedDeliveryId }
+      : await reserveDelivery(pair.daily.serviceId, recipient.correo, reportDate)
     : { id: "manual-test" };
   if (!delivery) return { sent: false, skipped: true };
 
@@ -142,14 +146,20 @@ export async function sendReportToRecipient(
 
 export async function dispatchDailyReports(reportDate: string) {
   const services = await db
-    .select({ id: servicio.id, empresaId: servicio.empresaId })
+    .select({ id: servicio.id, serviceName: servicio.nombre, empresaId: servicio.empresaId })
     .from(servicio)
-    .where(eq(servicio.estado, "en_curso"));
+    .where(sql`exists (
+      select 1
+      from ${conteo}
+      where ${conteo.servicioId} = ${servicio.id}
+        and (${conteo.ts} at time zone 'America/Santiago')::date = ${reportDate}
+    )`);
 
   let attempted = 0;
   let sent = 0;
   let failed = 0;
   let skipped = 0;
+  const errors: Array<{ serviceId: string; serviceName: string; stage: "build" | "send"; error: string }> = [];
 
   for (const service of services) {
     const recipientsRows = await db
@@ -162,27 +172,43 @@ export async function dispatchDailyReports(reportDate: string) {
     );
     if (recipients.length === 0) continue;
 
+    // Reserve the deliveries before the expensive report/PDF build. This makes
+    // failures visible in report_delivery and allows the next cron run to retry
+    // instead of silently losing the service with no delivery record.
+    const reserved = [] as Array<{ recipient: (typeof recipients)[number]; deliveryId: string }>;
+    for (const recipient of recipients) {
+      const delivery = await reserveDelivery(service.id, recipient.correo, reportDate);
+      if (delivery) reserved.push({ recipient, deliveryId: delivery.id });
+      else skipped += 1;
+    }
+    if (reserved.length === 0) continue;
+
     let pair: ReportPair;
     try {
       pair = await buildReportPair(service.id, reportDate);
     } catch (error) {
-      failed += recipients.length;
-      console.error(`[reporting] Error generando servicio ${service.id}:`, error);
+      failed += reserved.length;
+      const message = error instanceof Error ? error.message : String(error);
+      errors.push({ serviceId: service.id, serviceName: service.serviceName, stage: "build", error: message.slice(0, 500) });
+      await Promise.all(reserved.map(({ deliveryId }) => markFailed(deliveryId, error)));
+      console.error(`[reporting] Error generando servicio ${service.id} (${service.serviceName}):`, error);
       continue;
     }
 
-    for (const recipient of recipients) {
+    for (const { recipient, deliveryId } of reserved) {
       attempted += 1;
       try {
-        const result = await sendReportToRecipient(pair, recipient, true, reportDate);
+        const result = await sendReportToRecipient(pair, recipient, true, reportDate, deliveryId);
         if (result.sent) sent += 1;
         if (result.skipped) skipped += 1;
       } catch (error) {
         failed += 1;
-        console.error(`[reporting] Error enviando ${service.id} a ${recipient.correo}:`, error);
+        const message = error instanceof Error ? error.message : String(error);
+        errors.push({ serviceId: service.id, serviceName: service.serviceName, stage: "send", error: message.slice(0, 500) });
+        console.error(`[reporting] Error enviando ${service.id} (${service.serviceName}) a ${recipient.correo}:`, error);
       }
     }
   }
 
-  return { reportDate, services: services.length, attempted, sent, failed, skipped };
+  return { reportDate, services: services.length, attempted, sent, failed, skipped, errors };
 }

@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { dispatchDailyReports } from "@/lib/reporting/dispatch";
-import { formatLocalDate, shiftLocalDate } from "@/lib/reporting/data";
+import { automaticReportDates } from "@/lib/reporting/data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Large services can contain hundreds of lots and require multiple PDFs.
+// The Hobby plan caps serverless functions at 60 seconds; compact PDF
+// generation keeps the full dispatch within this limit.
+export const maxDuration = 60;
 
 function authorized(request: Request) {
   const secret = process.env.REPORTS_CRON_SECRET?.trim();
@@ -29,7 +33,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ skipped: true, reason: "outside_reporting_window", hour });
   }
 
-  const reportDate = shiftLocalDate(formatLocalDate(), -1);
-  const result = await dispatchDailyReports(reportDate);
-  return NextResponse.json({ ok: true, ...result });
+  const reportDates = automaticReportDates();
+  if (reportDates.length === 0) {
+    return NextResponse.json({ ok: true, skipped: true, reason: "weekend", reportDates: [] });
+  }
+
+  const runs = await Promise.all(reportDates.map((reportDate) => dispatchDailyReports(reportDate)));
+  const result = runs.reduce(
+    (total, run) => ({
+      services: total.services + run.services,
+      attempted: total.attempted + run.attempted,
+      sent: total.sent + run.sent,
+      failed: total.failed + run.failed,
+      skipped: total.skipped + run.skipped,
+      errors: [...total.errors, ...run.errors],
+    }),
+    { services: 0, attempted: 0, sent: 0, failed: 0, skipped: 0, errors: [] as typeof runs[number]["errors"] }
+  );
+  return NextResponse.json({ ok: true, reportDates, runs, ...result });
 }

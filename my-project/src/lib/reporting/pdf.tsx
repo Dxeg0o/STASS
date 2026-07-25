@@ -43,12 +43,11 @@ const styles = StyleSheet.create({
   colBulbs: { width: "18%", textAlign: "right" },
   colPercent: { width: "18%", textAlign: "right" },
   colBins: { width: "18%", textAlign: "right" },
-  lotHeader: { flexDirection: "row", justifyContent: "space-between", backgroundColor: colors.soft, padding: 8, borderTopLeftRadius: 3, borderTopRightRadius: 3 },
-  lotName: { fontWeight: 700, fontSize: 10 },
-  lotMeta: { color: colors.muted, fontSize: 8 },
-  activity: { backgroundColor: colors.cyanLight, padding: 7, margin: 6, borderRadius: 3 },
-  activityLabel: { color: colors.cyan, fontSize: 8, fontWeight: 700, marginBottom: 3 },
-  activityText: { color: colors.muted, fontSize: 8, lineHeight: 1.35 },
+  detailLot: { width: "19%", fontWeight: 700 },
+  detailCalibre: { width: "30%" },
+  detailBulbs: { width: "13%", textAlign: "right" },
+  detailPercent: { width: "10%", textAlign: "right" },
+  detailBins: { width: "10%", textAlign: "right" },
   note: { color: colors.muted, fontSize: 8, lineHeight: 1.35, marginTop: 3 },
   footer: { position: "absolute", bottom: 18, left: 36, right: 36, flexDirection: "row", justifyContent: "space-between", color: colors.muted, fontSize: 7 },
 });
@@ -57,50 +56,41 @@ function number(value: number) {
   return new Intl.NumberFormat("es-CL", { maximumFractionDigits: 1 }).format(value);
 }
 
-function Table({ rows }: { rows: ReportCalibreRow[] }) {
+/**
+ * Keep the detail in a single paginable table. The previous implementation
+ * created one non-wrapping nested tree per lot, which becomes prohibitively
+ * slow for services with hundreds of lots and can exceed a serverless timeout.
+ */
+function DetailTable({ lotes }: { lotes: ReportLote[] }) {
+  const rows = lotes.flatMap((lote): Array<{ lote: ReportLote; row: ReportCalibreRow | null }> => {
+    if (lote.rows.length === 0) {
+      return [{ lote, row: null }];
+    }
+    return lote.rows.map((row) => ({ lote, row }));
+  });
+
   return (
     <View style={styles.table}>
-      <View style={styles.tableHeader}>
-        <Text style={styles.colLabel}>Calibre / Size</Text>
-        <Text style={styles.colBulbs}>Bulbos / Bulbs</Text>
-        <Text style={styles.colPercent}>%</Text>
-        <Text style={styles.colBins}>Bins</Text>
+      <View style={styles.tableHeader} fixed>
+        <Text style={styles.detailLot}>Lote / Lot</Text><Text style={styles.detailCalibre}>Calibre / Size</Text><Text style={styles.detailBulbs}>Bulbos</Text><Text style={styles.detailPercent}>%</Text><Text style={styles.detailBins}>Bins</Text>
       </View>
       {rows.length === 0 ? (
         <View style={styles.tableRow}><Text style={styles.colLabel}>Sin datos para el periodo</Text></View>
-      ) : rows.map((row, index) => (
-        <View key={row.key} style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}]}>
-          <Text style={styles.colLabel}>{row.label}</Text>
-          <Text style={styles.colBulbs}>{number(row.bulbs)}</Text>
-          <Text style={styles.colPercent}>{number(row.percent)}%</Text>
-          <Text style={styles.colBins}>{row.bins ? number(row.bins) : "-"}</Text>
+      ) : rows.map(({ lote, row }, index) => (
+        <View key={`${lote.loteId}-${row?.key ?? "empty"}`} style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}]} wrap={false}>
+          <Text style={styles.detailLot}>{lote.codigoLote}</Text>
+          <Text style={styles.detailCalibre}>{row?.label ?? "Sin datos para el periodo"}</Text>
+          <Text style={styles.detailBulbs}>{row ? number(row.bulbs) : "-"}</Text>
+          <Text style={styles.detailPercent}>{row ? `${number(row.percent)}%` : "-"}</Text>
+          <Text style={styles.detailBins}>{row?.bins ? number(row.bins) : "-"}</Text>
         </View>
       ))}
     </View>
   );
 }
 
-function LoteSection({ lote }: { lote: ReportLote }) {
-  return (
-    <View style={styles.table} wrap={false}>
-      <View style={styles.lotHeader}>
-        <Text style={styles.lotName}>Lote / Lot {lote.codigoLote}</Text>
-        <Text style={styles.lotMeta}>{number(lote.bulbs)} bulbos / bulbs - {number(lote.percent)}% del periodo / period</Text>
-      </View>
-      <View style={styles.activity}>
-        <Text style={styles.activityLabel}>Actividad / Activity</Text>
-        <Text style={styles.activityText}>{lote.activeDays.length > 0 ? lote.activeDays.map((day) => `${day.date}: ${day.startTime} - ${day.endTime}`).join(" | ") : "Sin actividad / No activity"}</Text>
-      </View>
-      <View style={{ padding: 6 }}><Table rows={lote.rows} /></View>
-    </View>
-  );
-}
-
 export function ServiceReportDocument({ report }: { report: ServiceReport }): ReactElement {
   const label = report.kind === "daily" ? "Resumen diario / Daily summary" : "Resumen acumulado / Service total summary";
-  const hoursOrDays = report.kind === "daily"
-    ? { label: "Horas trabajadas / Hours worked", value: `${number(report.workedHours)} h` }
-    : { label: "Días trabajados / Worked days", value: number(report.workedDays) };
   return (
     <Document title={`${label} - ${report.serviceName}`} author="QUALIBLICK">
       <Page size="A4" style={styles.page} wrap>
@@ -117,11 +107,10 @@ export function ServiceReportDocument({ report }: { report: ServiceReport }): Re
         <View style={styles.cards}>
           <View style={styles.card}><Text style={styles.cardLabel}>Bulbos procesados{"\n"}/ Processed bulbs</Text><Text style={styles.cardValue}>{number(report.totalBulbs)}</Text></View>
           <View style={styles.card}><Text style={styles.cardLabel}>Lotes procesados{"\n"}/ Processed lots</Text><Text style={styles.cardValue}>{number(report.lotes.length)}</Text></View>
-          <View style={styles.card}><Text style={styles.cardLabel}>{hoursOrDays.label.replace(" / ", "\n/ ")}</Text><Text style={styles.cardValue}>{hoursOrDays.value}</Text></View>
         </View>
 
         <Text style={styles.sectionTitle}>Detalle por lote / Lot detail</Text>
-        {report.lotes.length === 0 ? <Text style={styles.note}>No se registraron bulbos procesados en este periodo / No bulbs were processed during this period.</Text> : report.lotes.map((lote) => <LoteSection key={lote.loteId} lote={lote} />)}
+        {report.lotes.length === 0 ? <Text style={styles.note}>No se registraron bulbos procesados en este periodo / No bulbs were processed during this period.</Text> : <DetailTable lotes={report.lotes} />}
         <Text style={styles.note}>Los bins reflejan la asignacion manual vigente / Bins reflect the current manual assignment.</Text>
 
         <View style={styles.footer} fixed>
