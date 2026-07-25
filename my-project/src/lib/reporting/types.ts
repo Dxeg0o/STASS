@@ -24,6 +24,7 @@ export interface ServiceReport {
   processName: string | null;
   reportDate: string;
   generatedAt: string;
+  calibreSource: "medido" | "declarado";
   totalBulbs: number;
   rows: ReportCalibreRow[];
   lotes: ReportLote[];

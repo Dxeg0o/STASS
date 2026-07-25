@@ -1,10 +1,11 @@
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   conteo,
   empresa,
   lote,
   loteCierreCalibreBin,
+  loteCalibreDeclaradoDia,
   loteServicio,
   proceso,
   servicio,
@@ -201,6 +202,36 @@ function mergeServiceRows(lotes: ReportLote[]) {
     .map((row) => ({ ...row, percent: roundedPercent(row.bulbs, total) }));
 }
 
+function declaredLabel(from: number | null, to: number | null, sinDeclarar: boolean) {
+  if (sinDeclarar) return "Sin declarar / Undeclared";
+  if (from === null && to !== null) return `Menor a / Below ${to} cm`;
+  if (from !== null && to === null) return `Mayor a / Above ${from} cm`;
+  return `Calibre / Size ${from}-${to} cm`;
+}
+
+async function buildDeclaredServiceReport(metadata: { serviceName: string; companyName: string; processName: string | null }, serviceId: string, loteIds: string[], kind: ReportKind, reportDate: string): Promise<ServiceReport> {
+  const conditions = [eq(loteCalibreDeclaradoDia.servicioId, serviceId), inArray(loteCalibreDeclaradoDia.loteId, loteIds)];
+  if (kind === "daily") conditions.push(eq(loteCalibreDeclaradoDia.dia, reportDate));
+  const summary = await db.select().from(loteCalibreDeclaradoDia).where(and(...conditions));
+  const usedLoteIds = [...new Set(summary.map((row) => row.loteId))];
+  if (usedLoteIds.length === 0) return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs: 0, rows: [], lotes: [] };
+  const names = await db.select({ id: lote.id, codigo: lote.codigoLote }).from(lote).where(inArray(lote.id, usedLoteIds));
+  const nameMap = new Map(names.map((row) => [row.id, row.codigo ?? row.id.slice(0, 8)]));
+  const declarations = await db.select({ loteId: loteCierreCalibreBin.loteId, from: loteCierreCalibreBin.calibreFrom, to: loteCierreCalibreBin.calibreTo, bins: loteCierreCalibreBin.bins }).from(loteCierreCalibreBin).where(and(eq(loteCierreCalibreBin.servicioId, serviceId), inArray(loteCierreCalibreBin.loteId, usedLoteIds), isNotNull(loteCierreCalibreBin.dispositivoId)));
+  const bins = new Map<string, number>();
+  for (const row of declarations) { const key = `${row.loteId}:${row.from ?? ""}:${row.to ?? ""}`; bins.set(key, (bins.get(key) ?? 0) + (Number(row.bins) || 0)); }
+  const byLote = new Map<string, Map<string, ReportCalibreRow>>();
+  for (const row of summary) {
+    const key = row.sinDeclarar ? "sin_declarar" : `${row.calibreFrom ?? ""}:${row.calibreTo ?? ""}`;
+    const rows = byLote.get(row.loteId) ?? new Map<string, ReportCalibreRow>();
+    const current = rows.get(key) ?? { key, label: declaredLabel(row.calibreFrom, row.calibreTo, row.sinDeclarar), bulbs: 0, bins: row.sinDeclarar ? 0 : bins.get(`${row.loteId}:${row.calibreFrom ?? ""}:${row.calibreTo ?? ""}`) ?? 0, percent: 0 };
+    current.bulbs += Number(row.unidades) || 0; rows.set(key, current); byLote.set(row.loteId, rows);
+  }
+  const lotes = [...byLote.entries()].map(([loteId, rows]) => { const values = [...rows.values()].sort(sortCalibreRows); const bulbs = values.reduce((sum, row) => sum + row.bulbs, 0); return { loteId, codigoLote: nameMap.get(loteId) ?? loteId.slice(0, 8), bulbs, percent: 0, rows: values.map((row) => ({ ...row, percent: roundedPercent(row.bulbs, bulbs) })) }; }).sort((a, b) => a.codigoLote.localeCompare(b.codigoLote, "es"));
+  const totalBulbs = lotes.reduce((sum, row) => sum + row.bulbs, 0); for (const row of lotes) row.percent = roundedPercent(row.bulbs, totalBulbs);
+  return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs, rows: mergeServiceRows(lotes), lotes };
+}
+
 export async function buildServiceReport(
   serviceId: string,
   kind: ReportKind,
@@ -212,6 +243,7 @@ export async function buildServiceReport(
       serviceName: servicio.nombre,
       companyName: empresa.nombre,
       processName: tipoProceso.nombre,
+      modoCalibre: servicio.modoCalibre,
     })
     .from(servicio)
     .innerJoin(empresa, eq(empresa.id, servicio.empresaId))
@@ -237,11 +269,14 @@ export async function buildServiceReport(
       processName: metadata.processName ?? null,
       reportDate,
       generatedAt: new Date().toISOString(),
+      calibreSource: metadata.modoCalibre === "declarado" ? "declarado" : "medido",
       totalBulbs: 0,
       rows: [],
       lotes: [],
     };
   }
+
+  if (metadata.modoCalibre === "declarado") return buildDeclaredServiceReport(metadata, serviceId, loteIds, kind, reportDate);
 
   const conditions = [eq(conteo.servicioId, serviceId), inArray(conteo.loteId, loteIds)];
   if (kind === "daily") {
@@ -323,6 +358,7 @@ export async function buildServiceReport(
     processName: metadata.processName ?? null,
     reportDate,
     generatedAt: new Date().toISOString(),
+    calibreSource: "medido",
     totalBulbs,
     rows: mergeServiceRows(lotes),
     lotes,
