@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  dispositivo,
+  dispositivoServicio,
+  loteCalibreDeclaradoDia,
   loteCierreCalibreBin,
   loteServicio,
   loteStats,
+  servicio,
 } from "@/db/schema";
 import { verifyAppKey } from "@/lib/app-auth";
 
@@ -37,6 +41,179 @@ function source(manualBins: number, loteStatsCount: number) {
   return "qb";
 }
 
+// Igual que label(), pero soporta el rango abierto de una merma ("<6"/">10")
+// declarada por salida — la versión legacy de arriba nunca lo necesita porque
+// el POST v1 exige from/to no-nulos.
+function declaradoLabel(from: number | null, to: number | null): string {
+  if (from === null && to !== null) return `Calibre <${to} cm`;
+  if (to === null && from !== null) return `Calibre >${from} cm`;
+  if (from !== null && to !== null) return label(from, to);
+  return "Sin declarar";
+}
+
+function rangeKey(from: number | null, to: number | null): string {
+  return `${from ?? "null"}:${to ?? "null"}`;
+}
+
+// Cantidad por salida dentro de cada rango de calibre, para servicios en modo
+// `declarado`. A diferencia del resumen legacy de arriba (que solo lee
+// lote_cierre_calibre_bin con dispositivo_id NULL), acá la fuente es
+// lote_calibre_declarado_dia — la tabla que ya resuelve, por dispositivo y por
+// día, cuántas unidades cayeron en el rango que la operaria declaró al cerrar
+// (o en el bucket "sin declarar" si no llegó a declarar esa salida). Se suma
+// across días porque un lote puede abarcar más de uno.
+//
+// El tamaño (calibre_from/calibre_to) que se muestra por salida es
+// exactamente el que escribió la operaria: lote_calibre_declarado_dia ya lo
+// trae resuelto, no hace falta volver a leer lote_cierre_calibre_bin acá.
+async function buildDeclaradoGroups(servicioId: string, loteIds: string[]) {
+  if (loteIds.length === 0) return [];
+
+  const rows = await db
+    .select({
+      dispositivoId: loteCalibreDeclaradoDia.dispositivoId,
+      calibreFrom: loteCalibreDeclaradoDia.calibreFrom,
+      calibreTo: loteCalibreDeclaradoDia.calibreTo,
+      sinDeclarar: loteCalibreDeclaradoDia.sinDeclarar,
+      loteId: loteCalibreDeclaradoDia.loteId,
+      unidades: sql<number>`COALESCE(SUM(${loteCalibreDeclaradoDia.unidades}), 0)::int`,
+    })
+    .from(loteCalibreDeclaradoDia)
+    .where(
+      and(
+        eq(loteCalibreDeclaradoDia.servicioId, servicioId),
+        inArray(loteCalibreDeclaradoDia.loteId, loteIds)
+      )
+    )
+    .groupBy(
+      loteCalibreDeclaradoDia.dispositivoId,
+      loteCalibreDeclaradoDia.calibreFrom,
+      loteCalibreDeclaradoDia.calibreTo,
+      loteCalibreDeclaradoDia.sinDeclarar,
+      loteCalibreDeclaradoDia.loteId
+    );
+
+  if (rows.length === 0) return [];
+
+  // Bins que la operaria escribió manualmente al cerrar, agregados por rango
+  // (solo tramos por salida: dispositivo_id no nulo).
+  const binRows = await db
+    .select({
+      calibreFrom: loteCierreCalibreBin.calibreFrom,
+      calibreTo: loteCierreCalibreBin.calibreTo,
+      bins: loteCierreCalibreBin.bins,
+    })
+    .from(loteCierreCalibreBin)
+    .where(
+      and(
+        eq(loteCierreCalibreBin.servicioId, servicioId),
+        inArray(loteCierreCalibreBin.loteId, loteIds),
+        isNotNull(loteCierreCalibreBin.dispositivoId)
+      )
+    );
+
+  const binsByRange = new Map<string, number>();
+  for (const row of binRows) {
+    const k = rangeKey(row.calibreFrom, row.calibreTo);
+    binsByRange.set(k, (binsByRange.get(k) ?? 0) + (Number(row.bins) || 0));
+  }
+
+  // Nombre de salida vigente hoy — mismo criterio que usa la tablet
+  // (displayLabel), no un snapshot histórico del día en que se contó.
+  const dispositivoIds = [...new Set(rows.map((r) => r.dispositivoId))];
+  const dispRows = dispositivoIds.length
+    ? await db
+        .select({
+          id: dispositivo.id,
+          nombre: dispositivo.nombre,
+          salidaOrden: dispositivoServicio.salidaOrden,
+          salidaNombre: dispositivoServicio.salidaNombre,
+        })
+        .from(dispositivo)
+        .leftJoin(
+          dispositivoServicio,
+          and(
+            eq(dispositivoServicio.dispositivoId, dispositivo.id),
+            eq(dispositivoServicio.servicioId, servicioId)
+          )
+        )
+        .where(inArray(dispositivo.id, dispositivoIds))
+    : [];
+  const dispositivoById = new Map(dispRows.map((d) => [d.id, d]));
+
+  type SalidaAcc = { unidades: number };
+  type RangeAcc = {
+    calibreFrom: number | null;
+    calibreTo: number | null;
+    loteIds: Set<string>;
+    salidas: Map<string, SalidaAcc>;
+  };
+  const ranges = new Map<string, RangeAcc>();
+
+  for (const row of rows) {
+    const k = row.sinDeclarar
+      ? "sin_declarar"
+      : rangeKey(row.calibreFrom, row.calibreTo);
+    const range =
+      ranges.get(k) ??
+      ({
+        calibreFrom: row.sinDeclarar ? null : row.calibreFrom,
+        calibreTo: row.sinDeclarar ? null : row.calibreTo,
+        loteIds: new Set<string>(),
+        salidas: new Map<string, SalidaAcc>(),
+      } satisfies RangeAcc);
+    range.loteIds.add(row.loteId);
+
+    const current = range.salidas.get(row.dispositivoId) ?? { unidades: 0 };
+    current.unidades += Number(row.unidades) || 0;
+    range.salidas.set(row.dispositivoId, current);
+
+    ranges.set(k, range);
+  }
+
+  return [...ranges.entries()]
+    .sort(
+      ([, a], [, b]) =>
+        (a.calibreFrom ?? -Infinity) - (b.calibreFrom ?? -Infinity)
+    )
+    .map(([k, range]) => {
+      const totalUnidades = [...range.salidas.values()].reduce(
+        (sum, s) => sum + s.unidades,
+        0
+      );
+
+      return {
+        calibre_from: range.calibreFrom,
+        calibre_to: range.calibreTo,
+        label:
+          k === "sin_declarar"
+            ? "Sin declarar"
+            : declaradoLabel(range.calibreFrom, range.calibreTo),
+        manual_bins: k === "sin_declarar" ? 0 : binsByRange.get(k) ?? 0,
+        lote_stats_count: totalUnidades,
+        source: "declarado",
+        lote_count: range.loteIds.size,
+        salidas: [...range.salidas.entries()]
+          .map(([dispositivoId, s]) => {
+            const disp = dispositivoById.get(dispositivoId);
+            return {
+              dispositivo_id: dispositivoId,
+              salida_orden: disp?.salidaOrden ?? null,
+              label: disp?.salidaNombre ?? disp?.nombre ?? "Salida",
+              calibre_from: range.calibreFrom,
+              calibre_to: range.calibreTo,
+              unidades: s.unidades,
+              unidades_in: 0,
+              unidades_out: 0,
+            };
+          })
+          .sort(
+            (a, b) => (a.salida_orden ?? 999) - (b.salida_orden ?? 999)
+          ),
+      };
+    });
+}
+
 export async function GET(request: Request) {
   const tablet = await verifyAppKey(request);
   if (!tablet) {
@@ -62,15 +239,24 @@ export async function GET(request: Request) {
   const loteIds = loteId
     ? linkedLoteIds.filter((linkedId) => linkedId === loteId)
     : linkedLoteIds;
+
+  const svc = await db.query.servicio.findFirst({
+    where: eq(servicio.id, servicioId),
+    columns: { modoCalibre: true },
+  });
+  if (svc?.modoCalibre === "declarado") {
+    const groups = await buildDeclaradoGroups(servicioId, loteIds);
+    return NextResponse.json({ groups }, { status: 200 });
+  }
+
   if (loteIds.length === 0) {
     return NextResponse.json({ groups: [] }, { status: 200 });
   }
 
-  // Este endpoint es la "Calibres por lote" de revisión interna (calibre medido QB) y
-  // predata la calibración por salida: se acota explícitamente a las declaraciones
-  // LEGACY a nivel de lote (dispositivo_id IS NULL). Las declaraciones por salida
-  // (plan de calibre declarado) tienen su propia resolución en calibre-resolver.ts +
-  // v_lote_calibre_declarado — no se mezclan acá.
+  // A partir de acá el servicio está en modo `medido` (el ramal `declarado` ya
+  // devolvió arriba, vía buildDeclaradoGroups). Es la "Calibres por lote" de
+  // revisión interna (calibre medido QB): se acota explícitamente a las
+  // declaraciones LEGACY a nivel de lote (dispositivo_id IS NULL).
   const manualRowsRaw = await db
     .select({
       loteId: loteCierreCalibreBin.loteId,
