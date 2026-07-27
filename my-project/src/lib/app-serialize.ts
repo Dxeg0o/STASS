@@ -50,6 +50,7 @@ export function serializeLoteStats(row: LoteStatsRow) {
   return {
     lote_id: row.loteId,
     servicio_id: row.servicioId,
+    dispositivo_id: row.dispositivoId,
     calibre: row.calibre,
     count_in: row.countIn,
     count_out: row.countOut,
