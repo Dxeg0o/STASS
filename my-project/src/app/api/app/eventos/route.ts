@@ -1,6 +1,6 @@
 import { and, asc, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { loteSession } from "@/db/schema";
+import { cajaLoteSession, loteSession } from "@/db/schema";
 import { verifyAppKey } from "@/lib/app-auth";
 
 export const runtime = "nodejs";
@@ -46,10 +46,18 @@ const LIFETIME_MS = maxDuration * 1000 - POLL_MS - SAFETY_MS;
 
 /**
  * Firma del estado de sesión de estos dispositivos. Si cambia, cambió algo que
- * a la tablet le importa: el lote activo, o qué sesiones están abiertas.
+ * a la tablet le importa: el lote activo, qué sesiones están abiertas, o qué
+ * caja tiene asignada cada una.
+ *
+ * Incluye caja_lote_session a propósito: cambiar de caja no toca lote_session
+ * (solo abre/cierra la fila de caja), así que si la firma sólo mirara
+ * lote_session un cambio de caja nunca disparaba `lote_session_changed` — la
+ * otra tablet quedaba dependiendo del sondeo de respaldo, espaciado a 2 min
+ * con el canal sano. Bug real detectado en producción: "cambio de caja no se
+ * propaga en tiempo real".
  */
 async function sessionSignature(dispositivoIds: string[]): Promise<string> {
-  const rows = await db
+  const loteRows = await db
     .select({
       id: loteSession.id,
       loteId: loteSession.loteId,
@@ -65,16 +73,42 @@ async function sessionSignature(dispositivoIds: string[]): Promise<string> {
     )
     .orderBy(asc(loteSession.startTime));
 
-  return rows
+  const loteSessionIds = loteRows.map((r) => r.id);
+
+  const cajaRows = loteSessionIds.length
+    ? await db
+        .select({
+          id: cajaLoteSession.id,
+          loteSessionId: cajaLoteSession.loteSessionId,
+          cajaId: cajaLoteSession.cajaId,
+        })
+        .from(cajaLoteSession)
+        .where(
+          and(
+            inArray(cajaLoteSession.loteSessionId, loteSessionIds),
+            isNull(cajaLoteSession.retiradoAt)
+          )
+        )
+        .orderBy(asc(cajaLoteSession.asignadoAt))
+    : [];
+
+  const loteSig = loteRows
     .map((r) => `${r.id}:${r.loteId}:${r.startTime.toISOString()}`)
     .join("|");
+  const cajaSig = cajaRows
+    .map((r) => `${r.id}:${r.loteSessionId}:${r.cajaId}`)
+    .join("|");
+
+  // "#" separa las dos mitades: activeLoteIdFrom sólo necesita la de lote.
+  return `${loteSig}#${cajaSig}`;
 }
 
 function activeLoteIdFrom(signature: string): string | null {
-  if (!signature) return null;
+  const loteSig = signature.split("#")[0] ?? "";
+  if (!loteSig) return null;
   // La última por start_time es la activa, igual criterio que
   // getActiveSessionSnapshot.
-  const parts = signature.split("|");
+  const parts = loteSig.split("|");
   const last = parts[parts.length - 1].split(":");
   return last[1] ?? null;
 }
