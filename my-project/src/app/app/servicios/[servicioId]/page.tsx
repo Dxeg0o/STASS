@@ -293,13 +293,20 @@ export default function ServicioDetailPage() {
       .filter((s) => s.endMs >= lo && s.startMs <= hi);
   }, [sessions, dateRange]);
 
-  // Detección de solapamientos > 1 min entre sesiones (anomalía)
+  // Detección de solapamientos > 1 min entre sesiones del MISMO dispositivo.
+  // Es normal que distintos dispositivos trabajen simultáneamente el mismo
+  // lote, por lo que esos cruces no son conflictos y deben ignorarse.
   const { overlaps, conflictedIds } = useMemo(() => {
     const pairs: OverlapPair[] = [];
     const ids = new Set<string>();
     const arr = [...visibleSessions].sort((a, b) => a.startMs - b.startMs);
     for (let i = 0; i < arr.length; i++) {
       for (let j = i + 1; j < arr.length; j++) {
+        // Un lote puede estar activo en varios dispositivos a la vez. La
+        // exclusividad que queremos validar es por dispositivo, no por lote.
+        if (!arr[i].dispositivoId || arr[i].dispositivoId !== arr[j].dispositivoId) {
+          continue;
+        }
         if (arr[j].startMs >= arr[i].endMs) break; // ordenadas: no habrá más traslapes con i
         const overlapMs =
           Math.min(arr[i].endMs, arr[j].endMs) - arr[j].startMs;
@@ -308,7 +315,7 @@ export default function ServicioDetailPage() {
             a: arr[i],
             b: arr[j],
             overlapMs,
-            sameDevice: arr[i].dispositivoId === arr[j].dispositivoId,
+            sameDevice: true,
           });
           ids.add(arr[i].sessionId);
           ids.add(arr[j].sessionId);

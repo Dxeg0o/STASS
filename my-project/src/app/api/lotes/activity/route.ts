@@ -3,13 +3,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import {
   cajaLoteSession,
-  loteSession,
   loteServicio,
   dispositivoServicio,
   servicio,
 } from "@/db/schema";
 import { eq, isNotNull, isNull, and, desc, inArray } from "drizzle-orm";
 import { verifyEmpresaAdminFromPayload, verifyToken } from "@/lib/auth";
+import { openLoteSessionsExclusive } from "@/lib/app-session";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -133,52 +133,29 @@ export async function POST(request: Request) {
 
   const now = new Date();
 
-  const sessions = await db.transaction(async (tx) => {
-    const openSessions = await tx
-      .select({ id: loteSession.id })
-      .from(loteSession)
+  const results = await openLoteSessionsExclusive(
+    dispositivoIds.map((dispositivoId) => ({
+      loteId,
+      dispositivoId,
+      startTime: now,
+    }))
+  );
+  const sessions = results.map((result) => result.session);
+  const closedSessionIds = results.flatMap((result) => result.closedSessionIds);
+
+  // La apertura exclusiva ya cerró/recortó las lote_session. Retiramos sus
+  // cajas después, usando los ids exactos que devolvió el helper común.
+  if (closedSessionIds.length > 0) {
+    await db
+      .update(cajaLoteSession)
+      .set({ retiradoAt: now })
       .where(
         and(
-          inArray(loteSession.dispositivoId, dispositivoIds),
-          isNull(loteSession.endTime)
+          inArray(cajaLoteSession.loteSessionId, closedSessionIds),
+          isNull(cajaLoteSession.retiradoAt)
         )
       );
-    const openSessionIds = openSessions.map((session) => session.id);
-
-    if (openSessionIds.length > 0) {
-      await tx
-        .update(cajaLoteSession)
-        .set({ retiradoAt: now })
-        .where(
-          and(
-            inArray(cajaLoteSession.loteSessionId, openSessionIds),
-            isNull(cajaLoteSession.retiradoAt)
-          )
-        );
-    }
-
-    await tx
-      .update(loteSession)
-      .set({ endTime: now })
-      .where(
-        and(
-          inArray(loteSession.dispositivoId, dispositivoIds),
-          isNull(loteSession.endTime)
-        )
-      );
-
-    return tx
-      .insert(loteSession)
-      .values(
-        dispositivoIds.map((dispositivoId) => ({
-          loteId,
-          dispositivoId,
-          startTime: now,
-          endTime: null,
-        }))
-      )
-      .returning();
-  });
+  }
 
   return NextResponse.json(
     { sessions, updatedDeviceCount: sessions.length },

@@ -197,6 +197,21 @@ export async function openLoteSessionExclusive(
 }
 
 /**
+ * Abre sesiones exclusivas para varios dispositivos usando exactamente la
+ * misma lógica que usa la app de tablet. Cada dispositivo se procesa como una
+ * transición independiente, igual que las llamadas que hace qualiblick-app.
+ */
+export async function openLoteSessionsExclusive(
+  inputs: OpenLoteSessionInput[]
+): Promise<OpenLoteSessionResult[]> {
+  const results: OpenLoteSessionResult[] = [];
+  for (const input of inputs) {
+    results.push(await openLoteSessionExclusive(input));
+  }
+  return results;
+}
+
+/**
  * Cierra una `lote_session` sin pisar una frontera ya resuelta.
  *
  * El cliente sigue encolando cierres explícitos, y con
