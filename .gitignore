@@ -69,3 +69,9 @@ node_modules/
 .dataconnect
 stass.json
 .vercel
+
+# Artefactos generados por los scripts de análisis/reparación (respaldos, xlsx, json)
+outputs/
+
+# macOS
+.DS_Store
