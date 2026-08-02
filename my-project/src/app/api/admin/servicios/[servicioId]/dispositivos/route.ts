@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { dispositivo, dispositivoServicio, servicio } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { verifyAdmin } from "@/lib/auth";
+import { assignDeviceToServicio } from "@/lib/service-device-assignment";
 
 interface RouteContext {
   params: Promise<{ servicioId: string }>;
@@ -60,7 +61,8 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     const { servicioId } = await context.params;
-    const { dispositivoId, maquina } = await req.json();
+    const { dispositivoId, maquina, loteId, salidaOrden, salidaNombre } =
+      await req.json();
 
     if (!dispositivoId) {
       return NextResponse.json(
@@ -97,34 +99,42 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const now = new Date();
-
-    const [assignment] = await db.transaction(async (tx) => {
-      await tx
-        .update(dispositivoServicio)
-        .set({ fechaTermino: now })
-        .where(
-          and(
-            eq(dispositivoServicio.dispositivoId, dispositivoId),
-            isNull(dispositivoServicio.fechaTermino)
-          )
-        );
-
-      return tx
-        .insert(dispositivoServicio)
-        .values({
-          dispositivoId,
-          servicioId,
-          maquina: maquina?.trim() || null,
-          asignadoAt: now,
-          fechaInicio: srv.estado === "en_curso" ? now : null,
-          fechaTermino: null,
-        })
-        .returning();
+    const result = await assignDeviceToServicio({
+      dispositivoId,
+      servicioId,
+      maquina,
+      loteId,
+      ...(salidaOrden !== undefined ? { salidaOrden } : {}),
+      ...(salidaNombre !== undefined ? { salidaNombre } : {}),
     });
+    if (result.kind === "selection_required") {
+      return NextResponse.json(
+        {
+          code: "ACTIVE_LOTE_SELECTION_REQUIRED",
+          error: "Hay más de un lote activo; selecciona el lote para el dispositivo",
+          requiresLoteSelection: true,
+          activeLotes: result.activeLotes,
+        },
+        { status: 409 }
+      );
+    }
 
-    return NextResponse.json(assignment, { status: 201 });
+    return NextResponse.json(
+      {
+        ...result.assignment,
+        joinedActiveLote: result.joinedActiveLote,
+        loteSession: result.loteSession,
+        requiresLoteSelection: false,
+      },
+      { status: 201 }
+    );
   } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_ACTIVE_LOTE") {
+      return NextResponse.json(
+        { error: "El lote seleccionado no está activo en este servicio" },
+        { status: 400 }
+      );
+    }
     console.error("Error assigning dispositivo to servicio:", error);
     return NextResponse.json(
       { error: "Internal server error" },

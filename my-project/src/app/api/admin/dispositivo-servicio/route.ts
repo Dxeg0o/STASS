@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { dispositivoServicio, servicio } from "@/db/schema";
+import { dispositivoServicio } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { verifyAdmin } from "@/lib/auth";
+import { assignDeviceToServicio } from "@/lib/service-device-assignment";
 
 export async function POST(req: Request) {
   try {
@@ -11,7 +12,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { dispositivoId, servicioId, maquina } = await req.json();
+    const { dispositivoId, servicioId, maquina, loteId, salidaOrden, salidaNombre } =
+      await req.json();
 
     if (!dispositivoId || !servicioId) {
       return NextResponse.json(
@@ -20,51 +22,40 @@ export async function POST(req: Request) {
       );
     }
 
-    const now = new Date();
-    const srv = await db.query.servicio.findFirst({
-      where: eq(servicio.id, servicioId),
+    const result = await assignDeviceToServicio({
+      dispositivoId,
+      servicioId,
+      maquina,
+      loteId,
+      ...(salidaOrden !== undefined ? { salidaOrden } : {}),
+      ...(salidaNombre !== undefined ? { salidaNombre } : {}),
     });
-
-    if (!srv) {
+    if (result.kind === "selection_required") {
       return NextResponse.json(
-        { error: "Servicio no encontrado" },
-        { status: 404 }
+        { code: "ACTIVE_LOTE_SELECTION_REQUIRED", requiresLoteSelection: true, activeLotes: result.activeLotes },
+        { status: 409 }
       );
     }
-
-    if (srv.estado === "completado" || srv.estado === "cancelado") {
+    return NextResponse.json(
+      { ...result.assignment, joinedActiveLote: result.joinedActiveLote, loteSession: result.loteSession, requiresLoteSelection: false },
+      { status: 201 }
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "SERVICE_NOT_FOUND") {
+      return NextResponse.json({ error: "Servicio no encontrado" }, { status: 404 });
+    }
+    if (error instanceof Error && error.message === "SERVICE_CLOSED") {
       return NextResponse.json(
         { error: "No se pueden asignar dispositivos a un servicio cerrado" },
         { status: 409 }
       );
     }
-
-    const [assignment] = await db.transaction(async (tx) => {
-      await tx
-        .update(dispositivoServicio)
-        .set({ fechaTermino: now })
-        .where(
-          and(
-            eq(dispositivoServicio.dispositivoId, dispositivoId),
-            isNull(dispositivoServicio.fechaTermino)
-          )
-        );
-
-      return tx
-        .insert(dispositivoServicio)
-        .values({
-          dispositivoId,
-          servicioId,
-          maquina: maquina || null,
-          asignadoAt: now,
-          fechaInicio: srv.estado === "en_curso" ? now : null,
-          fechaTermino: null,
-        })
-        .returning();
-    });
-
-    return NextResponse.json(assignment, { status: 201 });
-  } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_ACTIVE_LOTE") {
+      return NextResponse.json(
+        { error: "El lote seleccionado no está activo en este servicio" },
+        { status: 400 }
+      );
+    }
     console.error("Error assigning dispositivo to servicio:", error);
     return NextResponse.json(
       { error: "Internal server error" },
