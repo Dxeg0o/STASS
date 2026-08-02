@@ -105,12 +105,19 @@ interface ServicioDispositivo {
   asignadoAt: string | null;
   fechaInicio: string | null;
   fechaTermino: string | null;
+  salidaOrden: number | null;
+  salidaNombre: string | null;
   dispositivo: Dispositivo;
 }
 
 interface ServicioDispositivosResponse {
   asignados: ServicioDispositivo[];
   disponibles: Dispositivo[];
+}
+
+interface ActiveLoteCandidate {
+  id: string;
+  codigoLote: string | null;
 }
 
 const TIPO_LABELS: Record<string, string> = {
@@ -274,6 +281,17 @@ export default function AdminServicioLotesPage() {
   const [deviceMaquina, setDeviceMaquina] = useState("");
   const [assigningDevice, setAssigningDevice] = useState(false);
   const [unassigningDeviceId, setUnassigningDeviceId] = useState<string | null>(null);
+  const [activeLoteCandidates, setActiveLoteCandidates] = useState<ActiveLoteCandidate[]>([]);
+  const [selectedActiveLoteId, setSelectedActiveLoteId] = useState("");
+  const [repairDevice, setRepairDevice] = useState<ServicioDispositivo | null>(null);
+  const [repairLoteId, setRepairLoteId] = useState("");
+  const [repairEffectiveAt, setRepairEffectiveAt] = useState("");
+  const [repairingDevice, setRepairingDevice] = useState(false);
+
+  // Configuración de salidas físicas del calibrador
+  const [salidasDialogOpen, setSalidasDialogOpen] = useState(false);
+  const [salidasDraft, setSalidasDraft] = useState<Record<string, string>>({});
+  const [savingSalidas, setSavingSalidas] = useState(false);
 
   // Import lotes dialog
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -332,6 +350,21 @@ export default function AdminServicioLotesPage() {
         l.productoNombre?.toLowerCase().includes(term)
     );
   }, [lotes, search]);
+
+  // Mismo criterio que /api/app/dispositivos: por número de salida, y los que
+  // todavía no la tienen configurada al final, por nombre.
+  const salidasOrdenadas = useMemo(() => {
+    return [...dispositivosAsignados].sort((a, b) => {
+      if (a.salidaOrden != null && b.salidaOrden != null) {
+        return a.salidaOrden - b.salidaOrden;
+      }
+      if (a.salidaOrden != null) return -1;
+      if (b.salidaOrden != null) return 1;
+      return a.dispositivo.nombre
+        .toLowerCase()
+        .localeCompare(b.dispositivo.nombre.toLowerCase());
+    });
+  }, [dispositivosAsignados]);
 
   // ── Varieties for selected product ──────────────────────────
 
@@ -1131,9 +1164,11 @@ export default function AdminServicioLotesPage() {
   const resetDeviceDialog = () => {
     setSelectedDispositivoId("");
     setDeviceMaquina("");
+    setActiveLoteCandidates([]);
+    setSelectedActiveLoteId("");
   };
 
-  const handleAssignDevice = async () => {
+  const handleAssignDevice = async (loteId?: string) => {
     if (!selectedDispositivoId) return;
 
     setAssigningDevice(true);
@@ -1141,13 +1176,20 @@ export default function AdminServicioLotesPage() {
       await axios.post(`/api/admin/servicios/${servicioId}/dispositivos`, {
         dispositivoId: selectedDispositivoId,
         maquina: deviceMaquina.trim() || null,
+        ...(loteId ? { loteId } : {}),
       });
       setDeviceDialogOpen(false);
       resetDeviceDialog();
       await fetchServicioDispositivos();
       toast.success("Dispositivo asignado correctamente");
-    } catch {
-      toast.error("Error al asignar dispositivo");
+    } catch (error: unknown) {
+      const response = axios.isAxiosError(error) ? error.response : undefined;
+      if (response?.data?.code === "ACTIVE_LOTE_SELECTION_REQUIRED") {
+        setActiveLoteCandidates(response.data.activeLotes ?? []);
+        setSelectedActiveLoteId("");
+      } else {
+        toast.error(response?.data?.error ?? "Error al asignar dispositivo");
+      }
     } finally {
       setAssigningDevice(false);
     }
@@ -1165,6 +1207,90 @@ export default function AdminServicioLotesPage() {
       toast.error("Error al desasignar dispositivo");
     } finally {
       setUnassigningDeviceId(null);
+    }
+  };
+
+  // Las salidas se guardan como set completo: intercambiar dos salidas entre sí
+  // tiene que ser atómico, si no el paso intermedio choca con la restricción de
+  // unicidad (servicio, salida_orden).
+  const openSalidasDialog = () => {
+    const draft: Record<string, string> = {};
+    for (const a of dispositivosAsignados) {
+      if (a.fechaTermino) continue;
+      draft[a.dispositivoId] = a.salidaOrden != null ? String(a.salidaOrden) : "";
+    }
+    setSalidasDraft(draft);
+    setSalidasDialogOpen(true);
+  };
+
+  const handleSaveSalidas = async () => {
+    const salidas = Object.entries(salidasDraft).map(([dispositivoId, orden]) => ({
+      dispositivoId,
+      salidaOrden: orden.trim() === "" ? null : Number(orden),
+      salidaNombre: null,
+    }));
+
+    const invalido = salidas.find(
+      (s) =>
+        s.salidaOrden !== null &&
+        (!Number.isInteger(s.salidaOrden) || s.salidaOrden < 1)
+    );
+    if (invalido) {
+      toast.error("El número de salida debe ser un entero mayor o igual a 1");
+      return;
+    }
+
+    const ordenes = salidas
+      .map((s) => s.salidaOrden)
+      .filter((o): o is number => o !== null);
+    if (new Set(ordenes).size !== ordenes.length) {
+      toast.error("Hay dos dispositivos con el mismo número de salida");
+      return;
+    }
+
+    setSavingSalidas(true);
+    try {
+      await axios.put(
+        `/api/admin/servicios/${servicioId}/dispositivos/salidas`,
+        { salidas }
+      );
+      setSalidasDialogOpen(false);
+      await fetchServicioDispositivos();
+      toast.success("Salidas actualizadas correctamente");
+    } catch (error: unknown) {
+      const response = axios.isAxiosError(error) ? error.response : undefined;
+      toast.error(response?.data?.error ?? "Error al guardar las salidas");
+    } finally {
+      setSavingSalidas(false);
+    }
+  };
+
+  const startRepair = (assignment: ServicioDispositivo) => {
+    setRepairDevice(assignment);
+    setRepairLoteId("");
+    setRepairEffectiveAt(
+      assignment.fechaInicio
+        ? new Date(assignment.fechaInicio).toISOString().slice(0, 16)
+        : ""
+    );
+  };
+
+  const handleRepair = async () => {
+    if (!repairDevice || !repairLoteId || !repairEffectiveAt) return;
+    setRepairingDevice(true);
+    try {
+      await axios.post(
+        `/api/admin/servicios/${servicioId}/dispositivos/${repairDevice.dispositivoId}/repair-lote-session`,
+        { loteId: repairLoteId, effectiveAt: new Date(repairEffectiveAt).toISOString() }
+      );
+      toast.success("Sesión corregida. El dispositivo ya puede reintentar su cola.");
+      setRepairDevice(null);
+      await fetchServicioDispositivos();
+    } catch (error: unknown) {
+      const response = axios.isAxiosError(error) ? error.response : undefined;
+      toast.error(response?.data?.error ?? "No se pudo corregir la sesión");
+    } finally {
+      setRepairingDevice(false);
     }
   };
 
@@ -1505,20 +1631,34 @@ export default function AdminServicioLotesPage() {
                     ({dispositivosAsignados.length})
                   </span>
                 </CardTitle>
-                <Button
-                  size="sm"
-                  disabled={
-                    dispositivosDisponibles.length === 0 ||
-                    dispositivosLoading ||
-                    servicioInfo?.estado === "completado" ||
-                    servicioInfo?.estado === "cancelado"
-                  }
-                  onClick={() => setDeviceDialogOpen(true)}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
-                >
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  Asignar Dispositivo
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={
+                      dispositivosLoading || salidasOrdenadas.length === 0
+                    }
+                    onClick={openSalidasDialog}
+                    className="border-sky-500/20 text-sky-300 hover:text-sky-200 hover:bg-sky-950/30"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+                    Configurar salidas
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={
+                      dispositivosDisponibles.length === 0 ||
+                      dispositivosLoading ||
+                      servicioInfo?.estado === "completado" ||
+                      servicioInfo?.estado === "cancelado"
+                    }
+                    onClick={() => setDeviceDialogOpen(true)}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+                  >
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    Asignar Dispositivo
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -1545,6 +1685,9 @@ export default function AdminServicioLotesPage() {
                     <TableHeader>
                       <TableRow className="border-white/10 hover:bg-transparent">
                         <TableHead className="text-slate-400 uppercase text-xs">
+                          Salida
+                        </TableHead>
+                        <TableHead className="text-slate-400 uppercase text-xs">
                           Nombre
                         </TableHead>
                         <TableHead className="text-slate-400 uppercase text-xs">
@@ -1565,7 +1708,7 @@ export default function AdminServicioLotesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {dispositivosAsignados.map((assignment) => {
+                      {salidasOrdenadas.map((assignment) => {
                         const isInactive = assignment.dispositivo.activo === false;
                         const assignmentStatus = assignment.fechaTermino
                           ? "cerrado"
@@ -1578,6 +1721,19 @@ export default function AdminServicioLotesPage() {
                             key={assignment.dispositivoId}
                             className="border-white/5 hover:bg-white/[0.02] transition-colors"
                           >
+                            <TableCell>
+                              {assignment.salidaOrden != null ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-sky-500/30 bg-sky-950/30 text-sky-300"
+                                >
+                                  {assignment.salidaNombre ??
+                                    `Salida ${assignment.salidaOrden}`}
+                                </Badge>
+                              ) : (
+                                <span className="italic text-slate-600">Sin salida</span>
+                              )}
+                            </TableCell>
                             <TableCell className="text-white font-medium">
                               {assignment.dispositivo.nombre}
                             </TableCell>
@@ -1627,6 +1783,16 @@ export default function AdminServicioLotesPage() {
                                   ? "Quitando..."
                                   : "Desasignar"}
                               </Button>
+                              {assignment.fechaInicio && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => startRepair(assignment)}
+                                  className="ml-2 border-amber-500/20 text-amber-300 hover:text-amber-200 hover:bg-amber-950/30"
+                                >
+                                  Reparar lote
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
@@ -2507,6 +2673,25 @@ export default function AdminServicioLotesPage() {
                 </SelectContent>
               </Select>
             </div>
+            {activeLoteCandidates.length > 0 && (
+              <div>
+                <label className="text-sm text-amber-300 mb-1.5 block">
+                  Hay varios lotes activos: elige el lote para este dispositivo
+                </label>
+                <Select value={selectedActiveLoteId} onValueChange={setSelectedActiveLoteId}>
+                  <SelectTrigger className="bg-slate-800/50 border-amber-500/40 text-white">
+                    <SelectValue placeholder="Seleccionar lote activo" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-white/10">
+                    {activeLoteCandidates.map((lote) => (
+                      <SelectItem key={lote.id} value={lote.id} className="text-white hover:bg-slate-800">
+                        {lote.codigoLote || lote.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div>
               <label className="text-sm text-slate-400 mb-1.5 block">
@@ -2593,6 +2778,68 @@ export default function AdminServicioLotesPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ── Configurar salidas Dialog ──────────────────────────── */}
+      <Dialog open={salidasDialogOpen} onOpenChange={setSalidasDialogOpen}>
+        <DialogContent className="bg-slate-900 border-white/10 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurar salidas</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-slate-400">
+              El número de salida es lo que ve el operador en la tablet al declarar
+              calibres. Si no coincide con el equipo que está físicamente en esa
+              salida, los calibres quedan asignados al dispositivo equivocado.
+            </p>
+            <div className="space-y-3">
+              {salidasOrdenadas
+                .filter((a) => !a.fechaTermino)
+                .map((a) => (
+                  <div
+                    key={a.dispositivoId}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <span className="text-sm text-white font-medium">
+                      {a.dispositivo.nombre}
+                      <span className="text-slate-500 font-normal ml-2">
+                        {a.dispositivo.tipo}
+                      </span>
+                    </span>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={salidasDraft[a.dispositivoId] ?? ""}
+                      onChange={(e) =>
+                        setSalidasDraft((prev) => ({
+                          ...prev,
+                          [a.dispositivoId]: e.target.value,
+                        }))
+                      }
+                      placeholder="Sin salida"
+                      className="w-32 bg-slate-800/50 border-white/10 text-white placeholder:text-slate-600"
+                    />
+                  </div>
+                ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSalidasDialogOpen(false)}
+              className="border-white/10 text-slate-400 hover:text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveSalidas}
+              disabled={savingSalidas}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
+            >
+              {savingSalidas ? "Guardando..." : "Guardar salidas"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Assign Device Dialog ───────────────────────────────── */}
       <Dialog
         open={deviceDialogOpen}
@@ -2656,11 +2903,50 @@ export default function AdminServicioLotesPage() {
               Cancelar
             </Button>
             <Button
-              onClick={handleAssignDevice}
-              disabled={assigningDevice || !selectedDispositivoId}
+              onClick={() => handleAssignDevice(selectedActiveLoteId || undefined)}
+              disabled={assigningDevice || !selectedDispositivoId || (activeLoteCandidates.length > 0 && !selectedActiveLoteId)}
               className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold"
             >
-              {assigningDevice ? "Asignando..." : "Asignar"}
+              {assigningDevice ? "Asignando..." : activeLoteCandidates.length > 0 ? "Confirmar lote" : "Asignar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(repairDevice)} onOpenChange={(open) => !open && setRepairDevice(null)}>
+        <DialogContent className="bg-slate-900 border-white/10 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reparar sesión de lote</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-400">
+            Se corregirá la sesión desde la hora en que se incorporó el dispositivo. Sus mediciones pendientes podrán reintentarse sin cambiar sus timestamps.
+          </p>
+          <Select value={repairLoteId} onValueChange={setRepairLoteId}>
+            <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
+              <SelectValue placeholder="Seleccionar lote correcto" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-900 border-white/10">
+              {lotes.map((lote) => (
+                <SelectItem key={lote.id} value={lote.id} className="text-white hover:bg-slate-800">
+                  {lote.codigoLote || lote.id}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div>
+            <label className="text-sm text-slate-400 mb-1.5 block">Corregir desde</label>
+            <Input
+              type="datetime-local"
+              value={repairEffectiveAt}
+              onChange={(event) => setRepairEffectiveAt(event.target.value)}
+              min={repairDevice?.fechaInicio ? new Date(repairDevice.fechaInicio).toISOString().slice(0, 16) : undefined}
+              className="bg-slate-800/50 border-white/10 text-white"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRepairDevice(null)} className="border-white/10 text-slate-400">Cancelar</Button>
+            <Button onClick={handleRepair} disabled={!repairLoteId || !repairEffectiveAt || repairingDevice} className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold">
+              {repairingDevice ? "Corrigiendo..." : "Confirmar reparación"}
             </Button>
           </DialogFooter>
         </DialogContent>

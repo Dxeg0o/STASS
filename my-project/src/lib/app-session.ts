@@ -24,9 +24,10 @@ const EMPTY_SNAPSHOT: SessionSnapshotDTO = {
   caja_orden: 0,
 };
 
-// Cuántas cajas distintas ha tenido un lote a lo largo de todas sus
-// lote_session — usado para numerar la próxima caja (mismo criterio que
-// SupabaseService.getCajaCountForLote).
+// Número máximo de caja que ha tenido un lote a lo largo de sus lote_session.
+// El código es la fuente de verdad del correlativo: contar filas distintas
+// falla cuando hay reintentos, cajas compartidas por varios dispositivos o
+// códigos no consecutivos.
 export async function getCajaCountForLote(loteId: string): Promise<number> {
   const sessions = await db
     .select({ id: loteSession.id })
@@ -36,11 +37,25 @@ export async function getCajaCountForLote(loteId: string): Promise<number> {
 
   const ids = sessions.map((s) => s.id);
   const cajaSessions = await db
-    .select({ cajaId: cajaLoteSession.cajaId })
+    .select({ codigo: caja.codigo })
     .from(cajaLoteSession)
+    .innerJoin(caja, eq(cajaLoteSession.cajaId, caja.id))
     .where(inArray(cajaLoteSession.loteSessionId, ids));
 
-  return new Set(cajaSessions.map((c) => c.cajaId)).size;
+  const suffixes = cajaSessions
+    .map((row) => row.codigo.match(/(\d+)$/)?.[1])
+    .filter((suffix): suffix is string => Boolean(suffix))
+    .map(Number)
+    .filter(Number.isFinite);
+
+  return suffixes.length > 0 ? Math.max(...suffixes) : 0;
+}
+
+function getCajaOrdenFromCodigo(codigo: string | null | undefined): number | null {
+  const suffix = codigo?.match(/(\d+)$/)?.[1];
+  if (!suffix) return null;
+  const number = Number(suffix);
+  return Number.isFinite(number) ? number : null;
 }
 
 // ─── Apertura exclusiva de lote_session ───────────────────────────────────
@@ -78,17 +93,19 @@ export type OpenLoteSessionResult = {
   closedSessionIds: string[];
 };
 
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /**
  * Abre una `lote_session` cerrando atómicamente cualquier otra que el
  * dispositivo tuviera abierta, y garantizando que la ventana resultante no se
  * solape con las que ya existen.
  */
-export async function openLoteSessionExclusive(
+export async function openLoteSessionExclusiveInTransaction(
+  tx: DbTransaction,
   input: OpenLoteSessionInput
 ): Promise<OpenLoteSessionResult> {
   const { id, loteId, dispositivoId, startTime } = input;
 
-  return db.transaction(async (tx) => {
     // Reintento del outbox con el mismo id: la sesión ya está, y sus fronteras
     // ya se resolvieron cuando llegó la primera vez. No hay que volver a
     // cerrar nada (cerraríamos la sesión que vino después de esta).
@@ -193,7 +210,12 @@ export async function openLoteSessionExclusive(
       alreadyExisted: false,
       closedSessionIds: closed.map((c) => c.id),
     };
-  });
+}
+
+export async function openLoteSessionExclusive(
+  input: OpenLoteSessionInput
+): Promise<OpenLoteSessionResult> {
+  return db.transaction((tx) => openLoteSessionExclusiveInTransaction(tx, input));
 }
 
 /**
@@ -288,7 +310,12 @@ export async function getActiveSessionSnapshot(
       ? serializeCaja(rawCajaSessions[0].caja)
       : null;
 
-  const cajaOrden = await getCajaCountForLote(activeLoteId);
+  // La tablet muestra este número junto a `caja`; por tanto debe representar
+  // la caja activa visible, no el total histórico del lote. El endpoint
+  // /cajas-count sigue usando getCajaCountForLote para numerar la próxima caja.
+  const cajaOrden =
+    getCajaOrdenFromCodigo(cajaActiva?.codigo) ??
+    (await getCajaCountForLote(activeLoteId));
 
   return {
     lote,
