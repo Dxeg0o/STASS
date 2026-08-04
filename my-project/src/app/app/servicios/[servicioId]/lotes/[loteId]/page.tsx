@@ -14,10 +14,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   ScanLine,
   Sprout,
   ShieldCheck,
   Activity,
+  Cpu,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -379,6 +386,7 @@ export default function LoteDetailPage() {
               ) : !summary || summary.length === 0 ? (
                 <p className="text-sm text-slate-500">Sin datos de dispositivos.</p>
               ) : (
+                <TooltipProvider delayDuration={150}>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -402,15 +410,42 @@ export default function LoteDetailPage() {
                       {summary.map((d) => (
                         <tr key={d.dispositivo} className="text-white">
                           <td className="py-2.5 pr-4 font-medium">
-                            {/* El nombre del equipo queda en el title: sigue siendo
-                                el dato para ir a buscarlo a terreno. */}
-                            <span title={d.dispositivo}>{d.salidaLabel}</span>
-                            {d.calibres.length > 0 && (
-                              <span className="text-slate-400 font-normal">
-                                {" "}
-                                ({d.calibres.join(", ")})
-                              </span>
-                            )}
+                            <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                              {d.salidaLabel}
+                              {d.calibres.length > 0 && (
+                                <span className="text-slate-400 font-normal">
+                                  ({d.calibres.join(", ")})
+                                </span>
+                              )}
+                              {/* El equipo sigue siendo el dato para ir a buscarlo
+                                  a terreno, pero ya no es el titulo de la fila. El
+                                  icono existe para que se vea que hay algo debajo:
+                                  en un title puro no hay nada que invite a pasar
+                                  el mouse. Se omite cuando la etiqueta ya ES el
+                                  nombre del equipo (servicio sin salidas). */}
+                              {d.salidaLabel !== d.dispositivo && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      aria-label={`Dispositivo: ${d.dispositivo}`}
+                                      className="text-slate-500 hover:text-slate-300 transition-colors cursor-help"
+                                    >
+                                      <Cpu className="w-3.5 h-3.5" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  {/* Arriba y no a la derecha: la columna es
+                                      angosta y el tooltip tapaba el numero de
+                                      "Bulbos entrada" de la misma fila. */}
+                                  <TooltipContent
+                                    side="top"
+                                    className="max-w-xs bg-slate-950 text-slate-100 border border-white/10"
+                                  >
+                                    {d.dispositivo}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </span>
                           </td>
                           <td className="py-2.5 pr-4 text-right text-green-400">
                             {d.countIn.toLocaleString("es-CL")}
@@ -428,6 +463,7 @@ export default function LoteDetailPage() {
                     </tbody>
                   </table>
                 </div>
+                </TooltipProvider>
               )}
             </CardContent>
           </Card>

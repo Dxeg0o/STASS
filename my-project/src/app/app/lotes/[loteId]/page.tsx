@@ -17,7 +17,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ArrowLeft, Cpu } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -475,6 +481,7 @@ export default function LoteGlobalDetailPage() {
                   Sin datos de dispositivos.
                 </p>
               ) : (
+                <TooltipProvider delayDuration={150}>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -501,17 +508,37 @@ export default function LoteGlobalDetailPage() {
                       {detail.devices.map((d) => (
                         <tr key={d.dispositivoNombre} className="text-white">
                           <td className="py-2.5 pr-4 font-medium">
-                            {/* El nombre del equipo queda en el title: sigue siendo
-                                el dato que se necesita para ir a buscarlo a terreno. */}
-                            <span title={d.dispositivoNombre}>
+                            <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                               {d.salidaLabel}
+                              {d.calibres.length > 0 && (
+                                <span className="text-slate-400 font-normal">
+                                  ({d.calibres.join(", ")})
+                                </span>
+                              )}
+                              {/* Mismo criterio que la tabla de
+                                  /app/servicios/[id]/lotes/[id]: el icono da el
+                                  indicio de que hay algo que ver al pasar el mouse,
+                                  y se omite cuando la etiqueta ya ES el equipo. */}
+                              {d.salidaLabel !== d.dispositivoNombre && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      aria-label={`Dispositivo: ${d.dispositivoNombre}`}
+                                      className="text-slate-500 hover:text-slate-300 transition-colors cursor-help"
+                                    >
+                                      <Cpu className="w-3.5 h-3.5" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    side="top"
+                                    className="max-w-xs bg-slate-950 text-slate-100 border border-white/10"
+                                  >
+                                    {d.dispositivoNombre}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                             </span>
-                            {d.calibres.length > 0 && (
-                              <span className="text-slate-400 font-normal">
-                                {" "}
-                                ({d.calibres.join(", ")})
-                              </span>
-                            )}
                           </td>
                           <td className="py-2.5 pr-4 text-right text-green-400">
                             {formatNumber(d.totalIn)}
@@ -529,6 +556,7 @@ export default function LoteGlobalDetailPage() {
                     </tbody>
                   </table>
                 </div>
+                </TooltipProvider>
               )}
 
               {/* Active sessions */}
