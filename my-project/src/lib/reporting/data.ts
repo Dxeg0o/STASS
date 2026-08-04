@@ -7,6 +7,8 @@ import {
   loteCierreCalibreBin,
   loteCalibreDeclaradoDia,
   loteServicio,
+  loteStats,
+  loteTotalStats,
   proceso,
   servicio,
   tipoProceso,
@@ -79,9 +81,12 @@ export function shiftLocalDate(date: string, days: number) {
 }
 
 /**
- * Dates that the automatic weekday job must report.
- * Monday catches up Friday, Saturday and Sunday in chronological order;
- * Tuesday through Friday report the immediately preceding local day.
+ * Fechas que debe reportar el job automatico.
+ *
+ * El envio es al cierre del turno, asi que la fecha reportada es el dia en
+ * curso: el viernes a las 18:10 sale el informe del viernes. Sabado y domingo
+ * no se envia, y el lunes se ponen al dia sabado y domingo antes del propio
+ * lunes, en orden cronologico.
  */
 export function automaticReportDates(now: Date = new Date()) {
   const weekday = new Intl.DateTimeFormat("en-US", {
@@ -91,12 +96,28 @@ export function automaticReportDates(now: Date = new Date()) {
   if (weekday === "Saturday" || weekday === "Sunday") return [];
 
   const today = formatLocalDate(now);
-  const offsets = weekday === "Monday" ? [-3, -2, -1] : [-1];
+  const offsets = weekday === "Monday" ? [-2, -1, 0] : [0];
   return offsets.map((offset) => shiftLocalDate(today, offset));
 }
 
 function formatDateUtc(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Rango [inicio, fin) en timestamptz para un dia local.
+ *
+ * Es deliberadamente un rango y no `(ts AT TIME ZONE ...)::date = fecha`: esa
+ * forma no es sargable y el planner descarta idx_conteo_servicio (servicio_id,
+ * ts), cayendo en un seq scan de la tabla completa — 62M filas / 16 GB, mas de
+ * 55 s. Con el rango se resuelve por indice en milisegundos. El casteo lo hace
+ * Postgres, asi que el cambio de horario de Chile queda resuelto en la base.
+ */
+export function localDayRange(reportDate: string) {
+  return {
+    from: sql`(${reportDate}::date)::timestamp at time zone ${REPORT_TIME_ZONE_SQL}`,
+    to: sql`(${reportDate}::date + 1)::timestamp at time zone ${REPORT_TIME_ZONE_SQL}`,
+  };
 }
 
 function bucketFor(
@@ -232,6 +253,87 @@ async function buildDeclaredServiceReport(metadata: { serviceName: string; compa
   return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs, rows: mergeServiceRows(lotes), lotes };
 }
 
+/** Reporte diario en modo medido: un dia acotado por indice sobre `conteo`. */
+async function countsFromConteo(
+  serviceId: string,
+  loteIds: string[],
+  reportDate: string
+): Promise<CountRow[]> {
+  const day = localDayRange(reportDate);
+  const rows = await db
+    .select({
+      loteId: conteo.loteId,
+      perimeter: conteo.perimeter,
+      bulbs: sql<number>`COUNT(*)::int`,
+    })
+    .from(conteo)
+    .where(
+      and(
+        eq(conteo.servicioId, serviceId),
+        inArray(conteo.loteId, loteIds),
+        sql`${conteo.ts} >= ${day.from}`,
+        sql`${conteo.ts} < ${day.to}`
+      )
+    )
+    .groupBy(conteo.loteId, conteo.perimeter);
+  return rows.map((row) => ({
+    loteId: row.loteId,
+    perimeter: row.perimeter == null ? null : Number(row.perimeter),
+    bulbs: Number(row.bulbs),
+  }));
+}
+
+/**
+ * Reporte acumulado en modo medido: se lee de los agregados que mantiene
+ * `conteo_stats_trigger`, no de `conteo`.
+ *
+ * Agregar el historico completo de un servicio sobre `conteo` cuesta ~49 s
+ * (seq scan de 62M filas) y por si solo agota el maxDuration de la ruta;
+ * `lote_stats` tiene 27k filas y da el mismo numero, porque el reporte cuenta
+ * todas las filas sin filtrar `direction` (= count_in + count_out).
+ *
+ * Unica diferencia semantica: `lote_stats.calibre` es ROUND(perimeter, 1), asi
+ * que un perimetro de 7.96 cae en el tramo 8-10 en vez de "Menor a 8". Es una
+ * tolerancia de 0,05 cm solo en los bordes de rango.
+ */
+async function countsFromLoteStats(serviceId: string, loteIds: string[]): Promise<CountRow[]> {
+  const [porCalibre, totales] = await Promise.all([
+    db
+      .select({
+        loteId: loteStats.loteId,
+        perimeter: loteStats.calibre,
+        bulbs: sql<number>`SUM(${loteStats.countIn} + ${loteStats.countOut})::int`,
+      })
+      .from(loteStats)
+      .where(and(eq(loteStats.servicioId, serviceId), inArray(loteStats.loteId, loteIds)))
+      .groupBy(loteStats.loteId, loteStats.calibre),
+    db
+      .select({
+        loteId: loteTotalStats.loteId,
+        bulbs: sql<number>`SUM(${loteTotalStats.countIn} + ${loteTotalStats.countOut})::int`,
+      })
+      .from(loteTotalStats)
+      .where(and(eq(loteTotalStats.servicioId, serviceId), inArray(loteTotalStats.loteId, loteIds)))
+      .groupBy(loteTotalStats.loteId),
+  ]);
+
+  const rows: CountRow[] = porCalibre.map((row) => ({
+    loteId: row.loteId,
+    perimeter: row.perimeter == null ? null : Number(row.perimeter),
+    bulbs: Number(row.bulbs),
+  }));
+
+  // `lote_stats` solo guarda filas con perimeter IS NOT NULL; lo que falta para
+  // el total del lote son las mediciones sin calibre.
+  const conCalibre = new Map<string, number>();
+  for (const row of rows) conCalibre.set(row.loteId, (conCalibre.get(row.loteId) ?? 0) + row.bulbs);
+  for (const total of totales) {
+    const sinCalibre = Number(total.bulbs) - (conCalibre.get(total.loteId) ?? 0);
+    if (sinCalibre > 0) rows.push({ loteId: total.loteId, perimeter: null, bulbs: sinCalibre });
+  }
+  return rows;
+}
+
 export async function buildServiceReport(
   serviceId: string,
   kind: ReportKind,
@@ -278,22 +380,9 @@ export async function buildServiceReport(
 
   if (metadata.modoCalibre === "declarado") return buildDeclaredServiceReport(metadata, serviceId, loteIds, kind, reportDate);
 
-  const conditions = [eq(conteo.servicioId, serviceId), inArray(conteo.loteId, loteIds)];
-  if (kind === "daily") {
-    conditions.push(
-      sql`(${conteo.ts} AT TIME ZONE ${REPORT_TIME_ZONE_SQL})::date = ${reportDate}`
-    );
-  }
-
-  const counts = await db
-    .select({
-      loteId: conteo.loteId,
-      perimeter: conteo.perimeter,
-      bulbs: sql<number>`COUNT(*)::int`,
-    })
-    .from(conteo)
-    .where(and(...conditions))
-    .groupBy(conteo.loteId, conteo.perimeter);
+  const counts = kind === "daily"
+    ? await countsFromConteo(serviceId, loteIds, reportDate)
+    : await countsFromLoteStats(serviceId, loteIds);
 
   const names = await db
     .select({ id: lote.id, codigo: lote.codigoLote })
@@ -335,7 +424,7 @@ export async function buildServiceReport(
   const grouped = new Map<string, CountRow[]>();
   for (const row of counts) {
     const current = grouped.get(row.loteId) ?? [];
-    current.push({ loteId: row.loteId, perimeter: row.perimeter == null ? null : Number(row.perimeter), bulbs: Number(row.bulbs) });
+    current.push(row);
     grouped.set(row.loteId, current);
   }
 

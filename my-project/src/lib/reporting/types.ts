@@ -35,4 +35,6 @@ export interface ReportPair {
   total: ServiceReport;
   dailyPdf: Buffer;
   totalPdf: Buffer;
+  /** Un solo libro con el diario y el acumulado, para no multiplicar adjuntos. */
+  workbook: Buffer;
 }

@@ -37,11 +37,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Servicio no encontrado: ${serviceName}` }, { status: 404 });
   }
 
+  // MAX(ts) usa idx_conteo_servicio; envolverlo en (ts AT TIME ZONE ...)::date
+  // obligaba a un seq scan de la tabla completa. La conversion a fecha local se
+  // hace en JS con el mismo helper que usa el resto de la reporteria.
   const [latest] = await db
-    .select({ date: sql<string>`MAX((${conteo.ts} AT TIME ZONE 'America/Santiago')::date)` })
+    .select({ ts: sql<string | null>`MAX(${conteo.ts})` })
     .from(conteo)
     .where(eq(conteo.servicioId, service.id));
-  const reportDate = latest?.date ? String(latest.date).slice(0, 10) : shiftLocalDate(formatLocalDate(), -1);
+  const reportDate = latest?.ts ? formatLocalDate(new Date(latest.ts)) : shiftLocalDate(formatLocalDate(), -1);
   const pair = await buildReportPair(service.id, reportDate);
   await sendReportToRecipient(pair, { correo: recipient, nombre: "Diego" }, false, reportDate);
 

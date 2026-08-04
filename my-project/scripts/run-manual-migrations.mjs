@@ -27,6 +27,7 @@ const migrations = [
   "0030_permitir_bins_cero_en_merma.sql",
   "0031_tablet_app_version_last_seen_at.sql",
   "0032_lote_calibre_declarado_dia.sql",
+  "0034_refresh_declarado_dia_por_rango.sql",
 ];
 const sql = postgres(databaseUrl, { max: 1 });
 
