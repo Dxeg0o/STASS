@@ -54,15 +54,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "\"dates\" requiere \"force\": true" }, { status: 400 });
   }
 
+  // Las pasadas de 19:10 a 21:10 repiten el trabajo completo: crean lo que
+  // falte y retoman lo pending/failed (o un 'sending' de mas de 30 min). No se
+  // limitan a reintentar, porque el corte por deadline puede haber dejado
+  // servicios enteros sin fila en report_delivery, y esos solo se recuperan si
+  // una pasada posterior los inserta. Lo ya enviado nunca se reenvia.
   const hour = localHour();
   if (!force && (hour < REPORTING_HOUR || hour > RETRY_UNTIL_HOUR)) {
     return NextResponse.json({ skipped: true, reason: "outside_reporting_window", hour });
   }
-  // A las 18:10 se crean y envian las entregas del dia; entre las 19:10 y las
-  // 21:10 solo se retoman las que quedaron pending/failed (o un 'sending' de
-  // mas de 30 min). Antes un fallo a las 18:10 no se reintentaba hasta el dia
-  // siguiente. Un disparo manual siempre entra en modo completo.
-  const retriesOnly = !force && hour > REPORTING_HOUR;
 
   const reportDates = manualDates.length > 0 ? manualDates : automaticReportDates();
   if (reportDates.length === 0) {
@@ -70,12 +70,12 @@ export async function POST(request: Request) {
   }
 
   // Secuencial y con presupuesto: los lunes son tres fechas compitiendo por los
-  // mismos 60 s de maxDuration. Lo que no alcance queda registrado en
-  // report_delivery y lo toma la pasada de reintento.
+  // mismos 60 s de maxDuration. Lo que no alcance lo retoma la pasada siguiente,
+  // que vuelve a recorrer servicios y fechas desde cero.
   const deadline = Date.now() + BUDGET_MS;
   const runs = [] as Awaited<ReturnType<typeof dispatchDailyReports>>[];
   for (const reportDate of reportDates) {
-    runs.push(await dispatchDailyReports(reportDate, { retriesOnly, deadline }));
+    runs.push(await dispatchDailyReports(reportDate, { deadline }));
     if (Date.now() > deadline) break;
   }
   const result = runs.reduce(
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
   if (result.failed > 0) {
     console.error(`[reporting] ${result.failed} entregas fallidas`, result.errors);
   } else {
-    console.log(`[reporting] ${JSON.stringify({ reportDates, retriesOnly, ...result, errors: undefined })}`);
+    console.log(`[reporting] ${JSON.stringify({ reportDates, ...result, errors: undefined })}`);
   }
-  return NextResponse.json({ ok: true, reportDates, retriesOnly, runs, ...result });
+  return NextResponse.json({ ok: true, reportDates, runs, ...result });
 }
