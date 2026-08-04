@@ -17,12 +17,16 @@ import {
 } from "@/db/schema";
 import { eq, and, isNull, isNotNull, sql, inArray } from "drizzle-orm";
 
-// El calibre puede venir con un extremo abierto (merma: "<6", ">10"), así que
-// calibreFrom/calibreTo son nullable y hay que formatear los tres casos.
+// Un extremo abierto no es un calibre más: es la merma. Se etiqueta como tal
+// para que en la tabla se lea "merma >20" y no un rango que parezca un calibre.
+//
+// Los signos siguen a declaradoLabel() de /api/app/lotes/resumen-calibres — "<to"
+// y ">from", no "≤"/"+": el modelo no guarda si el extremo es inclusivo, así que
+// inventar "≤" afirmaría algo que el dato no dice.
 function formatCalibre(from: number | null, to: number | null): string | null {
   if (from != null && to != null) return `${from}/${to}`;
-  if (from != null) return `${from}+`;
-  if (to != null) return `≤${to}`;
+  if (from != null) return `merma >${from}`;
+  if (to != null) return `merma <${to}`;
   return null;
 }
 
