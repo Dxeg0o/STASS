@@ -14,9 +14,10 @@ import { sql } from "drizzle-orm";
  * ese lote+dispositivo realmente operó en este servicio.
  *
  * Detección de solapamientos: en un mismo dispositivo no puede haber dos lotes
- * activos a la vez, así que cualquier traslape > 1 min entre sesiones es una
- * anomalía. El cliente la marca en rojo y muestra una alerta; aquí solo se
- * entregan las sesiones ordenadas por inicio.
+ * activos a la vez. Distintos dispositivos sí pueden trabajar el mismo lote
+ * simultáneamente; el cliente compara los cruces por dispositivo y no marca
+ * esos casos como anomalías. Aquí solo se entregan las sesiones ordenadas por
+ * inicio.
  *
  * Query params: from / to (ISO) para acotar el rango (opcional).
  */

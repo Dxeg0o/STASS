@@ -1,15 +1,10 @@
 // app/api/lotes/activity/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import {
-  cajaLoteSession,
-  loteSession,
-  loteServicio,
-  dispositivoServicio,
-  servicio,
-} from "@/db/schema";
-import { eq, isNotNull, isNull, and, desc, inArray } from "drizzle-orm";
+import { loteServicio, dispositivoServicio, servicio } from "@/db/schema";
+import { eq, isNotNull, isNull, and, desc } from "drizzle-orm";
 import { verifyEmpresaAdminFromPayload, verifyToken } from "@/lib/auth";
+import { openLoteSessionsExclusive } from "@/lib/app-session";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -133,52 +128,17 @@ export async function POST(request: Request) {
 
   const now = new Date();
 
-  const sessions = await db.transaction(async (tx) => {
-    const openSessions = await tx
-      .select({ id: loteSession.id })
-      .from(loteSession)
-      .where(
-        and(
-          inArray(loteSession.dispositivoId, dispositivoIds),
-          isNull(loteSession.endTime)
-        )
-      );
-    const openSessionIds = openSessions.map((session) => session.id);
-
-    if (openSessionIds.length > 0) {
-      await tx
-        .update(cajaLoteSession)
-        .set({ retiradoAt: now })
-        .where(
-          and(
-            inArray(cajaLoteSession.loteSessionId, openSessionIds),
-            isNull(cajaLoteSession.retiradoAt)
-          )
-        );
-    }
-
-    await tx
-      .update(loteSession)
-      .set({ endTime: now })
-      .where(
-        and(
-          inArray(loteSession.dispositivoId, dispositivoIds),
-          isNull(loteSession.endTime)
-        )
-      );
-
-    return tx
-      .insert(loteSession)
-      .values(
-        dispositivoIds.map((dispositivoId) => ({
-          loteId,
-          dispositivoId,
-          startTime: now,
-          endTime: null,
-        }))
-      )
-      .returning();
-  });
+  // Todas las transiciones y el retiro de cajas van en una sola transacción:
+  // un cambio de lote de servicio es todo o nada.
+  const results = await openLoteSessionsExclusive(
+    dispositivoIds.map((dispositivoId) => ({
+      loteId,
+      dispositivoId,
+      startTime: now,
+    })),
+    { retirarCajas: true, retiradoAt: now }
+  );
+  const sessions = results.map((result) => result.session);
 
   return NextResponse.json(
     { sessions, updatedDeviceCount: sessions.length },
