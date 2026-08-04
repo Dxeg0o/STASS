@@ -46,26 +46,22 @@ export async function buildReportPair(serviceId: string, reportDate: string): Pr
 }
 
 /**
- * `retriesOnly` omite la creacion de entregas nuevas y solo reabre las que
- * quedaron a medias. Lo usan las pasadas de reintento (09:00-11:00), que no
- * deben inventar destinatarios sino terminar lo que fallo a las 08:00.
+ * Reserva una entrega, creandola si no existe.
+ *
+ * Cada pasada crea lo que falte: el corte por deadline puede dejar servicios o
+ * fechas sin fila, y esas entregas solo pueden recuperarse si una pasada
+ * posterior las inserta. Los duplicados los impide el estado, no el saltarse el
+ * insert: el UPDATE de abajo nunca toca una fila `sent`.
  */
-async function reserveDelivery(
-  serviceId: string,
-  email: string,
-  reportDate: string,
-  retriesOnly = false
-) {
+async function reserveDelivery(serviceId: string, email: string, reportDate: string) {
   const date = dateValue(reportDate);
-  const [inserted] = retriesOnly
-    ? []
-    : await db
-        .insert(reportDelivery)
-        .values({ servicioId: serviceId, recipientCorreo: email, reportDate: date })
-        .onConflictDoNothing({
-          target: [reportDelivery.servicioId, reportDelivery.recipientCorreo, reportDelivery.reportDate],
-        })
-        .returning({ id: reportDelivery.id });
+  const [inserted] = await db
+    .insert(reportDelivery)
+    .values({ servicioId: serviceId, recipientCorreo: email, reportDate: date })
+    .onConflictDoNothing({
+      target: [reportDelivery.servicioId, reportDelivery.recipientCorreo, reportDelivery.reportDate],
+    })
+    .returning({ id: reportDelivery.id });
 
   if (inserted) {
     const [sending] = await db
@@ -199,9 +195,9 @@ async function refreshDeclaredSummary(serviceId: string, reportDate: string) {
 
 export async function dispatchDailyReports(
   reportDate: string,
-  options: { retriesOnly?: boolean; deadline?: number } = {}
+  options: { deadline?: number } = {}
 ) {
-  const { retriesOnly = false, deadline } = options;
+  const { deadline } = options;
   const outOfTime = () => deadline !== undefined && Date.now() > deadline;
   const day = localDayRange(reportDate);
   const services = await db
@@ -247,7 +243,7 @@ export async function dispatchDailyReports(
     // instead of silently losing the service with no delivery record.
     const reserved = [] as Array<{ recipient: (typeof recipients)[number]; deliveryId: string }>;
     for (const recipient of recipients) {
-      const delivery = await reserveDelivery(service.id, recipient.correo, reportDate, retriesOnly);
+      const delivery = await reserveDelivery(service.id, recipient.correo, reportDate);
       if (delivery) reserved.push({ recipient, deliveryId: delivery.id });
       else skipped += 1;
     }
