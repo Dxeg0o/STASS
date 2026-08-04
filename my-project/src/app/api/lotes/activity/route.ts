@@ -1,13 +1,8 @@
 // app/api/lotes/activity/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import {
-  cajaLoteSession,
-  loteServicio,
-  dispositivoServicio,
-  servicio,
-} from "@/db/schema";
-import { eq, isNotNull, isNull, and, desc, inArray } from "drizzle-orm";
+import { loteServicio, dispositivoServicio, servicio } from "@/db/schema";
+import { eq, isNotNull, isNull, and, desc } from "drizzle-orm";
 import { verifyEmpresaAdminFromPayload, verifyToken } from "@/lib/auth";
 import { openLoteSessionsExclusive } from "@/lib/app-session";
 
@@ -133,29 +128,17 @@ export async function POST(request: Request) {
 
   const now = new Date();
 
+  // Todas las transiciones y el retiro de cajas van en una sola transacción:
+  // un cambio de lote de servicio es todo o nada.
   const results = await openLoteSessionsExclusive(
     dispositivoIds.map((dispositivoId) => ({
       loteId,
       dispositivoId,
       startTime: now,
-    }))
+    })),
+    { retirarCajas: true, retiradoAt: now }
   );
   const sessions = results.map((result) => result.session);
-  const closedSessionIds = results.flatMap((result) => result.closedSessionIds);
-
-  // La apertura exclusiva ya cerró/recortó las lote_session. Retiramos sus
-  // cajas después, usando los ids exactos que devolvió el helper común.
-  if (closedSessionIds.length > 0) {
-    await db
-      .update(cajaLoteSession)
-      .set({ retiradoAt: now })
-      .where(
-        and(
-          inArray(cajaLoteSession.loteSessionId, closedSessionIds),
-          isNull(cajaLoteSession.retiradoAt)
-        )
-      );
-  }
 
   return NextResponse.json(
     { sessions, updatedDeviceCount: sessions.length },

@@ -78,17 +78,19 @@ export type OpenLoteSessionResult = {
   closedSessionIds: string[];
 };
 
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /**
  * Abre una `lote_session` cerrando atómicamente cualquier otra que el
  * dispositivo tuviera abierta, y garantizando que la ventana resultante no se
  * solape con las que ya existen.
  */
-export async function openLoteSessionExclusive(
+export async function openLoteSessionExclusiveInTransaction(
+  tx: DbTransaction,
   input: OpenLoteSessionInput
 ): Promise<OpenLoteSessionResult> {
   const { id, loteId, dispositivoId, startTime } = input;
 
-  return db.transaction(async (tx) => {
     // Reintento del outbox con el mismo id: la sesión ya está, y sus fronteras
     // ya se resolvieron cuando llegó la primera vez. No hay que volver a
     // cerrar nada (cerraríamos la sesión que vino después de esta).
@@ -193,22 +195,54 @@ export async function openLoteSessionExclusive(
       alreadyExisted: false,
       closedSessionIds: closed.map((c) => c.id),
     };
-  });
+}
+
+export async function openLoteSessionExclusive(
+  input: OpenLoteSessionInput
+): Promise<OpenLoteSessionResult> {
+  return db.transaction((tx) => openLoteSessionExclusiveInTransaction(tx, input));
 }
 
 /**
- * Abre sesiones exclusivas para varios dispositivos usando exactamente la
- * misma lógica que usa la app de tablet. Cada dispositivo se procesa como una
- * transición independiente, igual que las llamadas que hace qualiblick-app.
+ * Abre sesiones exclusivas para varios dispositivos con la misma lógica que usa
+ * la app de tablet, pero en UNA sola transacción.
+ *
+ * La atomicidad no es opcional acá: es un cambio de lote a nivel de servicio, y
+ * si falla el tercer dispositivo los dos primeros no pueden quedar ya movidos.
+ * Reintentar no lo arregla, porque los `closedSessionIds` originales ya no se
+ * pueden recuperar y el servicio queda con dispositivos en lotes distintos.
+ *
+ * Por lo mismo `retirarCajas` va acá dentro y no como un update posterior: una
+ * caja que quedó sin `retirado_at` bloquea su reutilización en
+ * /api/cajas/session.
  */
 export async function openLoteSessionsExclusive(
-  inputs: OpenLoteSessionInput[]
+  inputs: OpenLoteSessionInput[],
+  options: { retirarCajas?: boolean; retiradoAt?: Date } = {}
 ): Promise<OpenLoteSessionResult[]> {
-  const results: OpenLoteSessionResult[] = [];
-  for (const input of inputs) {
-    results.push(await openLoteSessionExclusive(input));
-  }
-  return results;
+  return db.transaction(async (tx) => {
+    const results: OpenLoteSessionResult[] = [];
+    for (const input of inputs) {
+      results.push(await openLoteSessionExclusiveInTransaction(tx, input));
+    }
+
+    if (options.retirarCajas) {
+      const closedSessionIds = results.flatMap((result) => result.closedSessionIds);
+      if (closedSessionIds.length > 0) {
+        await tx
+          .update(cajaLoteSession)
+          .set({ retiradoAt: options.retiradoAt ?? new Date() })
+          .where(
+            and(
+              inArray(cajaLoteSession.loteSessionId, closedSessionIds),
+              isNull(cajaLoteSession.retiradoAt)
+            )
+          );
+      }
+    }
+
+    return results;
+  });
 }
 
 /**
