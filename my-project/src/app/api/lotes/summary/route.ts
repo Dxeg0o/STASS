@@ -7,6 +7,7 @@ import {
   claveParDispositivoServicio,
   compararPorSalida,
   resolverSalidasCalibre,
+  salidasConfiguradas,
 } from "@/lib/salida-calibre";
 
 export async function GET(request: Request) {
@@ -44,28 +45,55 @@ export async function GET(request: Request) {
     }))
   );
 
-  const result = rows
-    .map((r) => {
-      const salida = salidas.get(
-        claveParDispositivoServicio(r.dispositivoId, r.servicioId)
-      );
-      return {
-        dispositivo: r.dispositivoNombre,
-        dispositivoNombre: r.dispositivoNombre,
-        servicioId: r.servicioId,
-        salidaOrden: salida?.salidaOrden ?? null,
-        // Si el servicio no tiene salidas configuradas se cae al nombre del
-        // equipo, misma convención que /api/app/lotes/resumen-calibres.
-        salidaLabel: salida?.salidaNombre ?? r.dispositivoNombre,
-        calibres: salida?.calibres ?? [],
-        countIn: r.countIn,
-        countOut: r.countOut,
-        lastTimestamp: r.lastTimestamp
-          ? new Date(r.lastTimestamp).toISOString()
-          : null,
-      };
-    })
-    .sort(compararPorSalida);
+  const conConteos = rows.map((r) => {
+    const salida = salidas.get(
+      claveParDispositivoServicio(r.dispositivoId, r.servicioId)
+    );
+    return {
+      dispositivo: r.dispositivoNombre,
+      dispositivoNombre: r.dispositivoNombre,
+      servicioId: r.servicioId,
+      salidaOrden: salida?.salidaOrden ?? null,
+      // Si el servicio no tiene salidas configuradas se cae al nombre del
+      // equipo, misma convención que /api/app/lotes/resumen-calibres.
+      salidaLabel: salida?.salidaNombre ?? r.dispositivoNombre,
+      calibres: salida?.calibres ?? [],
+      countIn: r.countIn,
+      countOut: r.countOut,
+      lastTimestamp: r.lastTimestamp
+        ? new Date(r.lastTimestamp).toISOString()
+        : null,
+    };
+  });
+
+  // Una salida configurada que no contó nada en el lote no tiene fila en
+  // lote_total_stats y desaparecía de la tabla. Se agrega en 0: que una salida
+  // del calibrador no haya sacado nada es información, no ausencia de dato.
+  const yaListados = new Set(
+    rows.map((r) => claveParDispositivoServicio(r.dispositivoId, r.servicioId))
+  );
+  const servicioIds = [...new Set(rows.map((r) => r.servicioId))];
+  const enCero = (await salidasConfiguradas(servicioIds))
+    .filter(
+      (s) =>
+        !yaListados.has(
+          claveParDispositivoServicio(s.dispositivoId, s.servicioId)
+        )
+    )
+    .map((s) => ({
+      dispositivo: s.dispositivoNombre,
+      dispositivoNombre: s.dispositivoNombre,
+      servicioId: s.servicioId,
+      salidaOrden: s.salidaOrden,
+      salidaLabel: s.salidaNombre ?? s.dispositivoNombre,
+      // Sin conteos no se infiere merma: la salida simplemente no participó.
+      calibres: [] as string[],
+      countIn: 0,
+      countOut: 0,
+      lastTimestamp: null,
+    }));
+
+  const result = [...conConteos, ...enCero].sort(compararPorSalida);
 
   return NextResponse.json(result);
 }

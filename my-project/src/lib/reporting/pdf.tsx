@@ -40,6 +40,10 @@ const styles = StyleSheet.create({
   tableRow: { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 7, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.white },
   tableRowAlt: { backgroundColor: colors.soft },
   colLabel: { width: "46%" },
+  // Fila hija de una salida: sin borde propio y con sangria, para que se lea
+  // colgando del calibre de arriba y no como otro calibre.
+  salidaRow: { borderTopWidth: 0, paddingVertical: 3 },
+  colSalidaLabel: { width: "46%", paddingLeft: 10, color: colors.muted, fontSize: 8 },
   colBulbs: { width: "18%", textAlign: "right" },
   colPercent: { width: "18%", textAlign: "right" },
   colBins: { width: "18%", textAlign: "right" },
@@ -170,12 +174,30 @@ export function ServiceReportDocument({ report }: { report: ServiceReport }): Re
                 <Text style={styles.colLabel}>Calibre / Size</Text><Text style={styles.colBulbs}>Bulbos</Text><Text style={styles.colPercent}>%</Text><Text style={styles.colBins}>Bins</Text>
               </View>
               {report.rows.map((row, index) => (
-                <View key={row.key} style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}]} wrap={false}>
-                  <Text style={styles.colLabel}>{row.label}</Text>
-                  <Text style={styles.colBulbs}>{number(row.bulbs)}</Text>
-                  <Text style={styles.colPercent}>{number(row.percent)}%</Text>
-                  <Text style={styles.colBins}>{row.bins ? number(row.bins) : "-"}</Text>
-                </View>
+                <React.Fragment key={row.key}>
+                  <View style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}]} wrap={false}>
+                    <Text style={styles.colLabel}>{row.label}</Text>
+                    <Text style={styles.colBulbs}>{number(row.bulbs)}</Text>
+                    <Text style={styles.colPercent}>{number(row.percent)}%</Text>
+                    <Text style={styles.colBins}>{row.bins ? number(row.bins) : "-"}</Text>
+                  </View>
+                  {/* Aporte de cada salida al calibre de arriba. El % es dentro
+                      del calibre, no sobre el total del reporte. */}
+                  {row.salidas.map((salida) => (
+                    <View
+                      key={`${row.key}-${salida.dispositivoNombre}`}
+                      style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}, styles.salidaRow]}
+                      wrap={false}
+                    >
+                      <Text style={styles.colSalidaLabel}>
+                        {salida.label} · {salida.dispositivoNombre}
+                      </Text>
+                      <Text style={styles.colBulbs}>{number(salida.bulbs)}</Text>
+                      <Text style={styles.colPercent}>{number(salida.percent)}%</Text>
+                      <Text style={styles.colBins}>-</Text>
+                    </View>
+                  ))}
+                </React.Fragment>
               ))}
             </View>
           </>

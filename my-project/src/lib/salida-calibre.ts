@@ -1,6 +1,10 @@
 import { db } from "@/db";
-import { dispositivoServicio, loteCierreCalibreBin } from "@/db/schema";
-import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import {
+  dispositivo,
+  dispositivoServicio,
+  loteCierreCalibreBin,
+} from "@/db/schema";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 
 // Salida física de un calibrador y el calibre que declaró en un lote puntual.
 //
@@ -171,6 +175,54 @@ export async function resolverSalidasCalibre(
   }
 
   return resultado;
+}
+
+export interface SalidaConfigurada {
+  dispositivoId: string;
+  dispositivoNombre: string;
+  servicioId: string;
+  salidaOrden: number;
+  salidaNombre: string | null;
+}
+
+/**
+ * Salidas que el calibrador tiene configuradas hoy en estos servicios.
+ *
+ * Sirve para listar una salida que no produjo nada en el lote: las tablas se
+ * arman desde lote_total_stats, que solo tiene filas de equipos con conteos, y
+ * sin esto una salida en cero desaparece de la tabla en vez de mostrarse en 0
+ * — que es justamente la información de que esa salida no sacó nada.
+ *
+ * Solo vínculos vigentes (fecha_termino IS NULL): la salida es la configuración
+ * actual del calibrador. Para un lote antiguo eso puede mostrar en 0 una salida
+ * que no existía entonces, pero es preferible a esconder una salida activa.
+ */
+export async function salidasConfiguradas(
+  servicioIds: string[]
+): Promise<SalidaConfigurada[]> {
+  if (servicioIds.length === 0) return [];
+  const rows = await db
+    .select({
+      dispositivoId: dispositivoServicio.dispositivoId,
+      dispositivoNombre: dispositivo.nombre,
+      servicioId: dispositivoServicio.servicioId,
+      salidaOrden: dispositivoServicio.salidaOrden,
+      salidaNombre: dispositivoServicio.salidaNombre,
+    })
+    .from(dispositivoServicio)
+    .innerJoin(dispositivo, eq(dispositivo.id, dispositivoServicio.dispositivoId))
+    .where(
+      and(
+        inArray(dispositivoServicio.servicioId, servicioIds),
+        isNull(dispositivoServicio.fechaTermino),
+        isNotNull(dispositivoServicio.salidaOrden)
+      )
+    );
+  return rows.flatMap((row) =>
+    row.salidaOrden == null
+      ? []
+      : [{ ...row, salidaOrden: row.salidaOrden }]
+  );
 }
 
 /**

@@ -1,11 +1,31 @@
 export type ReportKind = "daily" | "total";
 
+/**
+ * Aporte de una salida física del calibrador dentro de un rango de calibre.
+ *
+ * Solo se puebla en servicios con modoCalibre 'declarado' y con salidas
+ * configuradas en dispositivo_servicio; en modo medido queda vacío, porque ahí
+ * el calibre sale del perímetro y no de lo que declara una salida.
+ */
+export interface ReportSalidaRow {
+  /** salida_orden, para ordenar. Null si el equipo no tiene salida configurada. */
+  salidaOrden: number | null;
+  /** "Salida 2", o el nombre del equipo si el servicio no usa salidas. */
+  label: string;
+  /** Nombre del dispositivo, para poder rastrearlo en terreno. */
+  dispositivoNombre: string;
+  bulbs: number;
+  percent: number;
+}
+
 export interface ReportCalibreRow {
   key: string;
   label: string;
   bulbs: number;
   bins: number;
   percent: number;
+  /** Desglose por salida dentro de este calibre. Vacío en modo medido. */
+  salidas: ReportSalidaRow[];
 }
 
 export interface ReportLote {

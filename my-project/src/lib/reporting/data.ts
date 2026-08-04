@@ -2,6 +2,8 @@ import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   conteo,
+  dispositivo,
+  dispositivoServicio,
   empresa,
   lote,
   loteCierreCalibreBin,
@@ -17,6 +19,7 @@ import type {
   ReportCalibreRow,
   ReportKind,
   ReportLote,
+  ReportSalidaRow,
   ServiceReport,
 } from "./types";
 
@@ -200,8 +203,26 @@ function buildLote(
       .map((bucket) => ({
         ...bucket,
         percent: roundedPercent(bucket.bulbs, bulbs),
+        // En modo medido el calibre viene del perímetro, no de lo que declara
+        // una salida, así que no hay desglose que mostrar.
+        salidas: [],
       })),
   };
+}
+
+/** Ordena las salidas y calcula su peso dentro del calibre al que pertenecen. */
+function finishSalidas(salidas: ReportSalidaRow[], bulbsDelCalibre: number) {
+  return [...salidas]
+    .sort(
+      (left, right) =>
+        (left.salidaOrden ?? Number.POSITIVE_INFINITY) -
+          (right.salidaOrden ?? Number.POSITIVE_INFINITY) ||
+        left.label.localeCompare(right.label, "es")
+    )
+    .map((salida) => ({
+      ...salida,
+      percent: roundedPercent(salida.bulbs, bulbsDelCalibre),
+    }));
 }
 
 function mergeServiceRows(lotes: ReportLote[]) {
@@ -212,15 +233,31 @@ function mergeServiceRows(lotes: ReportLote[]) {
       if (existing) {
         existing.bulbs += row.bulbs;
         existing.bins += row.bins;
+        // Las salidas también se suman entre lotes: en el resumen del servicio
+        // "Salida 2" es el aporte de esa salida a ese calibre en todos los lotes.
+        for (const salida of row.salidas) {
+          const previa = existing.salidas.find(
+            (s) => s.dispositivoNombre === salida.dispositivoNombre
+          );
+          if (previa) previa.bulbs += salida.bulbs;
+          else existing.salidas.push({ ...salida });
+        }
       } else {
-        buckets.set(row.key, { ...row });
+        buckets.set(row.key, {
+          ...row,
+          salidas: row.salidas.map((salida) => ({ ...salida })),
+        });
       }
     }
   }
   const total = lotes.reduce((sum, current) => sum + current.bulbs, 0);
   return [...buckets.values()]
     .sort(sortCalibreRows)
-    .map((row) => ({ ...row, percent: roundedPercent(row.bulbs, total) }));
+    .map((row) => ({
+      ...row,
+      percent: roundedPercent(row.bulbs, total),
+      salidas: finishSalidas(row.salidas, row.bulbs),
+    }));
 }
 
 function declaredLabel(from: number | null, to: number | null, sinDeclarar: boolean) {
@@ -241,14 +278,57 @@ async function buildDeclaredServiceReport(metadata: { serviceName: string; compa
   const declarations = await db.select({ loteId: loteCierreCalibreBin.loteId, from: loteCierreCalibreBin.calibreFrom, to: loteCierreCalibreBin.calibreTo, bins: loteCierreCalibreBin.bins }).from(loteCierreCalibreBin).where(and(eq(loteCierreCalibreBin.servicioId, serviceId), inArray(loteCierreCalibreBin.loteId, usedLoteIds), isNotNull(loteCierreCalibreBin.dispositivoId)));
   const bins = new Map<string, number>();
   for (const row of declarations) { const key = `${row.loteId}:${row.from ?? ""}:${row.to ?? ""}`; bins.set(key, (bins.get(key) ?? 0) + (Number(row.bins) || 0)); }
+  // Etiqueta de cada salida del servicio. Se resuelve una vez y no por fila:
+  // la salida es configuración del servicio, no del lote ni del día.
+  const salidaRows = await db
+    .select({
+      dispositivoId: dispositivoServicio.dispositivoId,
+      dispositivoNombre: dispositivo.nombre,
+      salidaOrden: dispositivoServicio.salidaOrden,
+      salidaNombre: dispositivoServicio.salidaNombre,
+    })
+    .from(dispositivoServicio)
+    .innerJoin(dispositivo, eq(dispositivo.id, dispositivoServicio.dispositivoId))
+    .where(eq(dispositivoServicio.servicioId, serviceId));
+  const salidaPorDispositivo = new Map(
+    salidaRows.map((row) => [
+      row.dispositivoId,
+      {
+        salidaOrden: row.salidaOrden,
+        // Misma convención que el resto: sin salida configurada se cae al
+        // nombre del equipo en vez de mostrar un hueco.
+        label: row.salidaNombre ?? row.dispositivoNombre,
+        dispositivoNombre: row.dispositivoNombre,
+      },
+    ])
+  );
+
   const byLote = new Map<string, Map<string, ReportCalibreRow>>();
   for (const row of summary) {
     const key = row.sinDeclarar ? "sin_declarar" : `${row.calibreFrom ?? ""}:${row.calibreTo ?? ""}`;
     const rows = byLote.get(row.loteId) ?? new Map<string, ReportCalibreRow>();
-    const current = rows.get(key) ?? { key, label: declaredLabel(row.calibreFrom, row.calibreTo, row.sinDeclarar), bulbs: 0, bins: row.sinDeclarar ? 0 : bins.get(`${row.loteId}:${row.calibreFrom ?? ""}:${row.calibreTo ?? ""}`) ?? 0, percent: 0 };
-    current.bulbs += Number(row.unidades) || 0; rows.set(key, current); byLote.set(row.loteId, rows);
+    const current = rows.get(key) ?? { key, label: declaredLabel(row.calibreFrom, row.calibreTo, row.sinDeclarar), bulbs: 0, bins: row.sinDeclarar ? 0 : bins.get(`${row.loteId}:${row.calibreFrom ?? ""}:${row.calibreTo ?? ""}`) ?? 0, percent: 0, salidas: [] };
+    current.bulbs += Number(row.unidades) || 0;
+    // El resumen ya viene por (dia, lote, servicio, dispositivo, calibre), así
+    // que cada fila es el aporte de una salida a este rango de calibre. En el
+    // reporte total hay varias filas por salida (una por día) y se acumulan.
+    const unidades = Number(row.unidades) || 0;
+    const salida = salidaPorDispositivo.get(row.dispositivoId);
+    const existente = current.salidas.find((s) => s.dispositivoNombre === (salida?.dispositivoNombre ?? row.dispositivoId));
+    if (existente) {
+      existente.bulbs += unidades;
+    } else {
+      current.salidas.push({
+        salidaOrden: salida?.salidaOrden ?? null,
+        label: salida?.label ?? row.dispositivoId.slice(0, 8),
+        dispositivoNombre: salida?.dispositivoNombre ?? row.dispositivoId.slice(0, 8),
+        bulbs: unidades,
+        percent: 0,
+      });
+    }
+    rows.set(key, current); byLote.set(row.loteId, rows);
   }
-  const lotes = [...byLote.entries()].map(([loteId, rows]) => { const values = [...rows.values()].sort(sortCalibreRows); const bulbs = values.reduce((sum, row) => sum + row.bulbs, 0); return { loteId, codigoLote: nameMap.get(loteId) ?? loteId.slice(0, 8), bulbs, percent: 0, rows: values.map((row) => ({ ...row, percent: roundedPercent(row.bulbs, bulbs) })) }; }).sort((a, b) => a.codigoLote.localeCompare(b.codigoLote, "es"));
+  const lotes = [...byLote.entries()].map(([loteId, rows]) => { const values = [...rows.values()].sort(sortCalibreRows); const bulbs = values.reduce((sum, row) => sum + row.bulbs, 0); return { loteId, codigoLote: nameMap.get(loteId) ?? loteId.slice(0, 8), bulbs, percent: 0, rows: values.map((row) => ({ ...row, percent: roundedPercent(row.bulbs, bulbs), salidas: finishSalidas(row.salidas, row.bulbs) })) }; }).sort((a, b) => a.codigoLote.localeCompare(b.codigoLote, "es"));
   const totalBulbs = lotes.reduce((sum, row) => sum + row.bulbs, 0); for (const row of lotes) row.percent = roundedPercent(row.bulbs, totalBulbs);
   return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs, rows: mergeServiceRows(lotes), lotes };
 }

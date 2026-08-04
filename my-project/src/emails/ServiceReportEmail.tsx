@@ -22,6 +22,76 @@ interface ServiceReportEmailProps {
 
 const font = "Arial, Helvetica, sans-serif";
 
+const num = (value: number) => value.toLocaleString("es-CL");
+const pct = (value: number) => `${value.toLocaleString("es-CL")}%`;
+
+const cell: React.CSSProperties = {
+  fontSize: 12,
+  padding: "7px 8px",
+  borderBottom: "1px solid #E2E8F0",
+  textAlign: "left",
+};
+const cellNum: React.CSSProperties = { ...cell, textAlign: "right" };
+const th: React.CSSProperties = {
+  ...cell,
+  fontSize: 10,
+  letterSpacing: 0.6,
+  color: "#64748B",
+  borderBottom: "2px solid #0E7490",
+  textTransform: "uppercase",
+};
+
+/**
+ * Detalle por calibre y, debajo de cada uno, el aporte de cada salida.
+ *
+ * Se arma con una <table> y estilos inline a proposito: los clientes de correo
+ * no soportan flex ni grid de forma confiable. Las salidas van como filas hijas
+ * en vez de columnas para que la tabla siga siendo legible en un celular.
+ */
+function CalibreTable({ report }: { report: ServiceReport }) {
+  if (report.rows.length === 0) {
+    return (
+      <Text style={{ color: "#94A3B8", fontSize: 12, margin: "0 0 8px" }}>
+        Sin datos para el periodo / No data for this period.
+      </Text>
+    );
+  }
+
+  return (
+    <table style={{ width: "100%", borderCollapse: "collapse", margin: "0 0 6px" }}>
+      <thead>
+        <tr>
+          <th style={th}>Calibre / Size</th>
+          <th style={{ ...th, textAlign: "right" }}>Bulbos</th>
+          <th style={{ ...th, textAlign: "right" }}>%</th>
+          <th style={{ ...th, textAlign: "right" }}>Bins</th>
+        </tr>
+      </thead>
+      <tbody>
+        {report.rows.map((row) => [
+          <tr key={row.key}>
+            <td style={{ ...cell, fontWeight: 700 }}>{row.label}</td>
+            <td style={{ ...cellNum, fontWeight: 700 }}>{num(row.bulbs)}</td>
+            <td style={cellNum}>{pct(row.percent)}</td>
+            <td style={cellNum}>{row.bins ? num(row.bins) : "-"}</td>
+          </tr>,
+          ...row.salidas.map((salida) => (
+            <tr key={`${row.key}:${salida.dispositivoNombre}`}>
+              <td style={{ ...cell, paddingLeft: 22, color: "#475569" }}>
+                {salida.label}
+                <span style={{ color: "#94A3B8" }}> · {salida.dispositivoNombre}</span>
+              </td>
+              <td style={{ ...cellNum, color: "#475569" }}>{num(salida.bulbs)}</td>
+              <td style={{ ...cellNum, color: "#94A3B8" }}>{pct(salida.percent)}</td>
+              <td style={cellNum}>-</td>
+            </tr>
+          )),
+        ])}
+      </tbody>
+    </table>
+  );
+}
+
 export default function ServiceReportEmail({ daily, total, recipientName }: ServiceReportEmailProps) {
   return (
     <Html>
@@ -59,6 +129,23 @@ export default function ServiceReportEmail({ daily, total, recipientName }: Serv
                 </Section>
               </Column>
             </Row>
+            <Hr style={{ borderColor: "#E2E8F0", margin: "24px 0" }} />
+
+            <Text style={{ color: "#172033", fontSize: 14, fontWeight: 700, margin: "0 0 2px" }}>
+              Detalle del dia / Daily detail
+            </Text>
+            <Text style={{ color: "#94A3B8", fontSize: 11, margin: "0 0 10px" }}>
+              {daily.calibreSource === "declarado"
+                ? "Por calibre y salida. El % de cada salida es su peso dentro del calibre / By size and outlet. Each outlet's % is its share within the size."
+                : "Por calibre medido / By measured size."}
+            </Text>
+            <CalibreTable report={daily} />
+
+            <Text style={{ color: "#172033", fontSize: 14, fontWeight: 700, margin: "22px 0 10px" }}>
+              Acumulado del servicio / Service total
+            </Text>
+            <CalibreTable report={total} />
+
             <Hr style={{ borderColor: "#E2E8F0", margin: "24px 0" }} />
             <Text style={{ color: "#475569", fontSize: 13, lineHeight: "20px" }}>
               {daily.calibreSource === "declarado"
