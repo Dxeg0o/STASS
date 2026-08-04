@@ -101,46 +101,105 @@ async function readAggregates(sql: Sql, loteIds: string[]) {
   return row;
 }
 
-/** Sesiones de caja del lote, sin importar a que servicio pertenecen. */
-function cajaSessionsOfLote(sql: Sql, loteId: string) {
-  return sql`
+/** Sesiones de caja de los lotes del scope, sin importar a que servicio pertenecen. */
+async function readCajaSessionIds(sql: Sql, loteIds: string[]) {
+  const rows = await sql<{ id: string }[]>`
     SELECT cls.id FROM caja_lote_session cls
     JOIN lote_session ls ON ls.id = cls.lote_session_id
-    WHERE ls.lote_id = ${loteId}
+    WHERE ls.lote_id = ANY(${loteIds}::uuid[])
   `;
+  return rows.map((row) => row.id);
 }
 
-async function rebuildCajaStats(sql: Sql, loteId: string) {
-  const deleted = await sql`
-    DELETE FROM caja_stats
-    WHERE caja_lote_session_id IN (${cajaSessionsOfLote(sql, loteId)})
-  `;
-  await sql`
-    INSERT INTO caja_stats (caja_lote_session_id, dispositivo_id, calibre, count_in, count_out, first_ts, last_ts)
-    SELECT c.caja_lote_session_id, c.dispositivo_id, ROUND(c.perimeter::numeric, 1)::real,
-      SUM((c.direction = 0)::int)::int, SUM((c.direction = 1)::int)::int, MIN(c.ts), MAX(c.ts)
-    FROM conteo c
-    WHERE c.caja_lote_session_id IN (${cajaSessionsOfLote(sql, loteId)})
-      AND c.perimeter IS NOT NULL
-    GROUP BY 1, 2, 3
-  `;
-  return deleted.count;
+/**
+ * Reconstruye los agregados de caja de todos los lotes del scope, en UNA sola
+ * pasada sobre `conteo`.
+ *
+ * `conteo` no tiene indice por `caja_lote_session_id` (los indices son por
+ * lote, servicio y dispositivo), asi que cualquier lectura por sesion de caja
+ * es un seq scan de 16 GB. Hacerlo por lote y por tabla eran cuatro scans por
+ * lote, con la transaccion de borrado abierta.
+ *
+ * Tampoco se puede acotar con `lote_id`: hay 1,7M de conteos cuyo
+ * `caja_lote_session_id` pertenece a una `lote_session` de OTRO lote, asi que
+ * ese filtro dejaria los agregados cortos. Por eso se vuelca una sola vez lo
+ * que referencia a estas sesiones —despues del borrado suele ser muy poco o
+ * nada— y desde ahi se reconstruye y se valida.
+ */
+async function rebuildCajaAggregates(sql: Sql, sessionIds: string[]) {
+  if (sessionIds.length === 0) return { cajaStats: 0, cajaTotalStats: 0, sobrevivientes: 0 };
+
+  return sql.begin(async (tx) => {
+    const db = tx as unknown as Sql;
+    await db`
+      CREATE TEMP TABLE tmp_caja_conteo ON COMMIT DROP AS
+      SELECT caja_lote_session_id, dispositivo_id, perimeter, direction, ts
+      FROM conteo WHERE caja_lote_session_id = ANY(${sessionIds}::uuid[])
+    `;
+    const [{ count: sobrevivientes }] = await db<{ count: number }[]>`
+      SELECT COUNT(*)::int AS count FROM tmp_caja_conteo
+    `;
+
+    const cajaStats = await db`
+      DELETE FROM caja_stats WHERE caja_lote_session_id = ANY(${sessionIds}::uuid[])
+    `;
+    const cajaTotalStats = await db`
+      DELETE FROM caja_total_stats WHERE caja_lote_session_id = ANY(${sessionIds}::uuid[])
+    `;
+
+    // Replica la definicion del trigger `update_lote_stats` (migracion 0018).
+    await db`
+      INSERT INTO caja_stats (caja_lote_session_id, dispositivo_id, calibre, count_in, count_out, first_ts, last_ts)
+      SELECT caja_lote_session_id, dispositivo_id, ROUND(perimeter::numeric, 1)::real,
+        SUM((direction = 0)::int)::int, SUM((direction = 1)::int)::int, MIN(ts), MAX(ts)
+      FROM tmp_caja_conteo WHERE perimeter IS NOT NULL
+      GROUP BY 1, 2, 3
+    `;
+    await db`
+      INSERT INTO caja_total_stats (caja_lote_session_id, dispositivo_id, count_in, count_out, first_ts, last_ts)
+      SELECT caja_lote_session_id, dispositivo_id,
+        SUM((direction = 0)::int)::int, SUM((direction = 1)::int)::int, MIN(ts), MAX(ts)
+      FROM tmp_caja_conteo
+      GROUP BY 1, 2
+    `;
+
+    await validateCajaAggregates(db, sessionIds);
+    return { cajaStats: cajaStats.count, cajaTotalStats: cajaTotalStats.count, sobrevivientes };
+  });
 }
 
-async function rebuildCajaTotalStats(sql: Sql, loteId: string) {
-  const deleted = await sql`
-    DELETE FROM caja_total_stats
-    WHERE caja_lote_session_id IN (${cajaSessionsOfLote(sql, loteId)})
+/**
+ * Valida contra el volcado temporal, que es exactamente lo que `conteo` tiene
+ * para estas sesiones, leido una sola vez. Si no cuadra, lanza y hace rollback.
+ */
+async function validateCajaAggregates(sql: Sql, sessionIds: string[]) {
+  const totalMismatches = await sql`
+    WITH esperado AS (
+      SELECT caja_lote_session_id, dispositivo_id,
+        SUM((direction = 0)::int)::int AS count_in, SUM((direction = 1)::int)::int AS count_out
+      FROM tmp_caja_conteo GROUP BY 1, 2
+    ), actual AS (
+      SELECT caja_lote_session_id, dispositivo_id, count_in, count_out
+      FROM caja_total_stats WHERE caja_lote_session_id = ANY(${sessionIds}::uuid[])
+    )
+    SELECT 1 FROM esperado e FULL OUTER JOIN actual a USING (caja_lote_session_id, dispositivo_id)
+    WHERE e.count_in IS DISTINCT FROM a.count_in OR e.count_out IS DISTINCT FROM a.count_out
   `;
-  await sql`
-    INSERT INTO caja_total_stats (caja_lote_session_id, dispositivo_id, count_in, count_out, first_ts, last_ts)
-    SELECT c.caja_lote_session_id, c.dispositivo_id,
-      SUM((c.direction = 0)::int)::int, SUM((c.direction = 1)::int)::int, MIN(c.ts), MAX(c.ts)
-    FROM conteo c
-    WHERE c.caja_lote_session_id IN (${cajaSessionsOfLote(sql, loteId)})
-    GROUP BY 1, 2
+  if (totalMismatches.length) throw new Error("caja_total_stats no cuadra con conteo");
+
+  const calibreMismatches = await sql`
+    WITH esperado AS (
+      SELECT caja_lote_session_id, dispositivo_id, ROUND(perimeter::numeric, 1)::real AS calibre,
+        SUM((direction = 0)::int)::int AS count_in, SUM((direction = 1)::int)::int AS count_out
+      FROM tmp_caja_conteo WHERE perimeter IS NOT NULL GROUP BY 1, 2, 3
+    ), actual AS (
+      SELECT caja_lote_session_id, dispositivo_id, calibre, count_in, count_out
+      FROM caja_stats WHERE caja_lote_session_id = ANY(${sessionIds}::uuid[])
+    )
+    SELECT 1 FROM esperado e FULL OUTER JOIN actual a USING (caja_lote_session_id, dispositivo_id, calibre)
+    WHERE e.count_in IS DISTINCT FROM a.count_in OR e.count_out IS DISTINCT FROM a.count_out
   `;
-  return deleted.count;
+  if (calibreMismatches.length) throw new Error("caja_stats no cuadra con conteo");
 }
 
 async function deleteLote(sql: Sql, scope: LoteScope) {
@@ -154,13 +213,10 @@ async function deleteLote(sql: Sql, scope: LoteScope) {
       DELETE FROM conteo WHERE lote_id = ${scope.lote_id} AND servicio_id = ${SERVICE_ID}
     `;
 
-    // caja_stats y caja_total_stats no tienen servicio_id: una misma sesion de
-    // caja puede acumular conteos de varios servicios. Por eso no se borran, se
-    // reconstruyen desde los conteos que sobreviven — si no queda ninguno el
-    // INSERT no aporta filas y el efecto es el mismo que borrarlas. La
-    // definicion replica la del trigger `update_lote_stats` (migracion 0018).
-    const cajaStats = await rebuildCajaStats(del, scope.lote_id);
-    const cajaTotalStats = await rebuildCajaTotalStats(del, scope.lote_id);
+    // Los agregados de caja NO se tocan aca: no tienen servicio_id y su lectura
+    // es un seq scan, asi que se reconstruyen todos juntos en una sola pasada
+    // al final (ver rebuildCajaAggregates). Estas tres tablas si llevan
+    // servicio_id y se borran por indice.
     const loteStats = await del`
       DELETE FROM lote_stats WHERE lote_id = ${scope.lote_id} AND servicio_id = ${SERVICE_ID}
     `;
@@ -175,8 +231,7 @@ async function deleteLote(sql: Sql, scope: LoteScope) {
 
     console.log(
       `  ${scope.codigo_lote}: conteo ${conteos.count} · lote_stats ${loteStats.count} · ` +
-        `lote_total_stats ${loteTotalStats.count} · caja_stats ${cajaStats} recalc · ` +
-        `caja_total_stats ${cajaTotalStats} recalc · declarado_dia ${declaradoDia.count}`
+        `lote_total_stats ${loteTotalStats.count} · declarado_dia ${declaradoDia.count}`
     );
   });
 }
@@ -192,48 +247,6 @@ async function validateLote(sql: Sql, loteId: string) {
     )::int AS total
   `;
   if (row.total !== 0) throw new Error(`Quedaron ${row.total} filas para el lote ${loteId}`);
-
-  // Los agregados de caja se reconstruyeron, no se borraron: deben cuadrar
-  // exactamente con los conteos que sobrevivieron (de este lote en otros
-  // servicios), no quedar en cero.
-  const cajaMismatches = await sql`
-    WITH cajas AS (
-      SELECT cls.id FROM caja_lote_session cls
-      JOIN lote_session ls ON ls.id = cls.lote_session_id
-      WHERE ls.lote_id = ${loteId}
-    ), esperado AS (
-      SELECT caja_lote_session_id, dispositivo_id,
-        SUM((direction = 0)::int)::int AS count_in, SUM((direction = 1)::int)::int AS count_out
-      FROM conteo WHERE caja_lote_session_id IN (SELECT id FROM cajas)
-      GROUP BY 1, 2
-    ), actual AS (
-      SELECT caja_lote_session_id, dispositivo_id, count_in, count_out
-      FROM caja_total_stats WHERE caja_lote_session_id IN (SELECT id FROM cajas)
-    )
-    SELECT 1 FROM esperado e FULL OUTER JOIN actual a USING (caja_lote_session_id, dispositivo_id)
-    WHERE e.count_in IS DISTINCT FROM a.count_in OR e.count_out IS DISTINCT FROM a.count_out
-  `;
-  if (cajaMismatches.length) throw new Error(`caja_total_stats no cuadra con conteo en ${loteId}`);
-
-  const cajaCalibreMismatches = await sql`
-    WITH cajas AS (
-      SELECT cls.id FROM caja_lote_session cls
-      JOIN lote_session ls ON ls.id = cls.lote_session_id
-      WHERE ls.lote_id = ${loteId}
-    ), esperado AS (
-      SELECT caja_lote_session_id, dispositivo_id, ROUND(perimeter::numeric, 1)::real AS calibre,
-        SUM((direction = 0)::int)::int AS count_in, SUM((direction = 1)::int)::int AS count_out
-      FROM conteo
-      WHERE caja_lote_session_id IN (SELECT id FROM cajas) AND perimeter IS NOT NULL
-      GROUP BY 1, 2, 3
-    ), actual AS (
-      SELECT caja_lote_session_id, dispositivo_id, calibre, count_in, count_out
-      FROM caja_stats WHERE caja_lote_session_id IN (SELECT id FROM cajas)
-    )
-    SELECT 1 FROM esperado e FULL OUTER JOIN actual a USING (caja_lote_session_id, dispositivo_id, calibre)
-    WHERE e.count_in IS DISTINCT FROM a.count_in OR e.count_out IS DISTINCT FROM a.count_out
-  `;
-  if (cajaCalibreMismatches.length) throw new Error(`caja_stats no cuadra con conteo en ${loteId}`);
 
   const [link] = await sql<{ count: number }[]>`
     SELECT COUNT(*)::int AS count FROM lote_servicio
@@ -283,9 +296,19 @@ async function main() {
     }
     if (!apply) return;
 
+    const sessionIds = await readCajaSessionIds(sql, loteIds);
+
     for (const scope of scopes) {
       await deleteLote(sql, scope);
     }
+
+    // Una sola pasada al final, ya con los conteos borrados: es la unica
+    // lectura por sesion de caja de toda la corrida.
+    const caja = await rebuildCajaAggregates(sql, sessionIds);
+    console.log(
+      `  agregados de caja: ${sessionIds.length} sesiones · ${caja.cajaStats} caja_stats y ` +
+        `${caja.cajaTotalStats} caja_total_stats recalculados desde ${caja.sobrevivientes} conteos sobrevivientes`
+    );
 
     // El borrado deja ~1,2M tuplas muertas: refrescar estadisticas para que el
     // planner no siga estimando con los conteos viejos. El espacio lo recupera
