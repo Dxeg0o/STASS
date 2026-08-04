@@ -6,7 +6,11 @@ La aplicación expone `POST /api/internal/reports/daily`. Requiere:
 Authorization: Bearer $REPORTS_CRON_SECRET
 ```
 
-La ruta solo ejecuta envíos a las 08:00 en `America/Santiago`; las demás invocaciones horarias responden `skipped`. El job se ejecuta cada hora para conservar el horario correcto cuando Chile cambia entre horario de invierno y verano.
+La ruta envía a las **18:10** en `America/Santiago`, al cierre del turno, y reporta el **día en curso**. Entre las 19:10 y las 21:10 vuelve a correr en modo reintento: solo retoma entregas `pending`/`failed`, sin crear nuevas. Las demás invocaciones horarias responden `skipped`.
+
+El job se ejecuta cada hora y la ventana se decide en la aplicación, en hora local, para conservar el horario correcto cuando Chile cambia entre horario de invierno y verano.
+
+Sábado y domingo no se envía nada; el lunes a las 18:10 se ponen al día sábado y domingo antes del propio lunes. Un día sin conteos no genera correo, porque el servicio no entra en la selección.
 
 ## Variables de entorno
 
@@ -34,7 +38,7 @@ where jobname = 'qualiblick-reportes-horario';
 
 select cron.schedule(
   'qualiblick-reportes-horario',
-  '0 * * * *',
+  '10 * * * *',
   $$
   select net.http_post(
     url := '<NEXT_PUBLIC_APP_URL>/api/internal/reports/daily',
@@ -61,6 +65,17 @@ El job no debe apuntar a `localhost`: usa la URL pública del despliegue que ya 
 select jobid, jobname, schedule, active
 from cron.job
 where jobname = 'qualiblick-reportes-horario';
+```
+
+## Disparo manual
+
+Con el mismo secreto se puede forzar un envío fuera de la ventana horaria, por ejemplo para reenviar días perdidos. `dates` es opcional; sin él usa las fechas automáticas del día. `report_delivery` sigue garantizando que una fecha ya enviada no se duplique.
+
+```bash
+curl -X POST "$NEXT_PUBLIC_APP_URL/api/internal/reports/daily" \
+  -H "Authorization: Bearer $REPORTS_CRON_SECRET" \
+  -H 'Content-Type: application/json' \
+  -d '{"force":true,"dates":["2026-08-04"]}'
 ```
 
 ## Prueba manual

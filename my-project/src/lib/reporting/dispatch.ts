@@ -10,8 +10,9 @@ import {
 } from "@/db/schema";
 import { sendEmail } from "@/lib/email";
 import ServiceReportEmail from "@/emails/ServiceReportEmail";
-import { buildServiceReport } from "./data";
+import { buildServiceReport, localDayRange } from "./data";
 import { renderServiceReportPdf } from "./pdf";
+import { renderServiceReportWorkbook } from "./xlsx";
 import { getQualiblickLogoAttachment } from "./logo";
 import type { ReportPair } from "./types";
 
@@ -29,6 +30,10 @@ function safeFilePart(value: string) {
 }
 
 export async function buildReportPair(serviceId: string, reportDate: string): Promise<ReportPair> {
+  // Antes de leer nada: el resumen declarado se materializa aca y no en el
+  // dispatch, para que el envio de prueba y cualquier otro consumidor futuro
+  // tampoco puedan construir el reporte sobre una tabla sin refrescar.
+  await refreshDeclaredSummary(serviceId, reportDate);
   const [daily, total] = await Promise.all([
     buildServiceReport(serviceId, "daily", reportDate),
     buildServiceReport(serviceId, "total", reportDate),
@@ -37,18 +42,30 @@ export async function buildReportPair(serviceId: string, reportDate: string): Pr
     renderServiceReportPdf(daily),
     renderServiceReportPdf(total),
   ]);
-  return { daily, total, dailyPdf, totalPdf };
+  return { daily, total, dailyPdf, totalPdf, workbook: renderServiceReportWorkbook(daily, total) };
 }
 
-async function reserveDelivery(serviceId: string, email: string, reportDate: string) {
+/**
+ * `retriesOnly` omite la creacion de entregas nuevas y solo reabre las que
+ * quedaron a medias. Lo usan las pasadas de reintento (09:00-11:00), que no
+ * deben inventar destinatarios sino terminar lo que fallo a las 08:00.
+ */
+async function reserveDelivery(
+  serviceId: string,
+  email: string,
+  reportDate: string,
+  retriesOnly = false
+) {
   const date = dateValue(reportDate);
-  const [inserted] = await db
-    .insert(reportDelivery)
-    .values({ servicioId: serviceId, recipientCorreo: email, reportDate: date })
-    .onConflictDoNothing({
-      target: [reportDelivery.servicioId, reportDelivery.recipientCorreo, reportDelivery.reportDate],
-    })
-    .returning({ id: reportDelivery.id });
+  const [inserted] = retriesOnly
+    ? []
+    : await db
+        .insert(reportDelivery)
+        .values({ servicioId: serviceId, recipientCorreo: email, reportDate: date })
+        .onConflictDoNothing({
+          target: [reportDelivery.servicioId, reportDelivery.recipientCorreo, reportDelivery.reportDate],
+        })
+        .returning({ id: reportDelivery.id });
 
   if (inserted) {
     const [sending] = await db
@@ -133,6 +150,7 @@ export async function sendReportToRecipient(
       attachments: [
         { filename: `reporte-diario-${filename}-${reportDate}.pdf`, content: pair.dailyPdf },
         { filename: `reporte-total-${filename}.pdf`, content: pair.totalPdf },
+        { filename: `reporte-${filename}-${reportDate}.xlsx`, content: pair.workbook },
         getQualiblickLogoAttachment(),
       ],
     });
@@ -144,15 +162,62 @@ export async function sendReportToRecipient(
   }
 }
 
-export async function dispatchDailyReports(reportDate: string) {
+/**
+ * `lote_calibre_declarado_dia` solo se recalcula cuando un operador guarda
+ * tramos de calibre en la app. Sin este refresco, el informe de un servicio en
+ * modo declarado sale vacio para cualquier dia en que nadie haya vuelto a
+ * guardar. Se recalcula solo la fecha reportada y solo los lotes con conteos
+ * ese dia (ver migracion 0034); para servicios en modo medido no hay filas que
+ * tocar y el bucle simplemente no itera.
+ */
+async function refreshDeclaredSummary(serviceId: string, reportDate: string) {
+  const [service] = await db
+    .select({ modoCalibre: servicio.modoCalibre })
+    .from(servicio)
+    .where(eq(servicio.id, serviceId))
+    .limit(1);
+  if (service?.modoCalibre !== "declarado") return 0;
+
+  const day = localDayRange(reportDate);
+  const lotes = await db
+    .selectDistinct({ loteId: conteo.loteId })
+    .from(conteo)
+    .where(
+      and(
+        eq(conteo.servicioId, serviceId),
+        sql`${conteo.ts} >= ${day.from}`,
+        sql`${conteo.ts} < ${day.to}`
+      )
+    );
+  for (const { loteId } of lotes) {
+    await db.execute(
+      sql`select refresh_lote_calibre_declarado_dia_rango(${loteId}::uuid, ${serviceId}::uuid, ${reportDate}::date)`
+    );
+  }
+  return lotes.length;
+}
+
+export async function dispatchDailyReports(
+  reportDate: string,
+  options: { retriesOnly?: boolean; deadline?: number } = {}
+) {
+  const { retriesOnly = false, deadline } = options;
+  const outOfTime = () => deadline !== undefined && Date.now() > deadline;
+  const day = localDayRange(reportDate);
   const services = await db
-    .select({ id: servicio.id, serviceName: servicio.nombre, empresaId: servicio.empresaId })
+    .select({
+      id: servicio.id,
+      serviceName: servicio.nombre,
+      empresaId: servicio.empresaId,
+      modoCalibre: servicio.modoCalibre,
+    })
     .from(servicio)
     .where(sql`exists (
       select 1
       from ${conteo}
       where ${conteo.servicioId} = ${servicio.id}
-        and (${conteo.ts} at time zone 'America/Santiago')::date = ${reportDate}
+        and ${conteo.ts} >= ${day.from}
+        and ${conteo.ts} < ${day.to}
     )`);
 
   let attempted = 0;
@@ -162,6 +227,11 @@ export async function dispatchDailyReports(reportDate: string) {
   const errors: Array<{ serviceId: string; serviceName: string; stage: "build" | "send"; error: string }> = [];
 
   for (const service of services) {
+    if (outOfTime()) {
+      // Lo no procesado queda como pending/failed en report_delivery y lo toma
+      // la pasada de reintento de la hora siguiente.
+      break;
+    }
     const recipientsRows = await db
       .select({ correo: usuario.correo, nombre: usuario.nombre })
       .from(empresaUsuario)
@@ -177,7 +247,7 @@ export async function dispatchDailyReports(reportDate: string) {
     // instead of silently losing the service with no delivery record.
     const reserved = [] as Array<{ recipient: (typeof recipients)[number]; deliveryId: string }>;
     for (const recipient of recipients) {
-      const delivery = await reserveDelivery(service.id, recipient.correo, reportDate);
+      const delivery = await reserveDelivery(service.id, recipient.correo, reportDate, retriesOnly);
       if (delivery) reserved.push({ recipient, deliveryId: delivery.id });
       else skipped += 1;
     }
