@@ -12,8 +12,19 @@ import {
   proceso,
   tipoProceso,
   dispositivo,
+  dispositivoServicio,
+  loteCierreCalibreBin,
 } from "@/db/schema";
-import { eq, and, isNull, sql, inArray } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, sql, inArray } from "drizzle-orm";
+
+// El calibre puede venir con un extremo abierto (merma: "<6", ">10"), así que
+// calibreFrom/calibreTo son nullable y hay que formatear los tres casos.
+function formatCalibre(from: number | null, to: number | null): string | null {
+  if (from != null && to != null) return `${from}/${to}`;
+  if (from != null) return `${from}+`;
+  if (to != null) return `≤${to}`;
+  return null;
+}
 
 export async function GET(
   request: Request,
@@ -119,6 +130,124 @@ export async function GET(
 
   // 7. Check if any service uses cajas
   const servicioIds = lifecycle.map((l) => l.servicioId);
+
+  // 7b. Salida física de cada dispositivo y el calibre que declaró en ESTE lote.
+  //
+  // La salida vive en dispositivo_servicio (configurable por servicio, no es una
+  // propiedad del equipo), y el calibre en lote_cierre_calibre_bin — lo escribe
+  // la tablet al cerrar el lote. Por eso el calibre se resuelve por lote y no
+  // se puede cachear como atributo de la salida: la misma salida corre calibres
+  // distintos en lotes distintos.
+  const dispositivoIds = [...new Set(deviceStats.map((d) => d.dispositivoId))];
+
+  // Pares (dispositivo, servicio) que realmente tienen conteos en este lote.
+  // Es imprescindible acotar por el par y no solo por dispositivo: un equipo
+  // suele estar vinculado a varios servicios, y solo en algunos tiene salida
+  // configurada. Filtrando solo por dispositivo, la "Salida 2" de un servicio
+  // se filtraba a lotes de otro servicio que no usa salidas.
+  const paresConConteo = await db
+    .selectDistinct({
+      servicioId: loteTotalStats.servicioId,
+      dispositivoId: loteTotalStats.dispositivoId,
+    })
+    .from(loteTotalStats)
+    .where(eq(loteTotalStats.loteId, loteId));
+
+  const paresValidos = new Set(
+    paresConConteo.map((p) => `${p.dispositivoId}|${p.servicioId}`)
+  );
+
+  const salidaRows =
+    dispositivoIds.length > 0 && servicioIds.length > 0
+      ? await db
+          .select({
+            dispositivoId: dispositivoServicio.dispositivoId,
+            servicioId: dispositivoServicio.servicioId,
+            salidaOrden: dispositivoServicio.salidaOrden,
+            salidaNombre: dispositivoServicio.salidaNombre,
+          })
+          .from(dispositivoServicio)
+          .where(
+            and(
+              inArray(dispositivoServicio.dispositivoId, dispositivoIds),
+              inArray(dispositivoServicio.servicioId, servicioIds)
+            )
+          )
+      : [];
+
+  // Un mismo dispositivo puede tener conteos en más de un servicio del lote
+  // (raro: 1 de 270 casos en datos reales). Nos quedamos con el vínculo que sí
+  // tiene salida configurada, y ante empate con la de menor orden, para que la
+  // etiqueta sea estable entre recargas.
+  const salidaPorDispositivo = new Map<
+    string,
+    { salidaOrden: number | null; salidaNombre: string | null }
+  >();
+  for (const row of salidaRows) {
+    if (!paresValidos.has(`${row.dispositivoId}|${row.servicioId}`)) continue;
+    const actual = salidaPorDispositivo.get(row.dispositivoId);
+    if (
+      !actual ||
+      (actual.salidaOrden == null && row.salidaOrden != null) ||
+      (actual.salidaOrden != null &&
+        row.salidaOrden != null &&
+        row.salidaOrden < actual.salidaOrden)
+    ) {
+      salidaPorDispositivo.set(row.dispositivoId, {
+        salidaOrden: row.salidaOrden,
+        salidaNombre: row.salidaNombre,
+      });
+    }
+  }
+
+  // Calibre declarado por salida en este lote. En los datos reales hay siempre
+  // una sola fila por (lote, dispositivo), pero el modelo admite varios tramos
+  // con vigencia temporal (recalibración a mitad de lote), así que se agrupa por
+  // rango en vez de asumir fila única.
+  const calibreRows =
+    dispositivoIds.length > 0
+      ? await db
+          .select({
+            dispositivoId: loteCierreCalibreBin.dispositivoId,
+            servicioId: loteCierreCalibreBin.servicioId,
+            calibreFrom: loteCierreCalibreBin.calibreFrom,
+            calibreTo: loteCierreCalibreBin.calibreTo,
+          })
+          .from(loteCierreCalibreBin)
+          .where(
+            and(
+              eq(loteCierreCalibreBin.loteId, loteId),
+              isNotNull(loteCierreCalibreBin.dispositivoId),
+              inArray(loteCierreCalibreBin.dispositivoId, dispositivoIds)
+            )
+          )
+          .groupBy(
+            loteCierreCalibreBin.dispositivoId,
+            loteCierreCalibreBin.servicioId,
+            loteCierreCalibreBin.calibreFrom,
+            loteCierreCalibreBin.calibreTo
+          )
+          .orderBy(
+            loteCierreCalibreBin.calibreFrom,
+            loteCierreCalibreBin.calibreTo
+          )
+      : [];
+
+  const calibresPorDispositivo = new Map<string, string[]>();
+  for (const row of calibreRows) {
+    if (!row.dispositivoId) continue;
+    // Mismo criterio que la salida: solo el servicio donde el equipo contó.
+    if (!paresValidos.has(`${row.dispositivoId}|${row.servicioId}`)) continue;
+    const etiqueta = formatCalibre(row.calibreFrom, row.calibreTo);
+    if (!etiqueta) continue;
+    const acc = calibresPorDispositivo.get(row.dispositivoId);
+    if (acc) {
+      if (!acc.includes(etiqueta)) acc.push(etiqueta);
+    } else {
+      calibresPorDispositivo.set(row.dispositivoId, [etiqueta]);
+    }
+  }
+
   let hasCajas = false;
   if (servicioIds.length > 0) {
     const serviciosWithCajas = await db
@@ -172,12 +301,31 @@ export async function GET(
       totalIn: totalStats[0]?.totalIn ?? 0,
       totalOut: totalStats[0]?.totalOut ?? 0,
     },
-    devices: deviceStats.map((d) => ({
-      dispositivoNombre: d.dispositivoNombre,
-      totalIn: d.totalIn,
-      totalOut: d.totalOut,
-      lastTs: d.lastTs,
-    })),
+    // Ordenado por salida (nulls al final) igual que /api/app/dispositivos, así
+    // la tabla web y la tablet listan las salidas en el mismo orden.
+    devices: deviceStats
+      .map((d) => {
+        const salida = salidaPorDispositivo.get(d.dispositivoId);
+        return {
+          dispositivoNombre: d.dispositivoNombre,
+          salidaOrden: salida?.salidaOrden ?? null,
+          // Misma convención que /api/app/lotes/resumen-calibres: si el servicio
+          // no tiene salidas configuradas, se cae al nombre del equipo.
+          salidaLabel: salida?.salidaNombre ?? d.dispositivoNombre,
+          calibres: calibresPorDispositivo.get(d.dispositivoId) ?? [],
+          totalIn: d.totalIn,
+          totalOut: d.totalOut,
+          lastTs: d.lastTs,
+        };
+      })
+      .sort((a, b) => {
+        if (a.salidaOrden != null && b.salidaOrden != null) {
+          return a.salidaOrden - b.salidaOrden;
+        }
+        if (a.salidaOrden != null) return -1;
+        if (b.salidaOrden != null) return 1;
+        return a.dispositivoNombre.localeCompare(b.dispositivoNombre, "es");
+      }),
     hasCajas,
   });
 }

@@ -29,6 +29,11 @@ interface ActiveSession {
 
 interface DeviceStats {
   dispositivoNombre: string;
+  salidaOrden: number | null;
+  salidaLabel: string;
+  // Calibre declarado por esta salida en este lote. Normalmente uno, pero el
+  // modelo admite varios tramos si se recalibra a mitad de proceso.
+  calibres: string[];
   totalIn: number;
   totalOut: number;
   lastTs: string | null;
@@ -475,13 +480,17 @@ export default function LoteGlobalDetailPage() {
                     <thead>
                       <tr className="border-b border-white/10 text-slate-400">
                         <th className="text-left py-2 pr-4 font-medium">
-                          Dispositivo
+                          Salida
+                        </th>
+                        {/* "Entradas"/"Salidas" se renombran a "Bulbos …": con la
+                            primera columna mostrando la salida física, una columna
+                            llamada "Salidas" que en realidad son conteos out se
+                            leía como si fuera lo mismo. */}
+                        <th className="text-right py-2 pr-4 font-medium">
+                          Bulbos entrada
                         </th>
                         <th className="text-right py-2 pr-4 font-medium">
-                          Entradas
-                        </th>
-                        <th className="text-right py-2 pr-4 font-medium">
-                          Salidas
+                          Bulbos salida
                         </th>
                         <th className="text-right py-2 font-medium">
                           Ultima actividad
@@ -492,7 +501,17 @@ export default function LoteGlobalDetailPage() {
                       {detail.devices.map((d) => (
                         <tr key={d.dispositivoNombre} className="text-white">
                           <td className="py-2.5 pr-4 font-medium">
-                            {d.dispositivoNombre}
+                            {/* El nombre del equipo queda en el title: sigue siendo
+                                el dato que se necesita para ir a buscarlo a terreno. */}
+                            <span title={d.dispositivoNombre}>
+                              {d.salidaLabel}
+                            </span>
+                            {d.calibres.length > 0 && (
+                              <span className="text-slate-400 font-normal">
+                                {" "}
+                                ({d.calibres.join(", ")})
+                              </span>
+                            )}
                           </td>
                           <td className="py-2.5 pr-4 text-right text-green-400">
                             {formatNumber(d.totalIn)}
