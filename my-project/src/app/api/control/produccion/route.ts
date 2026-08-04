@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { conteo, servicio } from "@/db/schema";
+import { conteo, servicio, dispositivo } from "@/db/schema";
 import { eq, and, gte, lte, inArray, sql } from "drizzle-orm";
 
 export async function GET(request: Request) {
@@ -39,6 +39,8 @@ export async function GET(request: Request) {
   if (servicioIds.length === 0) {
     return NextResponse.json({
       hourly: [],
+      hourlyPorDispositivo: [],
+      dispositivos: [],
       daily: [],
       total: 0,
       avgPerHour: 0,
@@ -47,8 +49,11 @@ export async function GET(request: Request) {
     });
   }
 
-  // Una sola consulta agrupada por (date, hour). De aquí derivamos en JS:
-  // hourly, daily, total y jornada (inicio/fin), evitando 4 escaneos de la tabla.
+  // Una sola consulta agrupada por (date, hour, dispositivo). De aquí derivamos
+  // en JS: hourlyPorDispositivo, hourly, daily, total y jornada (inicio/fin),
+  // evitando escanear la tabla más de una vez. El dispositivo entra en el group
+  // by porque es la granularidad más fina que necesitamos: todo lo demás sale
+  // de sumar sobre estas filas.
   const localTs = sql`${conteo.ts} AT TIME ZONE 'America/Santiago'`;
   const dateExpr = sql<string>`TO_CHAR(${localTs}, 'YYYY-MM-DD')`;
   const hourExpr = sql<number>`EXTRACT(HOUR FROM ${localTs})::int`;
@@ -57,6 +62,8 @@ export async function GET(request: Request) {
     .select({
       date: dateExpr,
       hour: hourExpr,
+      dispositivoId: conteo.dispositivoId,
+      dispositivoNombre: dispositivo.nombre,
       count: sql<number>`COUNT(*)::int`,
       // MIN/MAX sobre el ts real, convirtiendo después (correcto en cambios de DST)
       firstMin: sql<number>`(
@@ -69,6 +76,7 @@ export async function GET(request: Request) {
       )::int`,
     })
     .from(conteo)
+    .innerJoin(dispositivo, eq(dispositivo.id, conteo.dispositivoId))
     .where(
       and(
         inArray(conteo.servicioId, servicioIds),
@@ -76,20 +84,42 @@ export async function GET(request: Request) {
         lte(conteo.ts, hastaDate)
       )
     )
-    .groupBy(dateExpr, hourExpr)
+    .groupBy(dateExpr, hourExpr, conteo.dispositivoId, dispositivo.nombre)
     .orderBy(dateExpr, hourExpr);
 
-  const hourly = rows.map((r) => ({
+  const hourlyPorDispositivo = rows.map((r) => ({
     date: r.date,
     hour: r.hour,
+    dispositivoId: r.dispositivoId,
+    dispositivoNombre: r.dispositivoNombre,
     count: r.count,
   }));
+
+  // hourly: las mismas franjas pero sumando los dispositivos. Se recorre en el
+  // orden que vino de la DB, así que el Map preserva el orden por date, hour.
+  const porFranja = new Map<
+    string,
+    { date: string; hour: number; count: number }
+  >();
+  for (const r of rows) {
+    const key = `${r.date}|${r.hour}`;
+    const existing = porFranja.get(key);
+    if (existing) existing.count += r.count;
+    else porFranja.set(key, { date: r.date, hour: r.hour, count: r.count });
+  }
+  const hourly = Array.from(porFranja.values());
 
   let total = 0;
   // Mapa date -> { count, minStart, maxEnd } para derivar daily y jornada
   const byDate = new Map<
     string,
     { count: number; minStart: number; maxEnd: number }
+  >();
+  // Totales por dispositivo, para que el cliente arme la leyenda y el resumen
+  // sin recorrer todo el detalle.
+  const porDispositivo = new Map<
+    string,
+    { id: string; nombre: string; total: number }
   >();
   for (const r of rows) {
     total += r.count;
@@ -105,7 +135,22 @@ export async function GET(request: Request) {
         maxEnd: r.lastMin,
       });
     }
+
+    const equipo = porDispositivo.get(r.dispositivoId);
+    if (equipo) {
+      equipo.total += r.count;
+    } else {
+      porDispositivo.set(r.dispositivoId, {
+        id: r.dispositivoId,
+        nombre: r.dispositivoNombre,
+        total: r.count,
+      });
+    }
   }
+
+  const dispositivos = Array.from(porDispositivo.values()).sort(
+    (a, b) => b.total - a.total
+  );
 
   // daily ordenado por fecha (rows ya viene ordenado por date, hour)
   const daily = Array.from(byDate.entries()).map(([date, v]) => ({
@@ -134,12 +179,16 @@ export async function GET(request: Request) {
       .padStart(2, "0")}:${(avgEndMins % 60).toString().padStart(2, "0")}`;
   }
 
-  // Avg per hour: total dividido por número de franjas hora con datos
-  const totalHours = rows.length || 1;
+  // Avg per hour: total dividido por número de franjas hora con datos. Se
+  // cuenta sobre `hourly` y no sobre `rows`: con el dispositivo en el group by
+  // hay una fila por equipo y hora, y usar rows.length infla el divisor.
+  const totalHours = hourly.length || 1;
   const avgPerHour = Math.round(total / totalHours);
 
   return NextResponse.json({
     hourly,
+    hourlyPorDispositivo,
+    dispositivos,
     daily,
     total,
     avgPerHour,
