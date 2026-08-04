@@ -12,23 +12,14 @@ import {
   proceso,
   tipoProceso,
   dispositivo,
-  dispositivoServicio,
-  loteCierreCalibreBin,
 } from "@/db/schema";
-import { eq, and, isNull, isNotNull, sql, inArray } from "drizzle-orm";
-
-// Un extremo abierto no es un calibre más: es la merma. Se etiqueta como tal
-// para que en la tabla se lea "merma >20" y no un rango que parezca un calibre.
-//
-// Los signos siguen a declaradoLabel() de /api/app/lotes/resumen-calibres — "<to"
-// y ">from", no "≤"/"+": el modelo no guarda si el extremo es inclusivo, así que
-// inventar "≤" afirmaría algo que el dato no dice.
-function formatCalibre(from: number | null, to: number | null): string | null {
-  if (from != null && to != null) return `${from}/${to}`;
-  if (from != null) return `merma >${from}`;
-  if (to != null) return `merma <${to}`;
-  return null;
-}
+import { eq, and, isNull, sql, inArray } from "drizzle-orm";
+import {
+  claveParDispositivoServicio,
+  compararPorSalida,
+  resolverSalidasCalibre,
+  type SalidaCalibre,
+} from "@/lib/salida-calibre";
 
 export async function GET(
   request: Request,
@@ -132,23 +123,11 @@ export async function GET(
     .where(eq(loteTotalStats.loteId, loteId))
     .groupBy(loteTotalStats.dispositivoId, dispositivo.nombre);
 
-  // 7. Check if any service uses cajas
   const servicioIds = lifecycle.map((l) => l.servicioId);
 
-  // 7b. Salida física de cada dispositivo y el calibre que declaró en ESTE lote.
-  //
-  // La salida vive en dispositivo_servicio (configurable por servicio, no es una
-  // propiedad del equipo), y el calibre en lote_cierre_calibre_bin — lo escribe
-  // la tablet al cerrar el lote. Por eso el calibre se resuelve por lote y no
-  // se puede cachear como atributo de la salida: la misma salida corre calibres
-  // distintos en lotes distintos.
-  const dispositivoIds = [...new Set(deviceStats.map((d) => d.dispositivoId))];
-
-  // Pares (dispositivo, servicio) que realmente tienen conteos en este lote.
-  // Es imprescindible acotar por el par y no solo por dispositivo: un equipo
-  // suele estar vinculado a varios servicios, y solo en algunos tiene salida
-  // configurada. Filtrando solo por dispositivo, la "Salida 2" de un servicio
-  // se filtraba a lotes de otro servicio que no usa salidas.
+  // 7. Salida física de cada dispositivo y el calibre que declaró en ESTE lote.
+  // La lógica vive en @/lib/salida-calibre porque la comparte con
+  // /api/lotes/summary, que alimenta la otra página de lote.
   const paresConConteo = await db
     .selectDistinct({
       servicioId: loteTotalStats.servicioId,
@@ -157,101 +136,31 @@ export async function GET(
     .from(loteTotalStats)
     .where(eq(loteTotalStats.loteId, loteId));
 
-  const paresValidos = new Set(
-    paresConConteo.map((p) => `${p.dispositivoId}|${p.servicioId}`)
-  );
+  const salidas = await resolverSalidasCalibre(loteId, paresConConteo);
 
-  const salidaRows =
-    dispositivoIds.length > 0 && servicioIds.length > 0
-      ? await db
-          .select({
-            dispositivoId: dispositivoServicio.dispositivoId,
-            servicioId: dispositivoServicio.servicioId,
-            salidaOrden: dispositivoServicio.salidaOrden,
-            salidaNombre: dispositivoServicio.salidaNombre,
-          })
-          .from(dispositivoServicio)
-          .where(
-            and(
-              inArray(dispositivoServicio.dispositivoId, dispositivoIds),
-              inArray(dispositivoServicio.servicioId, servicioIds)
-            )
-          )
-      : [];
-
-  // Un mismo dispositivo puede tener conteos en más de un servicio del lote
-  // (raro: 1 de 270 casos en datos reales). Nos quedamos con el vínculo que sí
-  // tiene salida configurada, y ante empate con la de menor orden, para que la
-  // etiqueta sea estable entre recargas.
-  const salidaPorDispositivo = new Map<
-    string,
-    { salidaOrden: number | null; salidaNombre: string | null }
-  >();
-  for (const row of salidaRows) {
-    if (!paresValidos.has(`${row.dispositivoId}|${row.servicioId}`)) continue;
-    const actual = salidaPorDispositivo.get(row.dispositivoId);
+  // Acá las filas ya vienen sumadas por dispositivo (sin servicio), así que si un
+  // equipo contó en más de un servicio del lote (raro: 1 de 270 casos reales) hay
+  // que elegir: se prefiere el vínculo con salida configurada, y entre esos el de
+  // menor orden, para que la etiqueta sea estable entre recargas.
+  const salidaPorDispositivo = new Map<string, SalidaCalibre>();
+  for (const par of paresConConteo) {
+    const salida = salidas.get(
+      claveParDispositivoServicio(par.dispositivoId, par.servicioId)
+    );
+    if (!salida) continue;
+    const actual = salidaPorDispositivo.get(par.dispositivoId);
     if (
       !actual ||
-      (actual.salidaOrden == null && row.salidaOrden != null) ||
+      (actual.salidaOrden == null && salida.salidaOrden != null) ||
       (actual.salidaOrden != null &&
-        row.salidaOrden != null &&
-        row.salidaOrden < actual.salidaOrden)
+        salida.salidaOrden != null &&
+        salida.salidaOrden < actual.salidaOrden)
     ) {
-      salidaPorDispositivo.set(row.dispositivoId, {
-        salidaOrden: row.salidaOrden,
-        salidaNombre: row.salidaNombre,
-      });
+      salidaPorDispositivo.set(par.dispositivoId, salida);
     }
   }
 
-  // Calibre declarado por salida en este lote. En los datos reales hay siempre
-  // una sola fila por (lote, dispositivo), pero el modelo admite varios tramos
-  // con vigencia temporal (recalibración a mitad de lote), así que se agrupa por
-  // rango en vez de asumir fila única.
-  const calibreRows =
-    dispositivoIds.length > 0
-      ? await db
-          .select({
-            dispositivoId: loteCierreCalibreBin.dispositivoId,
-            servicioId: loteCierreCalibreBin.servicioId,
-            calibreFrom: loteCierreCalibreBin.calibreFrom,
-            calibreTo: loteCierreCalibreBin.calibreTo,
-          })
-          .from(loteCierreCalibreBin)
-          .where(
-            and(
-              eq(loteCierreCalibreBin.loteId, loteId),
-              isNotNull(loteCierreCalibreBin.dispositivoId),
-              inArray(loteCierreCalibreBin.dispositivoId, dispositivoIds)
-            )
-          )
-          .groupBy(
-            loteCierreCalibreBin.dispositivoId,
-            loteCierreCalibreBin.servicioId,
-            loteCierreCalibreBin.calibreFrom,
-            loteCierreCalibreBin.calibreTo
-          )
-          .orderBy(
-            loteCierreCalibreBin.calibreFrom,
-            loteCierreCalibreBin.calibreTo
-          )
-      : [];
-
-  const calibresPorDispositivo = new Map<string, string[]>();
-  for (const row of calibreRows) {
-    if (!row.dispositivoId) continue;
-    // Mismo criterio que la salida: solo el servicio donde el equipo contó.
-    if (!paresValidos.has(`${row.dispositivoId}|${row.servicioId}`)) continue;
-    const etiqueta = formatCalibre(row.calibreFrom, row.calibreTo);
-    if (!etiqueta) continue;
-    const acc = calibresPorDispositivo.get(row.dispositivoId);
-    if (acc) {
-      if (!acc.includes(etiqueta)) acc.push(etiqueta);
-    } else {
-      calibresPorDispositivo.set(row.dispositivoId, [etiqueta]);
-    }
-  }
-
+  // 8. Check if any service uses cajas
   let hasCajas = false;
   if (servicioIds.length > 0) {
     const serviciosWithCajas = await db
@@ -316,20 +225,13 @@ export async function GET(
           // Misma convención que /api/app/lotes/resumen-calibres: si el servicio
           // no tiene salidas configuradas, se cae al nombre del equipo.
           salidaLabel: salida?.salidaNombre ?? d.dispositivoNombre,
-          calibres: calibresPorDispositivo.get(d.dispositivoId) ?? [],
+          calibres: salida?.calibres ?? [],
           totalIn: d.totalIn,
           totalOut: d.totalOut,
           lastTs: d.lastTs,
         };
       })
-      .sort((a, b) => {
-        if (a.salidaOrden != null && b.salidaOrden != null) {
-          return a.salidaOrden - b.salidaOrden;
-        }
-        if (a.salidaOrden != null) return -1;
-        if (b.salidaOrden != null) return 1;
-        return a.dispositivoNombre.localeCompare(b.dispositivoNombre, "es");
-      }),
+      .sort(compararPorSalida),
     hasCajas,
   });
 }
