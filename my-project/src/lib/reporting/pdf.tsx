@@ -43,6 +43,7 @@ const styles = StyleSheet.create({
   // Fila hija de una salida: sin borde propio y con sangria, para que se lea
   // colgando del calibre de arriba y no como otro calibre.
   salidaRow: { borderTopWidth: 0, paddingVertical: 3 },
+  mermaRow: { backgroundColor: "#FEF3C7" },
   colSalidaLabel: { width: "46%", paddingLeft: 10, color: colors.muted, fontSize: 8 },
   colBulbs: { width: "18%", textAlign: "right" },
   colPercent: { width: "18%", textAlign: "right" },
@@ -85,13 +86,16 @@ function LoteSection({ lote }: { lote: ReportLote }) {
     <View style={styles.loteBlock} wrap={lote.rows.length > UNSPLITTABLE_ROWS}>
       <View style={styles.loteTitleRow}>
         <Text style={styles.loteTitle}>Lote / Lot {lote.codigoLote}</Text>
-        <Text style={styles.loteTotal}>{number(lote.bulbs)} bulbos - {number(lote.percent)}% del total</Text>
+        <Text style={styles.loteTotal}>
+          {number(lote.bulbs)} bulbos - {number(lote.percent)}% del total
+          {lote.mermaBulbs > 0 ? ` + ${number(lote.mermaBulbs)} merma` : ""}
+        </Text>
       </View>
       <View style={styles.table}>
         <View style={styles.tableHeader}>
           <Text style={styles.colLabel}>Calibre / Size</Text><Text style={styles.colBulbs}>Bulbos</Text><Text style={styles.colPercent}>%</Text><Text style={styles.colBins}>Bins</Text>
         </View>
-        {lote.rows.length === 0 ? (
+        {lote.rows.length === 0 && lote.mermaBulbs === 0 ? (
           <View style={styles.tableRow}><Text style={styles.colLabel}>Sin datos para el periodo</Text></View>
         ) : lote.rows.map((row, index) => (
           <View key={row.key} style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}]} wrap={false}>
@@ -101,6 +105,16 @@ function LoteSection({ lote }: { lote: ReportLote }) {
             <Text style={styles.colBins}>{row.bins ? number(row.bins) : "-"}</Text>
           </View>
         ))}
+        {/* Fila de merma del lote. Sin esto un lote que solo saco merma aparecia
+            como "sin datos", cuando en realidad si conto bulbos. */}
+        {lote.mermaBulbs > 0 && (
+          <View style={[styles.tableRow, styles.mermaRow]} wrap={false}>
+            <Text style={styles.colLabel}>Merma / Waste (fuera del total)</Text>
+            <Text style={styles.colBulbs}>{number(lote.mermaBulbs)}</Text>
+            <Text style={styles.colPercent}>-</Text>
+            <Text style={styles.colBins}>-</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -108,12 +122,19 @@ function LoteSection({ lote }: { lote: ReportLote }) {
 
 /** Tabla unica y paginable, para servicios con demasiados lotes. */
 function FlatDetailTable({ lotes }: { lotes: ReportLote[] }) {
-  const rows = lotes.flatMap((lote): Array<{ lote: ReportLote; row: ReportCalibreRow | null }> => {
-    if (lote.rows.length === 0) {
-      return [{ lote, row: null }];
+  // `merma: true` es una fila propia del lote, no un calibre. Va aca y no solo en
+  // LoteSection para que un servicio con muchos lotes no pierda el descarte.
+  const rows = lotes.flatMap(
+    (lote): Array<{ lote: ReportLote; row: ReportCalibreRow | null; merma?: boolean }> => {
+      const calibres =
+        lote.rows.length === 0 && lote.mermaBulbs === 0
+          ? [{ lote, row: null }]
+          : lote.rows.map((row) => ({ lote, row }));
+      return lote.mermaBulbs > 0
+        ? [...calibres, { lote, row: null, merma: true }]
+        : calibres;
     }
-    return lote.rows.map((row) => ({ lote, row }));
-  });
+  );
 
   return (
     <View style={styles.table}>
@@ -122,13 +143,23 @@ function FlatDetailTable({ lotes }: { lotes: ReportLote[] }) {
       </View>
       {rows.length === 0 ? (
         <View style={styles.tableRow}><Text style={styles.colLabel}>Sin datos para el periodo</Text></View>
-      ) : rows.map(({ lote, row }, index) => (
-        <View key={`${lote.loteId}-${row?.key ?? "empty"}`} style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}]} wrap={false}>
+      ) : rows.map(({ lote, row, merma }, index) => (
+        <View
+          key={`${lote.loteId}-${merma ? "merma" : row?.key ?? "empty"}`}
+          style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}, merma ? styles.mermaRow : {}]}
+          wrap={false}
+        >
           <Text style={styles.detailLot}>{lote.codigoLote}</Text>
-          <Text style={styles.detailCalibre}>{row?.label ?? "Sin datos para el periodo"}</Text>
-          <Text style={styles.detailBulbs}>{row ? number(row.bulbs) : "-"}</Text>
-          <Text style={styles.detailPercent}>{row ? `${number(row.percent)}%` : "-"}</Text>
-          <Text style={styles.detailBins}>{row?.bins ? number(row.bins) : "-"}</Text>
+          <Text style={styles.detailCalibre}>
+            {merma
+              ? "Merma / Waste (fuera del total)"
+              : row?.label ?? "Sin datos para el periodo"}
+          </Text>
+          <Text style={styles.detailBulbs}>
+            {merma ? number(lote.mermaBulbs) : row ? number(row.bulbs) : "-"}
+          </Text>
+          <Text style={styles.detailPercent}>{!merma && row ? `${number(row.percent)}%` : "-"}</Text>
+          <Text style={styles.detailBins}>{!merma && row?.bins ? number(row.bins) : "-"}</Text>
         </View>
       ))}
     </View>

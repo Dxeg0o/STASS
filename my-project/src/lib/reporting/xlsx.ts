@@ -55,7 +55,9 @@ function detailRows(report: ServiceReport, withSalidas: boolean): Cell[][] {
     : ["Lote / Lot", "Calibre / Size", "Bulbos", "%", "Bins"];
   const rows: Cell[][] = [head];
   for (const lote of report.lotes) {
-    if (lote.rows.length === 0) {
+    // Un lote que solo saco merma tiene rows vacio pero SI conto bulbos: sin esta
+    // condicion caia en "Sin datos para el periodo" y su merma no se mostraba.
+    if (lote.rows.length === 0 && lote.mermaBulbs === 0) {
       rows.push(
         withSalidas
           ? [lote.codigoLote, "Sin datos para el periodo", null, null, null, null]
@@ -79,6 +81,18 @@ function detailRows(report: ServiceReport, withSalidas: boolean): Cell[][] {
         }
       }
     });
+    // La merma del lote, antes del total y rotulada como fuera de el: sin esta
+    // fila el detalle por lote mostraba los calibres pero escondia el descarte.
+    // Si el lote solo saco merma, esta es su primera fila y le toca llevar el
+    // codigo — que va solo en la primera fila de cada bloque.
+    if (lote.mermaBulbs > 0) {
+      const codigo = lote.rows.length === 0 ? lote.codigoLote : null;
+      rows.push(
+        withSalidas
+          ? [codigo, "Merma / Waste (fuera del total)", null, lote.mermaBulbs, null, null]
+          : [codigo, "Merma / Waste (fuera del total)", lote.mermaBulbs, null, null]
+      );
+    }
     rows.push(
       withSalidas
         ? [null, "Total lote / Lot total", null, lote.bulbs, lote.percent, null]
