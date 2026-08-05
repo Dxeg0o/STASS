@@ -42,14 +42,67 @@ const th: React.CSSProperties = {
 };
 
 /**
- * Detalle por calibre y, debajo de cada uno, el aporte de cada salida.
+ * Detalle de UN lote: una fila por calibre, con la salida que lo saco.
+ *
+ * Dentro de un lote cada calibre pertenece a una sola salida, asi que van en la
+ * misma fila en vez de como subfilas — no hay nada que desglosar. Ese 1 a 1 no
+ * se cumple al agregar varios lotes: la misma salida corre calibres distintos en
+ * lotes distintos, y por eso el detalle se presenta por lote y no sumado.
  *
  * Se arma con una <table> y estilos inline a proposito: los clientes de correo
- * no soportan flex ni grid de forma confiable. Las salidas van como filas hijas
- * en vez de columnas para que la tabla siga siendo legible en un celular.
+ * no soportan flex ni grid de forma confiable.
  */
-function CalibreTable({ report }: { report: ServiceReport }) {
-  if (report.rows.length === 0) {
+function LoteTable({ lote }: { lote: ServiceReport["lotes"][number] }) {
+  return (
+    <table style={{ width: "100%", borderCollapse: "collapse", margin: "0 0 18px" }}>
+      <thead>
+        <tr>
+          <th style={th}>Calibre / Size</th>
+          <th style={th}>Salida / Outlet</th>
+          <th style={{ ...th, textAlign: "right" }}>Bulbos</th>
+          <th style={{ ...th, textAlign: "right" }}>%</th>
+          <th style={{ ...th, textAlign: "right" }}>Bins</th>
+        </tr>
+      </thead>
+      <tbody>
+        {lote.rows.map((row) => (
+          <tr key={row.key}>
+            <td style={{ ...cell, fontWeight: 700 }}>{row.label}</td>
+            <td style={{ ...cell, color: "#475569" }}>
+              {row.salidas.length === 0
+                ? "—"
+                : row.salidas.map((s) => s.label).join(", ")}
+            </td>
+            <td style={{ ...cellNum, fontWeight: 700 }}>{num(row.bulbs)}</td>
+            <td style={cellNum}>{pct(row.percent)}</td>
+            <td style={cellNum}>{row.bins ? num(row.bins) : "-"}</td>
+          </tr>
+        ))}
+        {/* La merma va al pie y rotulada "fuera del total": es descarte, no un
+            calibre mas, y no esta sumada en los bulbos del lote. */}
+        {lote.mermaBulbs > 0 && (
+          <tr>
+            <td style={{ ...cell, color: "#B45309", borderTop: "2px solid #E2E8F0" }}>
+              Merma / Waste
+            </td>
+            <td style={{ ...cell, color: "#94A3B8", borderTop: "2px solid #E2E8F0" }}>
+              fuera del total / excluded
+            </td>
+            <td style={{ ...cellNum, color: "#B45309", borderTop: "2px solid #E2E8F0" }}>
+              {num(lote.mermaBulbs)}
+            </td>
+            <td style={{ ...cellNum, borderTop: "2px solid #E2E8F0" }}>—</td>
+            <td style={{ ...cellNum, borderTop: "2px solid #E2E8F0" }}>—</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  );
+}
+
+/** Bloque por lote: encabezado con sus totales y su tabla de calibres. */
+function DetallePorLote({ report }: { report: ServiceReport }) {
+  if (report.lotes.length === 0) {
     return (
       <Text style={{ color: "#94A3B8", fontSize: 12, margin: "0 0 8px" }}>
         Sin datos para el periodo / No data for this period.
@@ -58,52 +111,27 @@ function CalibreTable({ report }: { report: ServiceReport }) {
   }
 
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", margin: "0 0 6px" }}>
-      <thead>
-        <tr>
-          <th style={th}>Calibre / Size</th>
-          <th style={{ ...th, textAlign: "right" }}>Bulbos</th>
-          <th style={{ ...th, textAlign: "right" }}>%</th>
-          <th style={{ ...th, textAlign: "right" }}>Bins</th>
-        </tr>
-      </thead>
-      <tbody>
-        {report.rows.map((row) => [
-          <tr key={row.key}>
-            <td style={{ ...cell, fontWeight: 700 }}>{row.label}</td>
-            <td style={{ ...cellNum, fontWeight: 700 }}>{num(row.bulbs)}</td>
-            <td style={cellNum}>{pct(row.percent)}</td>
-            <td style={cellNum}>{row.bins ? num(row.bins) : "-"}</td>
-          </tr>,
-          ...row.salidas.map((salida) => (
-            <tr key={`${row.key}:${salida.dispositivoNombre}`}>
-              <td style={{ ...cell, paddingLeft: 22, color: "#475569" }}>
-                {salida.label}
-                <span style={{ color: "#94A3B8" }}> · {salida.dispositivoNombre}</span>
-              </td>
-              <td style={{ ...cellNum, color: "#475569" }}>{num(salida.bulbs)}</td>
-              <td style={{ ...cellNum, color: "#94A3B8" }}>{pct(salida.percent)}</td>
-              <td style={cellNum}>-</td>
-            </tr>
-          )),
-        ])}
-        {/* La merma va al pie y rotulada "fuera del total": es descarte, no un
-            calibre mas, y no esta sumada en los bulbos de arriba. */}
-        {report.mermaBulbs > 0 && (
-          <tr>
-            <td style={{ ...cell, color: "#B45309", borderTop: "2px solid #E2E8F0" }}>
-              Merma / Waste
-              <span style={{ color: "#94A3B8" }}> · fuera del total / excluded</span>
-            </td>
-            <td style={{ ...cellNum, color: "#B45309", borderTop: "2px solid #E2E8F0" }}>
-              {num(report.mermaBulbs)}
-            </td>
-            <td style={{ ...cellNum, borderTop: "2px solid #E2E8F0" }}>—</td>
-            <td style={{ ...cellNum, borderTop: "2px solid #E2E8F0" }}>—</td>
-          </tr>
-        )}
-      </tbody>
-    </table>
+    <>
+      {report.lotes.map((lote) => (
+        <div key={lote.loteId}>
+          <Text
+            style={{
+              color: "#0E7490",
+              fontSize: 13,
+              fontWeight: 700,
+              margin: "14px 0 2px",
+            }}
+          >
+            Lote / Lot {lote.codigoLote}
+          </Text>
+          <Text style={{ color: "#64748B", fontSize: 11, margin: "0 0 6px" }}>
+            {num(lote.bulbs)} bulbos procesados / processed
+            {lote.mermaBulbs > 0 ? ` · + ${num(lote.mermaBulbs)} merma / waste` : ""}
+          </Text>
+          <LoteTable lote={lote} />
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -157,19 +185,23 @@ export default function ServiceReportEmail({ daily, total, recipientName }: Serv
             <Hr style={{ borderColor: "#E2E8F0", margin: "24px 0" }} />
 
             <Text style={{ color: "#172033", fontSize: 14, fontWeight: 700, margin: "0 0 2px" }}>
-              Detalle del dia / Daily detail
+              Detalle del dia por lote / Daily detail by lot
             </Text>
-            <Text style={{ color: "#94A3B8", fontSize: 11, margin: "0 0 10px" }}>
+            <Text style={{ color: "#94A3B8", fontSize: 11, margin: "0 0 4px" }}>
               {daily.calibreSource === "declarado"
-                ? "Por calibre y salida. El % de cada salida es su peso dentro del calibre / By size and outlet. Each outlet's % is its share within the size."
+                ? "El % es dentro del lote. La merma va aparte y no suma al total / % is within the lot. Waste is listed separately and excluded from the total."
                 : "Por calibre medido / By measured size."}
             </Text>
-            <CalibreTable report={daily} />
+            <DetallePorLote report={daily} />
 
-            <Text style={{ color: "#172033", fontSize: 14, fontWeight: 700, margin: "22px 0 10px" }}>
-              Acumulado del servicio / Service total
+            <Hr style={{ borderColor: "#E2E8F0", margin: "24px 0" }} />
+            <Text style={{ color: "#172033", fontSize: 14, fontWeight: 700, margin: "0 0 2px" }}>
+              Acumulado del servicio por lote / Service total by lot
             </Text>
-            <CalibreTable report={total} />
+            <Text style={{ color: "#94A3B8", fontSize: 11, margin: "0 0 4px" }}>
+              Todo el servicio, no solo el dia reportado / Whole service, not just the reported day.
+            </Text>
+            <DetallePorLote report={total} />
 
             <Hr style={{ borderColor: "#E2E8F0", margin: "24px 0" }} />
             <Text style={{ color: "#475569", fontSize: 13, lineHeight: "20px" }}>

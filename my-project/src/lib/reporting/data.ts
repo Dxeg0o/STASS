@@ -288,22 +288,48 @@ async function buildDeclaredServiceReport(metadata: { serviceName: string; compa
       dispositivoNombre: dispositivo.nombre,
       salidaOrden: dispositivoServicio.salidaOrden,
       salidaNombre: dispositivoServicio.salidaNombre,
+      fechaTermino: dispositivoServicio.fechaTermino,
     })
     .from(dispositivoServicio)
     .innerJoin(dispositivo, eq(dispositivo.id, dispositivoServicio.dispositivoId))
     .where(eq(dispositivoServicio.servicioId, serviceId));
-  const salidaPorDispositivo = new Map(
-    salidaRows.map((row) => [
-      row.dispositivoId,
-      {
-        salidaOrden: row.salidaOrden,
-        // Misma convención que el resto: sin salida configurada se cae al
-        // nombre del equipo en vez de mostrar un hueco.
-        label: row.salidaNombre ?? row.dispositivoNombre,
-        dispositivoNombre: row.dispositivoNombre,
-      },
-    ])
-  );
+
+  // La salida de un equipo es FIJA: THOR-1 es Salida 1 aunque no pase un solo
+  // bulbo por ahi. Nunca se renumera ni se deriva de quien produjo — sale de
+  // dispositivo_servicio.salida_orden.
+  //
+  // Un equipo puede tener mas de un vinculo con el mismo servicio (uno terminado
+  // y uno vigente). Sin elegir, el Map se quedaba con la ultima fila que llegara
+  // de la DB, que puede ser la del vinculo viejo y con otro numero de salida.
+  // Se prefiere el vigente (fecha_termino NULL) y, ante empate, el de menor orden.
+  const salidaPorDispositivo = new Map<
+    string,
+    { salidaOrden: number | null; label: string; dispositivoNombre: string; vigente: boolean }
+  >();
+  for (const row of salidaRows) {
+    const candidato = {
+      salidaOrden: row.salidaOrden,
+      // Misma convención que el resto: sin salida configurada se cae al
+      // nombre del equipo en vez de mostrar un hueco.
+      label: row.salidaNombre ?? row.dispositivoNombre,
+      dispositivoNombre: row.dispositivoNombre,
+      vigente: row.fechaTermino === null,
+    };
+    const actual = salidaPorDispositivo.get(row.dispositivoId);
+    if (
+      !actual ||
+      (candidato.vigente && !actual.vigente) ||
+      (candidato.vigente === actual.vigente &&
+        actual.salidaOrden == null &&
+        candidato.salidaOrden != null) ||
+      (candidato.vigente === actual.vigente &&
+        actual.salidaOrden != null &&
+        candidato.salidaOrden != null &&
+        candidato.salidaOrden < actual.salidaOrden)
+    ) {
+      salidaPorDispositivo.set(row.dispositivoId, candidato);
+    }
+  }
 
   // Que salidas declararon algo en cada lote. Es el criterio que separa la merma
   // del producto pendiente dentro del balde "sin declarar": una salida que nunca
