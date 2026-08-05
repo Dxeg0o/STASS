@@ -38,6 +38,12 @@ interface Lote {
   productoNombre?: string;
 }
 
+/** Cajas que entraron al lote y bins declarados de salida. */
+interface Contenedores {
+  cajasEntrada: number;
+  binsSalida: number | null;
+}
+
 interface DeviceSummary {
   dispositivo: string;
   salidaOrden: number | null;
@@ -120,6 +126,7 @@ export default function LoteDetailPage() {
   // Resumen tab
   const [summary, setSummary] = useState<DeviceSummary[] | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [contenedores, setContenedores] = useState<Contenedores | null>(null);
 
   // Calibres tab
   const [chartData, setChartData] = useState<CaliberDataPoint[]>([]);
@@ -178,6 +185,17 @@ export default function LoteDetailPage() {
       })
       .catch(console.error)
       .finally(() => setSummaryLoading(false));
+  }, [loteId]);
+
+  // ── Fetch contenedores (cajas de entrada / bins de salida) ─────────────────
+  useEffect(() => {
+    if (!loteId) return;
+    fetch(`/api/lotes/${loteId}/contenedores`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Error al cargar contenedores");
+        setContenedores(await res.json());
+      })
+      .catch(console.error);
   }, [loteId]);
 
   // ── Fetch calibres ─────────────────────────────────────────────────────────
@@ -360,17 +378,35 @@ export default function LoteDetailPage() {
         <TabsContent value="resumen">
           <Card className="border-white/10 bg-slate-900/40">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <CardTitle className="text-white">Resumen de dispositivos</CardTitle>
-                {summary && summary.length > 0 && (
-                  <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
-                    Total:{" "}
-                    {summary
-                      .reduce((acc, d) => acc + (d.countIn ?? 0) + (d.countOut ?? 0), 0)
-                      .toLocaleString("es-CL")}{" "}
-                    bulbos
-                  </Badge>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Cajas de entrada y bins de salida: son del lote, no de cada
+                      salida. Una misma caja se asigna a las cuatro salidas a la
+                      vez, asi que por fila saldria el mismo numero repetido. */}
+                  {contenedores && (
+                    <>
+                      <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40">
+                        Entraron: {contenedores.cajasEntrada.toLocaleString("es-CL")} cajas
+                      </Badge>
+                      <Badge className="bg-orange-500/15 text-orange-300 border-orange-500/40">
+                        Salieron:{" "}
+                        {contenedores.binsSalida == null
+                          ? "sin declarar"
+                          : `${contenedores.binsSalida.toLocaleString("es-CL")} bins`}
+                      </Badge>
+                    </>
+                  )}
+                  {summary && summary.length > 0 && (
+                    <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
+                      Total:{" "}
+                      {summary
+                        .reduce((acc, d) => acc + (d.countIn ?? 0) + (d.countOut ?? 0), 0)
+                        .toLocaleString("es-CL")}{" "}
+                      bulbos
+                    </Badge>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
