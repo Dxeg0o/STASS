@@ -198,6 +198,8 @@ function buildLote(
     codigoLote,
     bulbs,
     percent: 0,
+    // Modo medido: el calibre sale del perimetro, no hay salida que declare.
+    mermaBulbs: 0,
     rows: [...buckets.values()]
       .sort(sortCalibreRows)
       .map((bucket) => ({
@@ -272,10 +274,10 @@ async function buildDeclaredServiceReport(metadata: { serviceName: string; compa
   if (kind === "daily") conditions.push(eq(loteCalibreDeclaradoDia.dia, reportDate));
   const summary = await db.select().from(loteCalibreDeclaradoDia).where(and(...conditions));
   const usedLoteIds = [...new Set(summary.map((row) => row.loteId))];
-  if (usedLoteIds.length === 0) return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs: 0, rows: [], lotes: [] };
+  if (usedLoteIds.length === 0) return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs: 0, rows: [], lotes: [], mermaBulbs: 0 };
   const names = await db.select({ id: lote.id, codigo: lote.codigoLote }).from(lote).where(inArray(lote.id, usedLoteIds));
   const nameMap = new Map(names.map((row) => [row.id, row.codigo ?? row.id.slice(0, 8)]));
-  const declarations = await db.select({ loteId: loteCierreCalibreBin.loteId, from: loteCierreCalibreBin.calibreFrom, to: loteCierreCalibreBin.calibreTo, bins: loteCierreCalibreBin.bins }).from(loteCierreCalibreBin).where(and(eq(loteCierreCalibreBin.servicioId, serviceId), inArray(loteCierreCalibreBin.loteId, usedLoteIds), isNotNull(loteCierreCalibreBin.dispositivoId)));
+  const declarations = await db.select({ loteId: loteCierreCalibreBin.loteId, dispositivoId: loteCierreCalibreBin.dispositivoId, from: loteCierreCalibreBin.calibreFrom, to: loteCierreCalibreBin.calibreTo, bins: loteCierreCalibreBin.bins }).from(loteCierreCalibreBin).where(and(eq(loteCierreCalibreBin.servicioId, serviceId), inArray(loteCierreCalibreBin.loteId, usedLoteIds), isNotNull(loteCierreCalibreBin.dispositivoId)));
   const bins = new Map<string, number>();
   for (const row of declarations) { const key = `${row.loteId}:${row.from ?? ""}:${row.to ?? ""}`; bins.set(key, (bins.get(key) ?? 0) + (Number(row.bins) || 0)); }
   // Etiqueta de cada salida del servicio. Se resuelve una vez y no por fila:
@@ -303,8 +305,23 @@ async function buildDeclaredServiceReport(metadata: { serviceName: string; compa
     ])
   );
 
+  // Que salidas declararon algo en cada lote. Es el criterio que separa la merma
+  // del producto pendiente dentro del balde "sin declarar": una salida que nunca
+  // declaro en el lote saco merma; una que si declaro y tiene unidades fuera de
+  // sus rangos es producto que todavia no se declara. Mismo criterio que usa la
+  // tabla del lote (ver @/lib/salida-calibre).
+  const declaroEnLote = new Set(
+    declarations.map((row) => `${row.loteId}|${row.dispositivoId}`)
+  );
+
+  const mermaPorLote = new Map<string, number>();
   const byLote = new Map<string, Map<string, ReportCalibreRow>>();
   for (const row of summary) {
+    if (row.sinDeclarar && !declaroEnLote.has(`${row.loteId}|${row.dispositivoId}`)) {
+      const unidades = Number(row.unidades) || 0;
+      mermaPorLote.set(row.loteId, (mermaPorLote.get(row.loteId) ?? 0) + unidades);
+      continue;
+    }
     const key = row.sinDeclarar ? "sin_declarar" : `${row.calibreFrom ?? ""}:${row.calibreTo ?? ""}`;
     const rows = byLote.get(row.loteId) ?? new Map<string, ReportCalibreRow>();
     const current = rows.get(key) ?? { key, label: declaredLabel(row.calibreFrom, row.calibreTo, row.sinDeclarar), bulbs: 0, bins: row.sinDeclarar ? 0 : bins.get(`${row.loteId}:${row.calibreFrom ?? ""}:${row.calibreTo ?? ""}`) ?? 0, percent: 0, salidas: [] };
@@ -328,9 +345,14 @@ async function buildDeclaredServiceReport(metadata: { serviceName: string; compa
     }
     rows.set(key, current); byLote.set(row.loteId, rows);
   }
-  const lotes = [...byLote.entries()].map(([loteId, rows]) => { const values = [...rows.values()].sort(sortCalibreRows); const bulbs = values.reduce((sum, row) => sum + row.bulbs, 0); return { loteId, codigoLote: nameMap.get(loteId) ?? loteId.slice(0, 8), bulbs, percent: 0, rows: values.map((row) => ({ ...row, percent: roundedPercent(row.bulbs, bulbs), salidas: finishSalidas(row.salidas, row.bulbs) })) }; }).sort((a, b) => a.codigoLote.localeCompare(b.codigoLote, "es"));
+  // Un lote puede tener SOLO merma (nada declarado que mostrar), asi que se
+  // recorren las claves de los dos mapas y no solo las de byLote.
+  const loteIdsConDatos = [...new Set([...byLote.keys(), ...mermaPorLote.keys()])];
+  const lotes = loteIdsConDatos.map((loteId) => { const values = [...(byLote.get(loteId)?.values() ?? [])].sort(sortCalibreRows); const bulbs = values.reduce((sum, row) => sum + row.bulbs, 0); return { loteId, codigoLote: nameMap.get(loteId) ?? loteId.slice(0, 8), bulbs, percent: 0, rows: values.map((row) => ({ ...row, percent: roundedPercent(row.bulbs, bulbs), salidas: finishSalidas(row.salidas, row.bulbs) })), mermaBulbs: mermaPorLote.get(loteId) ?? 0 }; }).sort((a, b) => a.codigoLote.localeCompare(b.codigoLote, "es"));
+  // `bulbs` y `totalBulbs` son producto calibrado: la merma va aparte, no suma.
   const totalBulbs = lotes.reduce((sum, row) => sum + row.bulbs, 0); for (const row of lotes) row.percent = roundedPercent(row.bulbs, totalBulbs);
-  return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs, rows: mergeServiceRows(lotes), lotes };
+  const mermaBulbs = lotes.reduce((sum, row) => sum + row.mermaBulbs, 0);
+  return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs, rows: mergeServiceRows(lotes), lotes, mermaBulbs };
 }
 
 /** Reporte diario en modo medido: un dia acotado por indice sobre `conteo`. */
@@ -455,6 +477,7 @@ export async function buildServiceReport(
       totalBulbs: 0,
       rows: [],
       lotes: [],
+      mermaBulbs: 0,
     };
   }
 
@@ -531,5 +554,6 @@ export async function buildServiceReport(
     totalBulbs,
     rows: mergeServiceRows(lotes),
     lotes,
+    mermaBulbs: 0,
   };
 }

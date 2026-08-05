@@ -33,7 +33,10 @@ function header(report: ServiceReport, title: string): Cell[][] {
     ],
     ["Origen del calibre / Size source", calibreSourceLabel(report)],
     [],
-    ["Bulbos procesados / Processed bulbs", report.totalBulbs],
+    // "Calibrados" y no "procesados": la merma quedo fuera de totalBulbs, asi que
+    // llamarlo procesados seria decir que ese numero es todo lo que paso.
+    ["Bulbos calibrados / Graded bulbs", report.totalBulbs],
+    ["Merma / Waste (fuera del total)", report.mermaBulbs],
     ["Lotes procesados / Processed lots", report.lotes.length],
     [],
   ];

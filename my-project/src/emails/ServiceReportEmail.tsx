@@ -87,6 +87,21 @@ function CalibreTable({ report }: { report: ServiceReport }) {
             </tr>
           )),
         ])}
+        {/* La merma va al pie y rotulada "fuera del total": es descarte, no un
+            calibre mas, y no esta sumada en los bulbos de arriba. */}
+        {report.mermaBulbs > 0 && (
+          <tr>
+            <td style={{ ...cell, color: "#B45309", borderTop: "2px solid #E2E8F0" }}>
+              Merma / Waste
+              <span style={{ color: "#94A3B8" }}> · fuera del total / excluded</span>
+            </td>
+            <td style={{ ...cellNum, color: "#B45309", borderTop: "2px solid #E2E8F0" }}>
+              {num(report.mermaBulbs)}
+            </td>
+            <td style={{ ...cellNum, borderTop: "2px solid #E2E8F0" }}>—</td>
+            <td style={{ ...cellNum, borderTop: "2px solid #E2E8F0" }}>—</td>
+          </tr>
+        )}
       </tbody>
     </table>
   );
@@ -118,14 +133,24 @@ export default function ServiceReportEmail({ daily, total, recipientName }: Serv
                 <Section style={{ backgroundColor: "#E0F2FE", padding: 14 }}>
                   <Text style={{ color: "#64748B", fontSize: 11, margin: 0 }}>RESUMEN DEL DIA / DAILY SUMMARY</Text>
                   <Text style={{ color: "#0E7490", fontSize: 24, fontWeight: 700, margin: "4px 0" }}>{daily.totalBulbs.toLocaleString("es-CL")}</Text>
-                  <Text style={{ color: "#475569", fontSize: 12, margin: 0 }}>bulbos / bulbs - {daily.lotes.length} lotes / lots</Text>
+                  <Text style={{ color: "#475569", fontSize: 12, margin: 0 }}>calibrados / graded - {daily.lotes.length} lotes / lots</Text>
+                  {daily.mermaBulbs > 0 && (
+                    <Text style={{ color: "#B45309", fontSize: 12, margin: "4px 0 0" }}>
+                      + {daily.mermaBulbs.toLocaleString("es-CL")} merma / waste
+                    </Text>
+                  )}
                 </Section>
               </Column>
               <Column style={{ width: "50%", paddingLeft: 6 }}>
                 <Section style={{ backgroundColor: "#F8FAFC", padding: 14 }}>
                   <Text style={{ color: "#64748B", fontSize: 11, margin: 0 }}>TOTAL DEL SERVICIO / SERVICE TOTAL</Text>
                   <Text style={{ color: "#172033", fontSize: 24, fontWeight: 700, margin: "4px 0" }}>{total.totalBulbs.toLocaleString("es-CL")}</Text>
-                  <Text style={{ color: "#475569", fontSize: 12, margin: 0 }}>bulbos / bulbs - {total.lotes.length} lotes / lots</Text>
+                  <Text style={{ color: "#475569", fontSize: 12, margin: 0 }}>calibrados / graded - {total.lotes.length} lotes / lots</Text>
+                  {total.mermaBulbs > 0 && (
+                    <Text style={{ color: "#B45309", fontSize: 12, margin: "4px 0 0" }}>
+                      + {total.mermaBulbs.toLocaleString("es-CL")} merma / waste
+                    </Text>
+                  )}
                 </Section>
               </Column>
             </Row>

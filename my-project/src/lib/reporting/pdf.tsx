@@ -162,7 +162,11 @@ export function ServiceReportDocument({ report }: { report: ServiceReport }): Re
         </View>
 
         <View style={styles.cards}>
-          <View style={styles.card}><Text style={styles.cardLabel}>Bulbos procesados{"\n"}/ Processed bulbs</Text><Text style={styles.cardValue}>{number(report.totalBulbs)}</Text></View>
+          {/* "Calibrados" y no "procesados": la merma quedo fuera de totalBulbs. */}
+          <View style={styles.card}><Text style={styles.cardLabel}>Bulbos calibrados{"\n"}/ Graded bulbs</Text><Text style={styles.cardValue}>{number(report.totalBulbs)}</Text></View>
+          {report.mermaBulbs > 0 && (
+            <View style={styles.card}><Text style={styles.cardLabel}>Merma / Waste{"\n"}(fuera del total)</Text><Text style={styles.cardValue}>{number(report.mermaBulbs)}</Text></View>
+          )}
           <View style={styles.card}><Text style={styles.cardLabel}>Lotes procesados{"\n"}/ Processed lots</Text><Text style={styles.cardValue}>{number(report.lotes.length)}</Text></View>
         </View>
 
