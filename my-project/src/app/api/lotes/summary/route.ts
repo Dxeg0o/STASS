@@ -87,7 +87,7 @@ export async function GET(request: Request) {
       salidaOrden: s.salidaOrden,
       salidaLabel: s.salidaNombre ?? s.dispositivoNombre,
       // Sin conteos no se infiere merma: la salida simplemente no participó.
-      calibres: [] as string[],
+      calibres: [] as Array<{ etiqueta: string; bins: number | null }>,
       countIn: 0,
       countOut: 0,
       lastTimestamp: null,

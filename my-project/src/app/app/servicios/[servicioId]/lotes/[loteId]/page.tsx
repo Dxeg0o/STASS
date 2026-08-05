@@ -50,7 +50,8 @@ interface DeviceSummary {
   salidaLabel: string;
   // Calibre declarado por esta salida en este lote. Normalmente uno, pero el
   // modelo admite varios tramos si se recalibra a mitad de proceso.
-  calibres: string[];
+  /** Calibre declarado por esta salida en el lote, con sus bins. */
+  calibres: Array<{ etiqueta: string; bins: number | null }>;
   countIn: number;
   countOut: number;
   lastTimestamp: string | null;
@@ -439,6 +440,12 @@ export default function LoteDetailPage() {
                         <th className="text-right py-2 pr-4 font-medium">
                           Bulbos salida
                         </th>
+                        {/* Los bins van por fila y no solo en el total del lote:
+                            dentro de un lote cada calibre pertenece a una sola
+                            salida, asi que la fila ya identifica el rango. */}
+                        <th className="text-right py-2 pr-4 font-medium">
+                          Bins
+                        </th>
                         <th className="text-right py-2 font-medium">Última actividad</th>
                       </tr>
                     </thead>
@@ -450,7 +457,7 @@ export default function LoteDetailPage() {
                               {d.salidaLabel}
                               {d.calibres.length > 0 && (
                                 <span className="text-slate-400 font-normal">
-                                  ({d.calibres.join(", ")})
+                                  ({d.calibres.map((c) => c.etiqueta).join(", ")})
                                 </span>
                               )}
                               {/* El equipo sigue siendo el dato para ir a buscarlo
@@ -488,6 +495,17 @@ export default function LoteDetailPage() {
                           </td>
                           <td className="py-2.5 pr-4 text-right text-red-400">
                             {d.countOut.toLocaleString("es-CL")}
+                          </td>
+                          <td className="py-2.5 pr-4 text-right text-orange-300">
+                            {/* Un guion y no un 0: la merma no declara bins, y un
+                                lote sin cerrar tampoco — no es que sacara cero. */}
+                            {d.calibres.some((c) => c.bins != null)
+                              ? d.calibres
+                                  .map((c) =>
+                                    c.bins == null ? "—" : c.bins.toLocaleString("es-CL")
+                                  )
+                                  .join(" / ")
+                              : "—"}
                           </td>
                           <td className="py-2.5 text-right text-slate-400 text-xs">
                             {d.lastTimestamp
