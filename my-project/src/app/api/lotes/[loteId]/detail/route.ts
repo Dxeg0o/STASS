@@ -14,6 +14,12 @@ import {
   dispositivo,
 } from "@/db/schema";
 import { eq, and, isNull, sql, inArray } from "drizzle-orm";
+import {
+  claveParDispositivoServicio,
+  compararPorSalida,
+  resolverSalidasCalibre,
+  type SalidaCalibre,
+} from "@/lib/salida-calibre";
 
 export async function GET(
   request: Request,
@@ -117,8 +123,44 @@ export async function GET(
     .where(eq(loteTotalStats.loteId, loteId))
     .groupBy(loteTotalStats.dispositivoId, dispositivo.nombre);
 
-  // 7. Check if any service uses cajas
   const servicioIds = lifecycle.map((l) => l.servicioId);
+
+  // 7. Salida física de cada dispositivo y el calibre que declaró en ESTE lote.
+  // La lógica vive en @/lib/salida-calibre porque la comparte con
+  // /api/lotes/summary, que alimenta la otra página de lote.
+  const paresConConteo = await db
+    .selectDistinct({
+      servicioId: loteTotalStats.servicioId,
+      dispositivoId: loteTotalStats.dispositivoId,
+    })
+    .from(loteTotalStats)
+    .where(eq(loteTotalStats.loteId, loteId));
+
+  const salidas = await resolverSalidasCalibre(loteId, paresConConteo);
+
+  // Acá las filas ya vienen sumadas por dispositivo (sin servicio), así que si un
+  // equipo contó en más de un servicio del lote (raro: 1 de 270 casos reales) hay
+  // que elegir: se prefiere el vínculo con salida configurada, y entre esos el de
+  // menor orden, para que la etiqueta sea estable entre recargas.
+  const salidaPorDispositivo = new Map<string, SalidaCalibre>();
+  for (const par of paresConConteo) {
+    const salida = salidas.get(
+      claveParDispositivoServicio(par.dispositivoId, par.servicioId)
+    );
+    if (!salida) continue;
+    const actual = salidaPorDispositivo.get(par.dispositivoId);
+    if (
+      !actual ||
+      (actual.salidaOrden == null && salida.salidaOrden != null) ||
+      (actual.salidaOrden != null &&
+        salida.salidaOrden != null &&
+        salida.salidaOrden < actual.salidaOrden)
+    ) {
+      salidaPorDispositivo.set(par.dispositivoId, salida);
+    }
+  }
+
+  // 8. Check if any service uses cajas
   let hasCajas = false;
   if (servicioIds.length > 0) {
     const serviciosWithCajas = await db
@@ -172,12 +214,24 @@ export async function GET(
       totalIn: totalStats[0]?.totalIn ?? 0,
       totalOut: totalStats[0]?.totalOut ?? 0,
     },
-    devices: deviceStats.map((d) => ({
-      dispositivoNombre: d.dispositivoNombre,
-      totalIn: d.totalIn,
-      totalOut: d.totalOut,
-      lastTs: d.lastTs,
-    })),
+    // Ordenado por salida (nulls al final) igual que /api/app/dispositivos, así
+    // la tabla web y la tablet listan las salidas en el mismo orden.
+    devices: deviceStats
+      .map((d) => {
+        const salida = salidaPorDispositivo.get(d.dispositivoId);
+        return {
+          dispositivoNombre: d.dispositivoNombre,
+          salidaOrden: salida?.salidaOrden ?? null,
+          // Misma convención que /api/app/lotes/resumen-calibres: si el servicio
+          // no tiene salidas configuradas, se cae al nombre del equipo.
+          salidaLabel: salida?.salidaNombre ?? d.dispositivoNombre,
+          calibres: salida?.calibres ?? [],
+          totalIn: d.totalIn,
+          totalOut: d.totalOut,
+          lastTs: d.lastTs,
+        };
+      })
+      .sort(compararPorSalida),
     hasCajas,
   });
 }

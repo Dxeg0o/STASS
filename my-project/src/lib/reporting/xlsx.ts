@@ -45,24 +45,41 @@ function header(report: ServiceReport, title: string): Cell[][] {
  * la columna repetida. Se prefiere esto a `!merges` porque una celda combinada
  * rompe el ordenar y el filtrar sobre la tabla.
  */
-function detailRows(report: ServiceReport): Cell[][] {
-  const rows: Cell[][] = [["Lote / Lot", "Calibre / Size", "Bulbos", "%", "Bins"]];
+function detailRows(report: ServiceReport, withSalidas: boolean): Cell[][] {
+  const head: Cell[] = withSalidas
+    ? ["Lote / Lot", "Calibre / Size", "Salida / Outlet", "Bulbos", "%", "Bins"]
+    : ["Lote / Lot", "Calibre / Size", "Bulbos", "%", "Bins"];
+  const rows: Cell[][] = [head];
   for (const lote of report.lotes) {
     if (lote.rows.length === 0) {
-      rows.push([lote.codigoLote, "Sin datos para el periodo", null, null, null]);
+      rows.push(
+        withSalidas
+          ? [lote.codigoLote, "Sin datos para el periodo", null, null, null, null]
+          : [lote.codigoLote, "Sin datos para el periodo", null, null, null]
+      );
       rows.push([]);
       continue;
     }
     lote.rows.forEach((row, index) => {
-      rows.push([
-        index === 0 ? lote.codigoLote : null,
-        row.label,
-        row.bulbs,
-        row.percent,
-        row.bins || null,
-      ]);
+      const codigo = index === 0 ? lote.codigoLote : null;
+      rows.push(
+        withSalidas
+          ? [codigo, row.label, "Todas / All", row.bulbs, row.percent, row.bins || null]
+          : [codigo, row.label, row.bulbs, row.percent, row.bins || null]
+      );
+      // Una fila por salida bajo su calibre: el % es el peso de la salida dentro
+      // de ese calibre, no sobre el lote.
+      if (withSalidas) {
+        for (const salida of row.salidas) {
+          rows.push([null, null, salida.label, salida.bulbs, salida.percent, null]);
+        }
+      }
     });
-    rows.push([null, "Total lote / Lot total", lote.bulbs, lote.percent, null]);
+    rows.push(
+      withSalidas
+        ? [null, "Total lote / Lot total", null, lote.bulbs, lote.percent, null]
+        : [null, "Total lote / Lot total", lote.bulbs, lote.percent, null]
+    );
     rows.push([]);
   }
   return rows;
@@ -74,30 +91,52 @@ const PERCENT_FORMAT = '0.00"%"';
 const BULBS_FORMAT = "#,##0";
 
 function reportSheet(report: ServiceReport, title: string) {
+  // La columna de salida solo se agrega si el servicio realmente declara por
+  // salida: en modo medido estaria vacia en todas las filas.
+  const withSalidas = report.rows.some((row) => row.salidas.length > 0);
+
   const rows: Cell[][] = [
     ...header(report, title),
     ["Resumen por calibre / Size summary"],
-    ["Calibre / Size", "Bulbos", "%", "Bins"],
+    withSalidas
+      ? ["Calibre / Size", "Salida / Outlet", "Bulbos", "%", "Bins"]
+      : ["Calibre / Size", "Bulbos", "%", "Bins"],
   ];
   const summaryFrom = rows.length;
-  for (const row of report.rows) rows.push([row.label, row.bulbs, row.percent, row.bins || null]);
+  for (const row of report.rows) {
+    rows.push(
+      withSalidas
+        ? [row.label, "Todas / All", row.bulbs, row.percent, row.bins || null]
+        : [row.label, row.bulbs, row.percent, row.bins || null]
+    );
+    // El % de la salida es su peso dentro del calibre, no sobre el total.
+    if (withSalidas) {
+      for (const salida of row.salidas) {
+        rows.push([null, salida.label, salida.bulbs, salida.percent, null]);
+      }
+    }
+  }
   if (report.rows.length === 0) rows.push(["Sin datos para el periodo / No data for this period"]);
   const summaryTo = rows.length - 1;
 
   rows.push([], ["Detalle por lote / Lot detail"]);
   const detailFrom = rows.length + 1;
-  rows.push(...detailRows(report));
+  rows.push(...detailRows(report, withSalidas));
   const detailTo = rows.length - 1;
 
   const sheet = XLSX.utils.aoa_to_sheet(rows);
-  sheet["!cols"] = [{ wch: 34 }, { wch: 34 }, { wch: 16 }, { wch: 10 }, { wch: 10 }];
+  sheet["!cols"] = withSalidas
+    ? [{ wch: 34 }, { wch: 34 }, { wch: 20 }, { wch: 16 }, { wch: 10 }, { wch: 10 }]
+    : [{ wch: 34 }, { wch: 34 }, { wch: 16 }, { wch: 10 }, { wch: 10 }];
   // Las dos tablas tienen distinto orden de columnas, asi que el formato se
   // acota por bloque: en el resumen los bulbos van en B y el % en C; en el
-  // detalle, desplazados una columna por el codigo de lote.
-  formatCells(sheet, 1, summaryFrom, summaryTo, BULBS_FORMAT);
-  formatCells(sheet, 2, summaryFrom, summaryTo, PERCENT_FORMAT);
-  formatCells(sheet, 2, detailFrom, detailTo, BULBS_FORMAT);
-  formatCells(sheet, 3, detailFrom, detailTo, PERCENT_FORMAT);
+  // detalle, desplazados una columna por el codigo de lote. Con la columna de
+  // salida, ambos bloques se desplazan una columna mas.
+  const offset = withSalidas ? 1 : 0;
+  formatCells(sheet, 1 + offset, summaryFrom, summaryTo, BULBS_FORMAT);
+  formatCells(sheet, 2 + offset, summaryFrom, summaryTo, PERCENT_FORMAT);
+  formatCells(sheet, 2 + offset, detailFrom, detailTo, BULBS_FORMAT);
+  formatCells(sheet, 3 + offset, detailFrom, detailTo, PERCENT_FORMAT);
   return sheet;
 }
 
