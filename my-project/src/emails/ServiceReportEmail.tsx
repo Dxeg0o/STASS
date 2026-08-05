@@ -133,7 +133,7 @@ export default function ServiceReportEmail({ daily, total, recipientName }: Serv
                 <Section style={{ backgroundColor: "#E0F2FE", padding: 14 }}>
                   <Text style={{ color: "#64748B", fontSize: 11, margin: 0 }}>RESUMEN DEL DIA / DAILY SUMMARY</Text>
                   <Text style={{ color: "#0E7490", fontSize: 24, fontWeight: 700, margin: "4px 0" }}>{daily.totalBulbs.toLocaleString("es-CL")}</Text>
-                  <Text style={{ color: "#475569", fontSize: 12, margin: 0 }}>calibrados / graded - {daily.lotes.length} lotes / lots</Text>
+                  <Text style={{ color: "#475569", fontSize: 12, margin: 0 }}>procesados / processed - {daily.lotes.length} lotes / lots</Text>
                   {daily.mermaBulbs > 0 && (
                     <Text style={{ color: "#B45309", fontSize: 12, margin: "4px 0 0" }}>
                       + {daily.mermaBulbs.toLocaleString("es-CL")} merma / waste
@@ -145,7 +145,7 @@ export default function ServiceReportEmail({ daily, total, recipientName }: Serv
                 <Section style={{ backgroundColor: "#F8FAFC", padding: 14 }}>
                   <Text style={{ color: "#64748B", fontSize: 11, margin: 0 }}>TOTAL DEL SERVICIO / SERVICE TOTAL</Text>
                   <Text style={{ color: "#172033", fontSize: 24, fontWeight: 700, margin: "4px 0" }}>{total.totalBulbs.toLocaleString("es-CL")}</Text>
-                  <Text style={{ color: "#475569", fontSize: 12, margin: 0 }}>calibrados / graded - {total.lotes.length} lotes / lots</Text>
+                  <Text style={{ color: "#475569", fontSize: 12, margin: 0 }}>procesados / processed - {total.lotes.length} lotes / lots</Text>
                   {total.mermaBulbs > 0 && (
                     <Text style={{ color: "#B45309", fontSize: 12, margin: "4px 0 0" }}>
                       + {total.mermaBulbs.toLocaleString("es-CL")} merma / waste

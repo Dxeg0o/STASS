@@ -31,7 +31,10 @@ export interface ReportCalibreRow {
 export interface ReportLote {
   loteId: string;
   codigoLote: string;
-  /** Bulbos calibrados. NO incluye la merma. */
+  /**
+   * Bulbos con calibre declarado. NO incluye la merma — se muestra como
+   * "Bulbos procesados", pero el numero deja el descarte fuera.
+   */
   bulbs: number;
   percent: number;
   rows: ReportCalibreRow[];
@@ -52,7 +55,10 @@ export interface ServiceReport {
   reportDate: string;
   generatedAt: string;
   calibreSource: "medido" | "declarado";
-  /** Bulbos calibrados. NO incluye la merma. */
+  /**
+   * Bulbos con calibre declarado. NO incluye la merma — se muestra como
+   * "Bulbos procesados", pero el numero deja el descarte fuera.
+   */
   totalBulbs: number;
   rows: ReportCalibreRow[];
   lotes: ReportLote[];
