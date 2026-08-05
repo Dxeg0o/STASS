@@ -38,13 +38,22 @@ interface Lote {
   productoNombre?: string;
 }
 
+/** Cajas que entraron al lote y bins declarados de salida. */
+interface Contenedores {
+  cajasEntrada: number;
+  binsSalida: number | null;
+}
+
 interface DeviceSummary {
   dispositivo: string;
   salidaOrden: number | null;
   salidaLabel: string;
   // Calibre declarado por esta salida en este lote. Normalmente uno, pero el
   // modelo admite varios tramos si se recalibra a mitad de proceso.
-  calibres: string[];
+  /** Calibre declarado por esta salida en el lote, con sus bins. */
+  calibres: Array<{ etiqueta: string; bins: number | null }>;
+  /** Lo marca el backend; no se deduce del texto de la etiqueta. */
+  esMerma: boolean;
   countIn: number;
   countOut: number;
   lastTimestamp: string | null;
@@ -120,6 +129,7 @@ export default function LoteDetailPage() {
   // Resumen tab
   const [summary, setSummary] = useState<DeviceSummary[] | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [contenedores, setContenedores] = useState<Contenedores | null>(null);
 
   // Calibres tab
   const [chartData, setChartData] = useState<CaliberDataPoint[]>([]);
@@ -178,6 +188,17 @@ export default function LoteDetailPage() {
       })
       .catch(console.error)
       .finally(() => setSummaryLoading(false));
+  }, [loteId]);
+
+  // ── Fetch contenedores (cajas de entrada / bins de salida) ─────────────────
+  useEffect(() => {
+    if (!loteId) return;
+    fetch(`/api/lotes/${loteId}/contenedores`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Error al cargar contenedores");
+        setContenedores(await res.json());
+      })
+      .catch(console.error);
   }, [loteId]);
 
   // ── Fetch calibres ─────────────────────────────────────────────────────────
@@ -360,17 +381,38 @@ export default function LoteDetailPage() {
         <TabsContent value="resumen">
           <Card className="border-white/10 bg-slate-900/40">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <CardTitle className="text-white">Resumen de dispositivos</CardTitle>
-                {summary && summary.length > 0 && (
-                  <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
-                    Total:{" "}
-                    {summary
-                      .reduce((acc, d) => acc + (d.countIn ?? 0) + (d.countOut ?? 0), 0)
-                      .toLocaleString("es-CL")}{" "}
-                    bulbos
-                  </Badge>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Cajas de entrada y bins de salida: son del lote, no de cada
+                      salida. Una misma caja se asigna a las cuatro salidas a la
+                      vez, asi que por fila saldria el mismo numero repetido. */}
+                  {contenedores && (
+                    <>
+                      <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40">
+                        Entraron: {contenedores.cajasEntrada.toLocaleString("es-CL")} cajas
+                      </Badge>
+                      <Badge className="bg-orange-500/15 text-orange-300 border-orange-500/40">
+                        Salieron:{" "}
+                        {contenedores.binsSalida == null
+                          ? "sin declarar"
+                          : `${contenedores.binsSalida.toLocaleString("es-CL")} bins`}
+                      </Badge>
+                    </>
+                  )}
+                  {summary && summary.length > 0 && (
+                    <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
+                      {/* El total excluye la merma: es lo que salió calibrado.
+                          La merma no se pierde, queda en su propia fila. */}
+                      Total:{" "}
+                      {summary
+                        .filter((d) => !d.esMerma)
+                        .reduce((acc, d) => acc + (d.countIn ?? 0) + (d.countOut ?? 0), 0)
+                        .toLocaleString("es-CL")}{" "}
+                      bulbos
+                    </Badge>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -403,6 +445,12 @@ export default function LoteDetailPage() {
                         <th className="text-right py-2 pr-4 font-medium">
                           Bulbos salida
                         </th>
+                        {/* Los bins van por fila y no solo en el total del lote:
+                            dentro de un lote cada calibre pertenece a una sola
+                            salida, asi que la fila ya identifica el rango. */}
+                        <th className="text-right py-2 pr-4 font-medium">
+                          Bins
+                        </th>
                         <th className="text-right py-2 font-medium">Última actividad</th>
                       </tr>
                     </thead>
@@ -414,7 +462,7 @@ export default function LoteDetailPage() {
                               {d.salidaLabel}
                               {d.calibres.length > 0 && (
                                 <span className="text-slate-400 font-normal">
-                                  ({d.calibres.join(", ")})
+                                  ({d.calibres.map((c) => c.etiqueta).join(", ")})
                                 </span>
                               )}
                               {/* El equipo sigue siendo el dato para ir a buscarlo
@@ -447,11 +495,33 @@ export default function LoteDetailPage() {
                               )}
                             </span>
                           </td>
-                          <td className="py-2.5 pr-4 text-right text-green-400">
+                          {/* La merma va en gris y no en verde/rojo: queda fuera
+                              del total, y el color distinto es la unica pista
+                              visual de que esa fila no suma. */}
+                          <td
+                            className={`py-2.5 pr-4 text-right ${
+                              d.esMerma ? "text-slate-500" : "text-green-400"
+                            }`}
+                          >
                             {d.countIn.toLocaleString("es-CL")}
                           </td>
-                          <td className="py-2.5 pr-4 text-right text-red-400">
+                          <td
+                            className={`py-2.5 pr-4 text-right ${
+                              d.esMerma ? "text-slate-500" : "text-red-400"
+                            }`}
+                          >
                             {d.countOut.toLocaleString("es-CL")}
+                          </td>
+                          <td className="py-2.5 pr-4 text-right text-orange-300">
+                            {/* Un guion y no un 0: la merma no declara bins, y un
+                                lote sin cerrar tampoco — no es que sacara cero. */}
+                            {d.calibres.some((c) => c.bins != null)
+                              ? d.calibres
+                                  .map((c) =>
+                                    c.bins == null ? "—" : c.bins.toLocaleString("es-CL")
+                                  )
+                                  .join(" / ")
+                              : "—"}
                           </td>
                           <td className="py-2.5 text-right text-slate-400 text-xs">
                             {d.lastTimestamp

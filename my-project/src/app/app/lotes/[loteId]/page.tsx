@@ -37,9 +37,10 @@ interface DeviceStats {
   dispositivoNombre: string;
   salidaOrden: number | null;
   salidaLabel: string;
-  // Calibre declarado por esta salida en este lote. Normalmente uno, pero el
-  // modelo admite varios tramos si se recalibra a mitad de proceso.
-  calibres: string[];
+  // Calibre declarado por esta salida en este lote, con los bins que sacó.
+  // Normalmente uno, pero el modelo admite varios tramos si se recalibra a
+  // mitad de proceso.
+  calibres: Array<{ etiqueta: string; bins: number | null }>;
   totalIn: number;
   totalOut: number;
   lastTs: string | null;
@@ -512,7 +513,7 @@ export default function LoteGlobalDetailPage() {
                               {d.salidaLabel}
                               {d.calibres.length > 0 && (
                                 <span className="text-slate-400 font-normal">
-                                  ({d.calibres.join(", ")})
+                                  ({d.calibres.map((c) => c.etiqueta).join(", ")})
                                 </span>
                               )}
                               {/* Mismo criterio que la tabla de

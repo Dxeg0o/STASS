@@ -4,7 +4,7 @@ import {
   dispositivoServicio,
   loteCierreCalibreBin,
 } from "@/db/schema";
-import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 
 // Salida física de un calibrador y el calibre que declaró en un lote puntual.
 //
@@ -12,11 +12,35 @@ import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 // /app/servicios/[id]/lotes/[id]) alimentadas por endpoints distintos, y la
 // etiqueta tiene que salir igual en las dos.
 
+/** Un rango de calibre declarado por una salida, con los bins que sacó. */
+export interface CalibreDeclarado {
+  /** "10/12", o "merma" / "merma >20" en los rangos abiertos. */
+  etiqueta: string;
+  /** Bins declarados para este rango. Null en la merma, que no lleva bins. */
+  bins: number | null;
+}
+
+/**
+ * True si lo que salió por acá es merma. Cubre los dos casos que la producen:
+ * el rango abierto (no cierran el calibre) y la salida que no declaró nada en un
+ * lote que sí tuvo cierre.
+ *
+ * Se marca en el dato y no se deduce del texto en la UI, para que el criterio
+ * viva en un solo lugar.
+ */
+export function esMerma(calibres: CalibreDeclarado[]): boolean {
+  return calibres.some((c) => c.etiqueta.startsWith(ETIQUETA_MERMA));
+}
+
 export interface SalidaCalibre {
   salidaOrden: number | null;
   salidaNombre: string | null;
-  /** Calibres declarados en el lote. Normalmente uno; varios si se recalibró. */
-  calibres: string[];
+  /**
+   * Calibres declarados en el lote. Normalmente uno — dentro de un lote cada
+   * calibre pertenece a una sola salida (34/34 casos reales) — pero pueden ser
+   * varios si se recalibró a mitad de proceso.
+   */
+  calibres: CalibreDeclarado[];
 }
 
 export interface ParDispositivoServicio {
@@ -120,6 +144,9 @@ export async function resolverSalidasCalibre(
       servicioId: loteCierreCalibreBin.servicioId,
       calibreFrom: loteCierreCalibreBin.calibreFrom,
       calibreTo: loteCierreCalibreBin.calibreTo,
+      // Se suma porque el group by es por rango: si un rango tuviera mas de una
+      // fila (misma salida, mismo calibre) los bins son del rango, no de la fila.
+      bins: sql<string | null>`SUM(${loteCierreCalibreBin.bins})`,
     })
     .from(loteCierreCalibreBin)
     .where(
@@ -145,14 +172,20 @@ export async function resolverSalidasCalibre(
     const etiqueta = formatCalibre(row.calibreFrom, row.calibreTo);
     if (!etiqueta) continue;
     huboDeclaracion = true;
+    const calibre = {
+      etiqueta,
+      bins: row.bins == null ? null : Number(row.bins),
+    };
     const actual = resultado.get(clave);
     if (actual) {
-      if (!actual.calibres.includes(etiqueta)) actual.calibres.push(etiqueta);
+      if (!actual.calibres.some((c) => c.etiqueta === etiqueta)) {
+        actual.calibres.push(calibre);
+      }
     } else {
       resultado.set(clave, {
         salidaOrden: null,
         salidaNombre: null,
-        calibres: [etiqueta],
+        calibres: [calibre],
       });
     }
   }
@@ -169,7 +202,9 @@ export async function resolverSalidasCalibre(
   if (huboDeclaracion) {
     for (const entrada of resultado.values()) {
       if (entrada.calibres.length === 0) {
-        entrada.calibres.push(ETIQUETA_MERMA);
+        // Sin bins: la merma no se declara, se deduce de la ausencia de calibre,
+        // asi que no hay ningun numero de bins que mostrar.
+        entrada.calibres.push({ etiqueta: ETIQUETA_MERMA, bins: null });
       }
     }
   }

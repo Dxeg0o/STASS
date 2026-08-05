@@ -31,9 +31,19 @@ export interface ReportCalibreRow {
 export interface ReportLote {
   loteId: string;
   codigoLote: string;
+  /**
+   * Bulbos con calibre declarado. NO incluye la merma — se muestra como
+   * "Bulbos procesados", pero el numero deja el descarte fuera.
+   */
   bulbs: number;
   percent: number;
   rows: ReportCalibreRow[];
+  /**
+   * Bulbos que salieron por una salida que no declaró calibre en este lote,
+   * habiendo el lote tenido cierre. Va aparte y fuera de `bulbs` porque es
+   * descarte, no producto calibrado.
+   */
+  mermaBulbs: number;
 }
 
 export interface ServiceReport {
@@ -45,9 +55,18 @@ export interface ServiceReport {
   reportDate: string;
   generatedAt: string;
   calibreSource: "medido" | "declarado";
+  /**
+   * Bulbos con calibre declarado. NO incluye la merma — se muestra como
+   * "Bulbos procesados", pero el numero deja el descarte fuera.
+   */
   totalBulbs: number;
   rows: ReportCalibreRow[];
   lotes: ReportLote[];
+  /**
+   * Merma del periodo, fuera de `totalBulbs`. Siempre 0 en modo medido: ahí el
+   * calibre sale del perímetro, no hay salida que declare ni deje de declarar.
+   */
+  mermaBulbs: number;
 }
 
 export interface ReportPair {
