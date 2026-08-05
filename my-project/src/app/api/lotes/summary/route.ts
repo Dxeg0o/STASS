@@ -6,6 +6,7 @@ import { eq, sql } from "drizzle-orm";
 import {
   claveParDispositivoServicio,
   compararPorSalida,
+  esMerma,
   resolverSalidasCalibre,
   salidasConfiguradas,
 } from "@/lib/salida-calibre";
@@ -58,6 +59,9 @@ export async function GET(request: Request) {
       // equipo, misma convención que /api/app/lotes/resumen-calibres.
       salidaLabel: salida?.salidaNombre ?? r.dispositivoNombre,
       calibres: salida?.calibres ?? [],
+      // Lo marca el backend para que el total del lote pueda excluir la merma
+      // sin que la UI tenga que reconocerla por el texto de la etiqueta.
+      esMerma: esMerma(salida?.calibres ?? []),
       countIn: r.countIn,
       countOut: r.countOut,
       lastTimestamp: r.lastTimestamp
@@ -88,6 +92,7 @@ export async function GET(request: Request) {
       salidaLabel: s.salidaNombre ?? s.dispositivoNombre,
       // Sin conteos no se infiere merma: la salida simplemente no participó.
       calibres: [] as Array<{ etiqueta: string; bins: number | null }>,
+      esMerma: false,
       countIn: 0,
       countOut: 0,
       lastTimestamp: null,

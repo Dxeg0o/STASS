@@ -17,6 +17,7 @@ import { eq, and, isNull, sql, inArray } from "drizzle-orm";
 import {
   claveParDispositivoServicio,
   compararPorSalida,
+  esMerma,
   resolverSalidasCalibre,
   type SalidaCalibre,
 } from "@/lib/salida-calibre";
@@ -226,6 +227,7 @@ export async function GET(
           // no tiene salidas configuradas, se cae al nombre del equipo.
           salidaLabel: salida?.salidaNombre ?? d.dispositivoNombre,
           calibres: salida?.calibres ?? [],
+          esMerma: esMerma(salida?.calibres ?? []),
           totalIn: d.totalIn,
           totalOut: d.totalOut,
           lastTs: d.lastTs,

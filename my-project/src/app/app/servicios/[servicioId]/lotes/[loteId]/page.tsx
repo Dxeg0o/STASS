@@ -52,6 +52,8 @@ interface DeviceSummary {
   // modelo admite varios tramos si se recalibra a mitad de proceso.
   /** Calibre declarado por esta salida en el lote, con sus bins. */
   calibres: Array<{ etiqueta: string; bins: number | null }>;
+  /** Lo marca el backend; no se deduce del texto de la etiqueta. */
+  esMerma: boolean;
   countIn: number;
   countOut: number;
   lastTimestamp: string | null;
@@ -400,8 +402,11 @@ export default function LoteDetailPage() {
                   )}
                   {summary && summary.length > 0 && (
                     <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
+                      {/* El total excluye la merma: es lo que salió calibrado.
+                          La merma no se pierde, queda en su propia fila. */}
                       Total:{" "}
                       {summary
+                        .filter((d) => !d.esMerma)
                         .reduce((acc, d) => acc + (d.countIn ?? 0) + (d.countOut ?? 0), 0)
                         .toLocaleString("es-CL")}{" "}
                       bulbos
@@ -490,10 +495,21 @@ export default function LoteDetailPage() {
                               )}
                             </span>
                           </td>
-                          <td className="py-2.5 pr-4 text-right text-green-400">
+                          {/* La merma va en gris y no en verde/rojo: queda fuera
+                              del total, y el color distinto es la unica pista
+                              visual de que esa fila no suma. */}
+                          <td
+                            className={`py-2.5 pr-4 text-right ${
+                              d.esMerma ? "text-slate-500" : "text-green-400"
+                            }`}
+                          >
                             {d.countIn.toLocaleString("es-CL")}
                           </td>
-                          <td className="py-2.5 pr-4 text-right text-red-400">
+                          <td
+                            className={`py-2.5 pr-4 text-right ${
+                              d.esMerma ? "text-slate-500" : "text-red-400"
+                            }`}
+                          >
                             {d.countOut.toLocaleString("es-CL")}
                           </td>
                           <td className="py-2.5 pr-4 text-right text-orange-300">

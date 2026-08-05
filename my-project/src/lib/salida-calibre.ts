@@ -20,6 +20,18 @@ export interface CalibreDeclarado {
   bins: number | null;
 }
 
+/**
+ * True si lo que salió por acá es merma. Cubre los dos casos que la producen:
+ * el rango abierto (no cierran el calibre) y la salida que no declaró nada en un
+ * lote que sí tuvo cierre.
+ *
+ * Se marca en el dato y no se deduce del texto en la UI, para que el criterio
+ * viva en un solo lugar.
+ */
+export function esMerma(calibres: CalibreDeclarado[]): boolean {
+  return calibres.some((c) => c.etiqueta.startsWith(ETIQUETA_MERMA));
+}
+
 export interface SalidaCalibre {
   salidaOrden: number | null;
   salidaNombre: string | null;
