@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { loteTotalStats, dispositivo } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   claveParDispositivoServicio,
   compararPorSalida,
@@ -18,6 +18,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "loteId is required" }, { status: 400 });
   }
 
+  // Un lote pasa por varios servicios (prechequeo, lavado, calibrado) y el mismo
+  // equipo cuenta en más de uno, con salida configurada solo en algunos. Sin
+  // acotar el servicio, la tabla mostraba el mismo calibrador dos veces — una
+  // como "Salida 3" (vínculo vigente) y otra como "ORIN-AGX-1" (etapa anterior,
+  // sin salida) — y sumaba conteos de meses distintos en el total del lote.
+  //
+  // La página de servicio manda su servicioId; la vista de lote sin servicio no
+  // lo manda y sigue viendo el lote completo.
+  const servicioId = searchParams.get("servicioId");
+
   const rows = await db
     .select({
       dispositivoId: loteTotalStats.dispositivoId,
@@ -29,7 +39,14 @@ export async function GET(request: Request) {
     })
     .from(loteTotalStats)
     .innerJoin(dispositivo, eq(dispositivo.id, loteTotalStats.dispositivoId))
-    .where(eq(loteTotalStats.loteId, loteId))
+    .where(
+      servicioId
+        ? and(
+            eq(loteTotalStats.loteId, loteId),
+            eq(loteTotalStats.servicioId, servicioId)
+          )
+        : eq(loteTotalStats.loteId, loteId)
+    )
     .groupBy(
       loteTotalStats.dispositivoId,
       dispositivo.nombre,
@@ -76,7 +93,12 @@ export async function GET(request: Request) {
   const yaListados = new Set(
     rows.map((r) => claveParDispositivoServicio(r.dispositivoId, r.servicioId))
   );
-  const servicioIds = [...new Set(rows.map((r) => r.servicioId))];
+  // Con servicio fijo se parte de él y no de las filas: si ninguna salida contó
+  // en este lote no hay filas de dónde deducirlo, y son justo los casos donde
+  // interesa listarlas en 0.
+  const servicioIds = servicioId
+    ? [servicioId]
+    : [...new Set(rows.map((r) => r.servicioId))];
   const enCero = (await salidasConfiguradas(servicioIds))
     .filter(
       (s) =>

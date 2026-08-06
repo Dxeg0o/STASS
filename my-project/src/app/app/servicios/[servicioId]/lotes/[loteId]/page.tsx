@@ -177,10 +177,13 @@ export default function LoteDetailPage() {
   }, [servicioId, loteId]);
 
   // ── Fetch resumen ──────────────────────────────────────────────────────────
+  // Se pasa el servicioId: esta vista es del lote DENTRO de este servicio, así
+  // que las salidas y los conteos son los de esta etapa. Sin el filtro salían
+  // también los del prechequeo u otra etapa previa del mismo lote.
   useEffect(() => {
-    if (!loteId) return;
+    if (!servicioId || !loteId) return;
     setSummaryLoading(true);
-    fetch(`/api/lotes/summary?loteId=${loteId}`)
+    fetch(`/api/lotes/summary?loteId=${loteId}&servicioId=${servicioId}`)
       .then(async (res) => {
         if (!res.ok) throw new Error("Error al cargar resumen");
         const data: DeviceSummary[] = await res.json();
@@ -188,7 +191,7 @@ export default function LoteDetailPage() {
       })
       .catch(console.error)
       .finally(() => setSummaryLoading(false));
-  }, [loteId]);
+  }, [servicioId, loteId]);
 
   // ── Fetch contenedores (cajas de entrada / bins de salida) ─────────────────
   useEffect(() => {
