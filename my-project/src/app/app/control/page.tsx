@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  Legend,
 } from "recharts";
 import {
   Gauge,
@@ -29,6 +30,20 @@ interface HourlyData {
   count: number;
 }
 
+interface HourlyDispositivoData {
+  date: string;
+  hour: number;
+  dispositivoId: string;
+  dispositivoNombre: string;
+  count: number;
+}
+
+interface DispositivoResumen {
+  id: string;
+  nombre: string;
+  total: number;
+}
+
 interface DailyData {
   date: string;
   count: number;
@@ -36,6 +51,8 @@ interface DailyData {
 
 interface ProduccionResponse {
   hourly: HourlyData[];
+  hourlyPorDispositivo: HourlyDispositivoData[];
+  dispositivos: DispositivoResumen[];
   daily: DailyData[];
   total: number;
   avgPerHour: number;
@@ -61,6 +78,24 @@ interface Servicio {
 
 function formatNumber(n: number): string {
   return n.toLocaleString("es-CL");
+}
+
+// Paleta para las series por dispositivo. El primer color coincide con el cian
+// del gráfico general para que el cambio de vista no se sienta como otro
+// gráfico cuando hay un solo equipo.
+const DISPOSITIVO_COLORS = [
+  "#06b6d4",
+  "#10b981",
+  "#f59e0b",
+  "#a855f7",
+  "#ef4444",
+  "#3b82f6",
+  "#ec4899",
+  "#84cc16",
+];
+
+function colorForIndex(i: number): string {
+  return DISPOSITIVO_COLORS[i % DISPOSITIVO_COLORS.length];
 }
 
 const DOW = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -169,6 +204,9 @@ export default function ControlOperacionalPage() {
   const [selectedProceso, setSelectedProceso] = useState<string>("");
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [selectedServicio, setSelectedServicio] = useState<string>("");
+  const [vistaHora, setVistaHora] = useState<"general" | "dispositivo">(
+    "general"
+  );
 
   // Fetch procesos for filter
   useEffect(() => {
@@ -235,6 +273,34 @@ export default function ControlOperacionalPage() {
     }));
   }, [produccion]);
 
+  // Una serie por dispositivo, cada una con sus puntos (hora, conteo). Recharts
+  // pinta un <Scatter> por serie, así que el agrupado se hace acá.
+  const seriesPorDispositivo = useMemo(() => {
+    if (!produccion) return [];
+    const porId = new Map<
+      string,
+      { hour: number; count: number; date: string; nombre: string }[]
+    >();
+    for (const row of produccion.hourlyPorDispositivo) {
+      const punto = {
+        hour: row.hour,
+        count: row.count,
+        date: row.date,
+        nombre: row.dispositivoNombre,
+      };
+      const puntos = porId.get(row.dispositivoId);
+      if (puntos) puntos.push(punto);
+      else porId.set(row.dispositivoId, [punto]);
+    }
+    return produccion.dispositivos.map((d, i) => ({
+      id: d.id,
+      nombre: d.nombre,
+      total: d.total,
+      color: colorForIndex(i),
+      puntos: porId.get(d.id) ?? [],
+    }));
+  }, [produccion]);
+
   // Mensaje de carga fijo por sesión (sin parpadeo entre refetches)
   const [mensajeCarga] = useState(
     () => MENSAJES_CARGA[Math.floor(Math.random() * MENSAJES_CARGA.length)]
@@ -242,6 +308,7 @@ export default function ControlOperacionalPage() {
 
   const isHorario = range === "1h" || range === "today";
   const isAnual = range === "year";
+  const porDispositivo = isHorario && vistaHora === "dispositivo";
 
   // Agregación mensual para el rango "año" (evita 365 puntos)
   const monthlyData = useMemo(() => {
@@ -408,7 +475,7 @@ export default function ControlOperacionalPage() {
                   <p className="text-xs text-slate-500">Inicio promedio</p>
                 </div>
                 <p className="text-2xl font-bold text-cyan-400 font-mono">
-                  {produccion.avgStartTime ?? "\u2014"}
+                  {produccion.avgStartTime ?? "—"}
                 </p>
               </CardContent>
             </Card>
@@ -420,7 +487,7 @@ export default function ControlOperacionalPage() {
                   <p className="text-xs text-slate-500">Termino promedio</p>
                 </div>
                 <p className="text-2xl font-bold text-orange-400 font-mono">
-                  {produccion.avgEndTime ?? "\u2014"}
+                  {produccion.avgEndTime ?? "—"}
                 </p>
               </CardContent>
             </Card>
@@ -429,17 +496,115 @@ export default function ControlOperacionalPage() {
           {/* Gráfico principal: detalle por hora (Hoy) o tendencia por día/mes */}
           <Card className="bg-slate-900/40 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-white">
-                {isHorario
-                  ? "Producción por hora del día"
-                  : isAnual
-                  ? "Producción por mes"
-                  : "Producción por día"}
-              </CardTitle>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <CardTitle className="text-base text-white">
+                  {isHorario
+                    ? "Producción por hora del día"
+                    : isAnual
+                    ? "Producción por mes"
+                    : "Producción por día"}
+                </CardTitle>
+
+                {/* Cambio de vista: total de la empresa vs desglose por equipo.
+                    Solo en los rangos horarios — en día/mes el gráfico es de
+                    barras agregadas y el desglose no aplica. */}
+                {isHorario && (
+                  <div className="flex rounded-full border border-white/10 bg-slate-950/40 p-0.5">
+                    {(
+                      [
+                        { value: "general", label: "General" },
+                        { value: "dispositivo", label: "Por dispositivo" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setVistaHora(opt.value)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+                          vistaHora === opt.value
+                            ? "bg-cyan-950/70 text-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.15)]"
+                            : "text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {isHorario ? (
-                scatterData.length === 0 ? (
+                porDispositivo ? (
+                  seriesPorDispositivo.length === 0 ? (
+                    <div className="h-[300px] flex items-center justify-center text-slate-500 text-sm">
+                      Sin datos por dispositivo en este periodo
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis
+                          type="number"
+                          dataKey="hour"
+                          domain={[0, 23]}
+                          ticks={Array.from({ length: 24 }, (_, i) => i)}
+                          tick={{ fill: "#64748b", fontSize: 11 }}
+                          tickFormatter={(v) => `${v}:00`}
+                          label={{
+                            value: "Hora",
+                            position: "insideBottomRight",
+                            offset: -5,
+                            fill: "#64748b",
+                            fontSize: 11,
+                          }}
+                        />
+                        <YAxis
+                          type="number"
+                          dataKey="count"
+                          tick={{ fill: "#64748b", fontSize: 11 }}
+                          tickFormatter={(v) => v.toLocaleString("es-CL")}
+                        />
+                        <Tooltip
+                          cursor={{ strokeDasharray: "3 3" }}
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const p = payload[0].payload as {
+                              hour: number;
+                              count: number;
+                              date: string;
+                              nombre: string;
+                            };
+                            return (
+                              <div className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-xs">
+                                <div className="text-slate-300">{p.nombre}</div>
+                                <div className="text-slate-400">
+                                  {fechaLarga(p.date)} · {p.hour}:00
+                                </div>
+                                <div className="text-slate-200">
+                                  {formatNumber(p.count)} bulbos
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Legend
+                          wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                          iconType="circle"
+                        />
+                        {seriesPorDispositivo.map((s) => (
+                          <Scatter
+                            key={s.id}
+                            name={s.nombre}
+                            data={s.puntos}
+                            fill={s.color}
+                            fillOpacity={0.7}
+                            r={5}
+                          />
+                        ))}
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                  )
+                ) : scatterData.length === 0 ? (
                   <div className="h-[300px] flex items-center justify-center text-slate-500 text-sm">
                     Sin datos en este periodo
                   </div>
@@ -553,6 +718,37 @@ export default function ControlOperacionalPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Resumen por dispositivo, visible solo en la vista desglosada */}
+          {porDispositivo && seriesPorDispositivo.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {seriesPorDispositivo.map((s) => (
+                <Card key={s.id} className="bg-slate-900/40 border-white/10">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: s.color }}
+                      />
+                      <p
+                        className="text-xs text-slate-400 truncate"
+                        title={s.nombre}
+                      >
+                        {s.nombre}
+                      </p>
+                    </div>
+                    <p className="text-xl font-bold text-white">
+                      {formatNumber(s.total)}
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {formatNumber(Math.round(s.total / (s.puntos.length || 1)))}{" "}
+                      /hora
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Secundario: producción acumulada por hora (patrón de jornada) */}
           <Card className="bg-slate-900/40 border-white/10">

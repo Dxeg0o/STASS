@@ -14,7 +14,8 @@
     "db:studio": "drizzle-kit studio",
     "db:push": "drizzle-kit push",
     "repair:lote-session": "tsx scripts/repair-lote-session.ts",
-    "export:ventanas": "tsx scripts/export-dispositivo-ventanas.ts"
+    "export:ventanas": "tsx scripts/export-dispositivo-ventanas.ts",
+    "delete:conteos-lotes": "tsx scripts/delete-conteos-lotes.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
