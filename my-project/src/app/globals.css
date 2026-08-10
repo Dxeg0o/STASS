@@ -248,8 +248,8 @@ body {
 .method-card { overflow: hidden; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; background: #111612; transition: border-color .25s ease, transform .25s ease; }
 .method-card:hover { transform: translateY(-4px); border-color: rgba(25,198,107,.3); }
 .method-image { position: relative; height: 330px; overflow: hidden; }
-.method-image > img, .method-image > video { width: 100%; height: 100%; object-fit: cover; }
-.method-image > video { filter: saturate(.75) brightness(.74); }
+.method-image > img, .method-image video { width: 100%; height: 100%; object-fit: cover; }
+.method-image video { filter: saturate(.75) brightness(.74); }
 .method-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7,10,8,.08), rgba(7,10,8,.72)); }
 .method-tag { position: absolute; top: 18px; left: 18px; display: flex; align-items: center; gap: 7px; padding: 9px 12px; color: white; border: 1px solid rgba(255,255,255,.14); border-radius: 6px; background: rgba(8,11,9,.78); font-size: 11px; font-weight: 800; }
 .method-tag svg { width: 15px; color: var(--qb-yellow); }

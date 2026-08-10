@@ -23,7 +23,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const demoHref =
   "mailto:contacto@qualiblick.com?subject=Solicitud%20de%20demostraci%C3%B3n%20t%C3%A9cnica&body=Hola%20equipo%20Qualiblick%2C%0A%0AMe%20gustar%C3%ADa%20conocer%20c%C3%B3mo%20Qualiblick%20puede%20aplicarse%20a%20nuestra%20operaci%C3%B3n.%0A%0AEmpresa%3A%0ACultivo%3A%0AVolumen%20aproximado%3A%0ATipo%20de%20operaci%C3%B3n%20%28bins%20o%20l%C3%ADnea%29%3A%0A%0AGracias.";
@@ -67,6 +67,37 @@ function Reveal({ children, className = "", delay = 0 }: { children: React.React
     >
       {children}
     </motion.div>
+  );
+}
+
+function LazyVideo({ src, ariaLabel }: { src: string; ariaLabel: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} style={{ width: "100%", height: "100%" }}>
+      {shouldLoad && (
+        <video autoPlay loop muted playsInline aria-label={ariaLabel}>
+          <source src={src} type="video/mp4" />
+        </video>
+      )}
+    </div>
   );
 }
 
@@ -267,9 +298,7 @@ export default function CommercialLanding() {
 
           <Reveal delay={0.1} className="method-card">
             <div className="method-image">
-              <video autoPlay loop muted playsInline aria-label="Conteo y medición continua de productos en una línea industrial">
-                <source src="/videos/example.mp4" type="video/mp4" />
-              </video>
+              <LazyVideo src="/videos/example.mp4" ariaLabel="Conteo y medición continua de productos en una línea industrial" />
               <div className="method-overlay" />
               <div className="method-tag"><ScanLine aria-hidden="true" /> Durante el proceso</div>
               <div className="line-status"><span /><strong>LÍNEA ACTIVA</strong><b>+20 obj/s</b></div>
