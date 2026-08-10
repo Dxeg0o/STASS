@@ -7,39 +7,46 @@ import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.qualiblick.com"),
-  title: "Qualiblick | Visión Artificial para la Agroindustria",
+  title: "Qualiblick | Más valor por cada lote",
   description:
-    "Transformamos la producción agroindustrial con visión artificial validada. Datos precisos en tiempo real, sin estimaciones. Tecnología DeepTech escalable.",
+    "Conoce calibre, color y calidad antes y durante el empaque. Qualiblick convierte bins y líneas de proceso en datos para vender mejor, optimizar el packout y reducir reempaque.",
   openGraph: {
-    title: "Qualiblick | Tecnología DeepTech para el Agro",
+    title: "Convierte cada lote en una decisión más rentable",
     description:
-      "Digitaliza tu producción real. Visión artificial de alta precisión validada en entornos industriales complejos. Datos claves para la toma de decisiones.",
+      "Datos de calidad en tiempo real para vender con mayor certeza, dirigir cada fruta al destino correcto y reducir merma y reempaque.",
     url: "https://www.qualiblick.com",
     siteName: "Qualiblick",
     images: [
       {
-        url: "/images/Qualiblick2.png",
-        width: 800,
-        height: 800,
-        alt: "Qualiblick",
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Qualiblick: convierte cada lote en una decisión más rentable",
       },
     ],
     locale: "es_CL",
     type: "website",
   },
   keywords: [
-    "DeepTech",
-    "Visión Artificial",
-    "Control de Calidad",
-    "Agroindustria 4.0",
-    "Bulbos de Lilium",
-    "Agricultura de Precisión",
+    "control de calidad de fruta",
+    "packout",
+    "reducción de merma",
+    "visión artificial agroindustria",
+    "escaneo de bins",
+    "calibre de fruta",
+    "calidad poscosecha",
+    "Edge Computing",
     "Qualiblick",
-    "Tecnología Industrial"
   ],
   authors: [{ name: "Qualiblick", url: "https://www.qualiblick.com" }],
   icons: {
     icon: "/images/Qualiblick2.png",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Convierte cada lote en una decisión más rentable",
+    description: "Datos de calidad en tiempo real para vender mejor, optimizar el packout y reducir reempaque.",
+    images: ["/og.png"],
   },
 };
 
