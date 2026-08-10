@@ -13,11 +13,13 @@ import {
   loteTotalStats,
   proceso,
   servicio,
+  subvariedad,
   tipoProceso,
 } from "@/db/schema";
 import type {
   ReportCalibreRow,
   ReportKind,
+  ReportLabel,
   ReportLote,
   ReportSalidaRow,
   ServiceReport,
@@ -40,25 +42,31 @@ type CountRow = {
 
 type LoteBucket = {
   key: string;
-  label: string;
+  label: ReportLabel;
   bulbs: number;
   bins: number;
+  declarado: boolean;
 };
 
 function roundedPercent(value: number, total: number) {
   return total > 0 ? Math.round((value / total) * 10000) / 100 : 0;
 }
 
-function calibreOrder(label: string) {
-  if (label.startsWith("Menor a")) return -1;
-  if (label.startsWith("Mayor a")) return Number.POSITIVE_INFINITY;
-  if (label.startsWith("Sin calibre") || label.startsWith("Sin rango manual")) return 1000000;
-  const match = label.match(/(\d+(?:\.\d+)?)/);
-  return match ? Number(match[1]) : 1000000;
+/**
+ * Los rangos van en orden numerico y lo que no es un rango declarado se va al
+ * final: es un balde, no un calibre, y no tiene lugar en la escala.
+ */
+function calibreOrder(row: { label: ReportLabel; declarado: boolean }) {
+  if (!row.declarado) return Number.POSITIVE_INFINITY;
+  const match = row.label.en.match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
 }
 
-function sortCalibreRows<T extends { label: string }>(left: T, right: T) {
-  return calibreOrder(left.label) - calibreOrder(right.label) || left.label.localeCompare(right.label, "es");
+function sortCalibreRows<T extends { label: ReportLabel; declarado: boolean }>(left: T, right: T) {
+  return (
+    calibreOrder(left) - calibreOrder(right) ||
+    left.label.en.localeCompare(right.label.en, "en")
+  );
 }
 
 function dateParts(date: Date, timeZone = REPORT_TIME_ZONE) {
@@ -123,60 +131,134 @@ export function localDayRange(reportDate: string) {
   };
 }
 
+/**
+ * Etiqueta de un rango cerrado, el unico que cuenta como calibre.
+ *
+ * Se usa la misma notacion `from/to` que la tabla del lote en
+ * @/lib/salida-calibre (formatCalibre) y que ve la operaria en la tablet: el
+ * reporte no deberia inventar una escritura propia del mismo rango.
+ */
+function rangeLabel(from: number, to: number): ReportLabel {
+  const value = `${from}/${to}`;
+  return { es: value, en: value };
+}
+
+/**
+ * Codigo y variedad de cada lote, para rotular sus filas en el detalle.
+ *
+ * La variedad del reporte es `subvariedad.nombre` (Tabledance, Trocadero), que
+ * es lo que el cliente llama variedad. `variedad.nombre` en el modelo es el
+ * nivel de arriba —"OT Hibridos", "Orientales"—, mas cerca de la especie que de
+ * la variedad, y no es lo que se quiere ver en la columna.
+ */
+async function loteNames(loteIds: string[]) {
+  const rows = await db
+    .select({ id: lote.id, codigo: lote.codigoLote, variedad: subvariedad.nombre })
+    .from(lote)
+    .leftJoin(subvariedad, eq(subvariedad.id, lote.subvariedadId))
+    .where(inArray(lote.id, loteIds));
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      { codigoLote: row.codigo ?? row.id.slice(0, 8), variedad: row.variedad ?? null },
+    ])
+  );
+}
+
+function loteName(names: Awaited<ReturnType<typeof loteNames>>, loteId: string) {
+  return names.get(loteId) ?? { codigoLote: loteId.slice(0, 8), variedad: null };
+}
+
+/**
+ * Los lotes salen agrupados por variedad y, dentro de ella, por codigo.
+ *
+ * El detalle separa una variedad de la siguiente con una fila en blanco; si el
+ * orden fuera solo por codigo, dos lotes de la misma variedad podrian quedar
+ * partidos por uno de otra y el corte no agruparia nada. Los lotes sin variedad
+ * van al final, juntos.
+ */
+function sortLotes(left: ReportLote, right: ReportLote) {
+  if (left.variedad !== right.variedad) {
+    if (left.variedad === null) return 1;
+    if (right.variedad === null) return -1;
+    return left.variedad.localeCompare(right.variedad, "es");
+  }
+  return left.codigoLote.localeCompare(right.codigoLote, "es");
+}
+
+/**
+ * Balde de lo que no cae en ningun rango declarado.
+ *
+ * No es un calibre y se rotula como tal: antes esto se abria en "Menor a",
+ * "Mayor a" y "Sin rango manual", que se leian como calibres cuando en realidad
+ * son unidades fuera de lo que la operaria demarco al cerrar el lote.
+ */
+const FUERA_DE_RANGO: ReportLabel = {
+  es: "Fuera de los rangos declarados",
+  en: "Outside the declared ranges",
+};
+
+/**
+ * Bulbos de un lote que todavia no se cierra en la tablet.
+ *
+ * No son merma: nadie declaro nada aun. Se rotulan como pendientes para no
+ * afirmar un descarte que el dato no respalda.
+ */
+const PENDIENTE: ReportLabel = {
+  es: "Pendiente de declarar (lote sin cerrar)",
+  en: "Pending declaration (lot not closed)",
+};
+
 function bucketFor(
   perimeter: number | null,
   ranges: ManualRange[]
-): { key: string; label: string; bins: number } {
-  if (perimeter == null || !Number.isFinite(perimeter)) {
-    return { key: "sin-calibre", label: "Sin calibre / No size", bins: 0 };
+): { key: string; label: ReportLabel; bins: number; declarado: boolean } {
+  if (perimeter != null && Number.isFinite(perimeter)) {
+    // Sin rangos declarados no hay cierre que respetar: se cae al tramo de 1 cm
+    // para no perder el dato, y se marca como no declarado.
+    if (ranges.length === 0) {
+      const from = Math.floor(perimeter);
+      return {
+        key: `automatico:${from}`,
+        label: rangeLabel(from, from + 1),
+        bins: 0,
+        declarado: false,
+      };
+    }
+    const matching = ranges.find((range) => perimeter >= range.from && perimeter < range.to);
+    if (matching) {
+      return {
+        key: `manual:${matching.from}:${matching.to}`,
+        label: rangeLabel(matching.from, matching.to),
+        bins: matching.bins,
+        declarado: true,
+      };
+    }
   }
-
-  if (ranges.length === 0) {
-    const from = Math.floor(perimeter);
-    const to = from + 1;
-    return {
-      key: `automatico:${from}:${to}`,
-      label: `Calibre / Size ${from}-${to} cm`,
-      bins: 0,
-    };
-  }
-
-  const matching = ranges.find((range) => perimeter >= range.from && perimeter < range.to);
-  if (matching) {
-    return {
-      key: `manual:${matching.from}:${matching.to}`,
-      label: `Calibre / Size ${matching.from}-${matching.to} cm`,
-      bins: matching.bins,
-    };
-  }
-
-  const first = ranges[0];
-  const last = ranges[ranges.length - 1];
-  if (perimeter < first.from) {
-    return {
-      key: "manual-menor",
-      label: `Menor a / Below ${first.from} cm`,
-      bins: 0,
-    };
-  }
-  if (perimeter >= last.to) {
-    return {
-      key: "manual-mayor",
-      label: `Mayor a / Above ${last.to} cm`,
-      bins: 0,
-    };
-  }
-
-  return { key: "manual-sin-rango", label: "Sin rango manual / No manual range", bins: 0 };
+  return { key: "fuera-de-rango", label: FUERA_DE_RANGO, bins: 0, declarado: false };
 }
 
 function buildLote(
   row: CountRow,
   rows: CountRow[],
-  codigoLote: string,
+  name: { codigoLote: string; variedad: string | null },
   ranges: ManualRange[]
 ): ReportLote {
-  const buckets = new Map<string, LoteBucket>();
+  // Se siembra un bucket por rango declarado al cierre, aunque no haya contado
+  // nada: un calibre demarcado que salio en cero es informacion, y omitirlo
+  // hacia parecer que la operaria nunca lo definio.
+  const buckets = new Map<string, LoteBucket>(
+    ranges.map((range) => [
+      `manual:${range.from}:${range.to}`,
+      {
+        key: `manual:${range.from}:${range.to}`,
+        label: rangeLabel(range.from, range.to),
+        bulbs: 0,
+        bins: range.bins,
+        declarado: true,
+      },
+    ])
+  );
   for (const item of rows) {
     const bucket = bucketFor(item.perimeter, ranges);
     const existing = buckets.get(bucket.key);
@@ -188,6 +270,7 @@ function buildLote(
         label: bucket.label,
         bulbs: item.bulbs,
         bins: bucket.bins,
+        declarado: bucket.declarado,
       });
     }
   }
@@ -195,7 +278,7 @@ function buildLote(
   const bulbs = rows.reduce((sum, item) => sum + item.bulbs, 0);
   return {
     loteId: row.loteId,
-    codigoLote,
+    ...name,
     bulbs,
     percent: 0,
     // Modo medido: el calibre sale del perimetro, no hay salida que declare.
@@ -227,46 +310,17 @@ function finishSalidas(salidas: ReportSalidaRow[], bulbsDelCalibre: number) {
     }));
 }
 
-function mergeServiceRows(lotes: ReportLote[]) {
-  const buckets = new Map<string, ReportCalibreRow>();
-  for (const current of lotes) {
-    for (const row of current.rows) {
-      const existing = buckets.get(row.key);
-      if (existing) {
-        existing.bulbs += row.bulbs;
-        existing.bins += row.bins;
-        // Las salidas también se suman entre lotes: en el resumen del servicio
-        // "Salida 2" es el aporte de esa salida a ese calibre en todos los lotes.
-        for (const salida of row.salidas) {
-          const previa = existing.salidas.find(
-            (s) => s.dispositivoNombre === salida.dispositivoNombre
-          );
-          if (previa) previa.bulbs += salida.bulbs;
-          else existing.salidas.push({ ...salida });
-        }
-      } else {
-        buckets.set(row.key, {
-          ...row,
-          salidas: row.salidas.map((salida) => ({ ...salida })),
-        });
-      }
-    }
-  }
-  const total = lotes.reduce((sum, current) => sum + current.bulbs, 0);
-  return [...buckets.values()]
-    .sort(sortCalibreRows)
-    .map((row) => ({
-      ...row,
-      percent: roundedPercent(row.bulbs, total),
-      salidas: finishSalidas(row.salidas, row.bulbs),
-    }));
-}
-
-function declaredLabel(from: number | null, to: number | null, sinDeclarar: boolean) {
-  if (sinDeclarar) return "Sin declarar / Undeclared";
-  if (from === null && to !== null) return `Menor a / Below ${to} cm`;
-  if (from !== null && to === null) return `Mayor a / Above ${from} cm`;
-  return `Calibre / Size ${from}-${to} cm`;
+/**
+ * Un rango es un calibre solo si esta cerrado por los dos extremos.
+ *
+ * Un extremo abierto no es un calibre demarcado sino merma con umbral — mismo
+ * criterio que usa la tabla del lote en @/lib/salida-calibre (formatCalibre).
+ */
+function rangoCerrado(
+  from: number | null,
+  to: number | null
+): { from: number; to: number } | null {
+  return from !== null && to !== null ? { from, to } : null;
 }
 
 async function buildDeclaredServiceReport(metadata: { serviceName: string; companyName: string; processName: string | null }, serviceId: string, loteIds: string[], kind: ReportKind, reportDate: string): Promise<ServiceReport> {
@@ -274,12 +328,34 @@ async function buildDeclaredServiceReport(metadata: { serviceName: string; compa
   if (kind === "daily") conditions.push(eq(loteCalibreDeclaradoDia.dia, reportDate));
   const summary = await db.select().from(loteCalibreDeclaradoDia).where(and(...conditions));
   const usedLoteIds = [...new Set(summary.map((row) => row.loteId))];
-  if (usedLoteIds.length === 0) return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs: 0, rows: [], lotes: [], mermaBulbs: 0 };
-  const names = await db.select({ id: lote.id, codigo: lote.codigoLote }).from(lote).where(inArray(lote.id, usedLoteIds));
-  const nameMap = new Map(names.map((row) => [row.id, row.codigo ?? row.id.slice(0, 8)]));
+  if (usedLoteIds.length === 0) return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs: 0, lotes: [], mermaBulbs: 0 };
+  const nameMap = await loteNames(usedLoteIds);
   const declarations = await db.select({ loteId: loteCierreCalibreBin.loteId, dispositivoId: loteCierreCalibreBin.dispositivoId, from: loteCierreCalibreBin.calibreFrom, to: loteCierreCalibreBin.calibreTo, bins: loteCierreCalibreBin.bins }).from(loteCierreCalibreBin).where(and(eq(loteCierreCalibreBin.servicioId, serviceId), inArray(loteCierreCalibreBin.loteId, usedLoteIds), isNotNull(loteCierreCalibreBin.dispositivoId)));
   const bins = new Map<string, number>();
   for (const row of declarations) { const key = `${row.loteId}:${row.from ?? ""}:${row.to ?? ""}`; bins.set(key, (bins.get(key) ?? 0) + (Number(row.bins) || 0)); }
+
+  // Los calibres del reporte SON los rangos que la operaria dejo demarcados al
+  // cerrar el lote en la tablet. Se siembran aca, antes de repartir unidades,
+  // para que un rango declarado que salio en cero igual aparezca en su lote.
+  const rangosPorLote = new Map<string, Map<string, ReportCalibreRow>>();
+  for (const row of declarations) {
+    const rango = rangoCerrado(row.from, row.to);
+    if (!rango) continue;
+    const key = `${rango.from}:${rango.to}`;
+    const rows = rangosPorLote.get(row.loteId) ?? new Map<string, ReportCalibreRow>();
+    if (!rows.has(key)) {
+      rows.set(key, {
+        key,
+        label: rangeLabel(rango.from, rango.to),
+        bulbs: 0,
+        bins: bins.get(`${row.loteId}:${rango.from}:${rango.to}`) ?? 0,
+        percent: 0,
+        salidas: [],
+        declarado: true,
+      });
+    }
+    rangosPorLote.set(row.loteId, rows);
+  }
   // Etiqueta de cada salida del servicio. Se resuelve una vez y no por fila:
   // la salida es configuración del servicio, no del lote ni del día.
   const salidaRows = await db
@@ -340,18 +416,50 @@ async function buildDeclaredServiceReport(metadata: { serviceName: string; compa
     declarations.map((row) => `${row.loteId}|${row.dispositivoId}`)
   );
 
+  // Lotes que efectivamente se cerraron. Sin esta condicion un lote todavia en
+  // curso —donde ninguna salida declaro aun— salia entero como merma, afirmando
+  // un descarte que el dato no respalda. Mismo guard que usa la tabla del lote
+  // en @/lib/salida-calibre (`huboDeclaracion`).
+  const lotesCerrados = new Set(declarations.map((row) => row.loteId));
+
   const mermaPorLote = new Map<string, number>();
-  const byLote = new Map<string, Map<string, ReportCalibreRow>>();
+  const byLote = new Map<string, Map<string, ReportCalibreRow>>(
+    [...rangosPorLote].map(([loteId, rows]) => [loteId, new Map(rows)])
+  );
   for (const row of summary) {
-    if (row.sinDeclarar && !declaroEnLote.has(`${row.loteId}|${row.dispositivoId}`)) {
-      const unidades = Number(row.unidades) || 0;
-      mermaPorLote.set(row.loteId, (mermaPorLote.get(row.loteId) ?? 0) + unidades);
+    const unidadesRow = Number(row.unidades) || 0;
+    const rango = row.sinDeclarar ? null : rangoCerrado(row.calibreFrom, row.calibreTo);
+    const loteCerrado = lotesCerrados.has(row.loteId);
+    // Merma en los dos casos que la producen: la salida que, en un lote YA
+    // CERRADO, no declaro ningun rango; y el rango con un extremo abierto, que
+    // no es un calibre demarcado sino merma con umbral (mismo criterio que
+    // @/lib/salida-calibre). En un lote sin cerrar no hay merma que afirmar.
+    if (
+      (row.sinDeclarar &&
+        loteCerrado &&
+        !declaroEnLote.has(`${row.loteId}|${row.dispositivoId}`)) ||
+      (!row.sinDeclarar && !rango)
+    ) {
+      mermaPorLote.set(row.loteId, (mermaPorLote.get(row.loteId) ?? 0) + unidadesRow);
       continue;
     }
-    const key = row.sinDeclarar ? "sin_declarar" : `${row.calibreFrom ?? ""}:${row.calibreTo ?? ""}`;
+    // Lo que no cae en un rango declarado no es merma pero tampoco un calibre:
+    // va a su propio balde, fuera de la escala de rangos. Se distingue el lote
+    // sin cerrar (nadie declaro todavia) del cerrado con unidades sobrantes.
+    const key = rango ? `${rango.from}:${rango.to}` : loteCerrado ? "fuera-de-rango" : "pendiente";
     const rows = byLote.get(row.loteId) ?? new Map<string, ReportCalibreRow>();
-    const current = rows.get(key) ?? { key, label: declaredLabel(row.calibreFrom, row.calibreTo, row.sinDeclarar), bulbs: 0, bins: row.sinDeclarar ? 0 : bins.get(`${row.loteId}:${row.calibreFrom ?? ""}:${row.calibreTo ?? ""}`) ?? 0, percent: 0, salidas: [] };
-    current.bulbs += Number(row.unidades) || 0;
+    const current =
+      rows.get(key) ??
+      ({
+        key,
+        label: rango ? rangeLabel(rango.from, rango.to) : loteCerrado ? FUERA_DE_RANGO : PENDIENTE,
+        bulbs: 0,
+        bins: rango ? bins.get(`${row.loteId}:${rango.from}:${rango.to}`) ?? 0 : 0,
+        percent: 0,
+        salidas: [],
+        declarado: Boolean(rango),
+      } satisfies ReportCalibreRow);
+    current.bulbs += unidadesRow;
     // El resumen ya viene por (dia, lote, servicio, dispositivo, calibre), así
     // que cada fila es el aporte de una salida a este rango de calibre. En el
     // reporte total hay varias filas por salida (una por día) y se acumulan.
@@ -373,12 +481,14 @@ async function buildDeclaredServiceReport(metadata: { serviceName: string; compa
   }
   // Un lote puede tener SOLO merma (nada declarado que mostrar), asi que se
   // recorren las claves de los dos mapas y no solo las de byLote.
-  const loteIdsConDatos = [...new Set([...byLote.keys(), ...mermaPorLote.keys()])];
-  const lotes = loteIdsConDatos.map((loteId) => { const values = [...(byLote.get(loteId)?.values() ?? [])].sort(sortCalibreRows); const bulbs = values.reduce((sum, row) => sum + row.bulbs, 0); return { loteId, codigoLote: nameMap.get(loteId) ?? loteId.slice(0, 8), bulbs, percent: 0, rows: values.map((row) => ({ ...row, percent: roundedPercent(row.bulbs, bulbs), salidas: finishSalidas(row.salidas, row.bulbs) })), mermaBulbs: mermaPorLote.get(loteId) ?? 0 }; }).sort((a, b) => a.codigoLote.localeCompare(b.codigoLote, "es"));
+  const loteIdsConDatos = [...new Set([...byLote.keys(), ...mermaPorLote.keys()])].filter(
+    (loteId) => usedLoteIds.includes(loteId)
+  );
+  const lotes = loteIdsConDatos.map((loteId) => { const values = [...(byLote.get(loteId)?.values() ?? [])].sort(sortCalibreRows); const bulbs = values.reduce((sum, row) => sum + row.bulbs, 0); return { loteId, ...loteName(nameMap, loteId), bulbs, percent: 0, rows: values.map((row) => ({ ...row, percent: roundedPercent(row.bulbs, bulbs), salidas: finishSalidas(row.salidas, row.bulbs) })), mermaBulbs: mermaPorLote.get(loteId) ?? 0 }; }).sort(sortLotes);
   // `bulbs` y `totalBulbs` son producto calibrado: la merma va aparte, no suma.
   const totalBulbs = lotes.reduce((sum, row) => sum + row.bulbs, 0); for (const row of lotes) row.percent = roundedPercent(row.bulbs, totalBulbs);
   const mermaBulbs = lotes.reduce((sum, row) => sum + row.mermaBulbs, 0);
-  return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs, rows: mergeServiceRows(lotes), lotes, mermaBulbs };
+  return { kind, serviceId, serviceName: metadata.serviceName, companyName: metadata.companyName, processName: metadata.processName, reportDate, generatedAt: new Date().toISOString(), calibreSource: "declarado", totalBulbs, lotes, mermaBulbs };
 }
 
 /** Reporte diario en modo medido: un dia acotado por indice sobre `conteo`. */
@@ -501,7 +611,6 @@ export async function buildServiceReport(
       generatedAt: new Date().toISOString(),
       calibreSource: metadata.modoCalibre === "declarado" ? "declarado" : "medido",
       totalBulbs: 0,
-      rows: [],
       lotes: [],
       mermaBulbs: 0,
     };
@@ -513,11 +622,7 @@ export async function buildServiceReport(
     ? await countsFromConteo(serviceId, loteIds, reportDate)
     : await countsFromLoteStats(serviceId, loteIds);
 
-  const names = await db
-    .select({ id: lote.id, codigo: lote.codigoLote })
-    .from(lote)
-    .where(inArray(lote.id, [...new Set(counts.map((row) => row.loteId))]));
-  const nameMap = new Map(names.map((row) => [row.id, row.codigo ?? row.id.slice(0, 8)]));
+  const nameMap = await loteNames([...new Set(counts.map((row) => row.loteId))]);
 
   // Igual que en /lotes/resumen-calibres: este reporte usa el calibre MEDIDO (QB) y se
   // acota a las declaraciones legacy a nivel de lote (dispositivo_id IS NULL). Los
@@ -561,10 +666,10 @@ export async function buildServiceReport(
     .map(([loteId, rows]) => buildLote(
       rows[0],
       rows,
-      nameMap.get(loteId) ?? loteId.slice(0, 8),
+      loteName(nameMap, loteId),
       rangeMap.get(loteId) ?? []
     ))
-    .sort((left, right) => left.codigoLote.localeCompare(right.codigoLote, "es"));
+    .sort(sortLotes);
   const totalBulbs = lotes.reduce((sum, current) => sum + current.bulbs, 0);
   for (const current of lotes) current.percent = roundedPercent(current.bulbs, totalBulbs);
 
@@ -578,7 +683,6 @@ export async function buildServiceReport(
     generatedAt: new Date().toISOString(),
     calibreSource: "medido",
     totalBulbs,
-    rows: mergeServiceRows(lotes),
     lotes,
     mermaBulbs: 0,
   };

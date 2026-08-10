@@ -1,5 +1,20 @@
 export type ReportKind = "daily" | "total";
 
+/** Idioma de salida. Los entregables van en ingles; el español es de revision. */
+export type ReportLang = "en" | "es";
+
+/**
+ * Etiqueta en los dos idiomas.
+ *
+ * Se guardan por separado y no como un string "Calibre / Size 8-10 cm" porque
+ * de ese formato no se puede recuperar el castellano: partir por " / " deja
+ * "Calibre" y pierde el "8-10 cm".
+ */
+export interface ReportLabel {
+  es: string;
+  en: string;
+}
+
 /**
  * Aporte de una salida física del calibrador dentro de un rango de calibre.
  *
@@ -20,17 +35,28 @@ export interface ReportSalidaRow {
 
 export interface ReportCalibreRow {
   key: string;
-  label: string;
+  label: ReportLabel;
   bulbs: number;
   bins: number;
   percent: number;
   /** Desglose por salida dentro de este calibre. Vacío en modo medido. */
   salidas: ReportSalidaRow[];
+  /**
+   * True si el rango salió del cierre del lote en la tablet. False en el balde
+   * de lo que no cae en ningún rango declarado, que no es un calibre.
+   */
+  declarado: boolean;
 }
 
 export interface ReportLote {
   loteId: string;
   codigoLote: string;
+  /**
+   * Variedad del lote, en el sentido del cliente: sale de `subvariedad.nombre`
+   * (Tabledance, Trocadero). El campo `variedad` del modelo es el grupo de
+   * arriba ("OT Hibridos") y no va al reporte. Null si el lote no la tiene.
+   */
+  variedad: string | null;
   /**
    * Bulbos con calibre declarado. NO incluye la merma — se muestra como
    * "Bulbos procesados", pero el numero deja el descarte fuera.
@@ -60,7 +86,6 @@ export interface ServiceReport {
    * "Bulbos procesados", pero el numero deja el descarte fuera.
    */
   totalBulbs: number;
-  rows: ReportCalibreRow[];
   lotes: ReportLote[];
   /**
    * Merma del periodo, fuera de `totalBulbs`. Siempre 0 en modo medido: ahí el
