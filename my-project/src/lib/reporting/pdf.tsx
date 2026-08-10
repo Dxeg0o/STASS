@@ -7,10 +7,10 @@ import {
   View,
   renderToBuffer,
 } from "@react-pdf/renderer";
-import React from "react";
 import type { ReactElement } from "react";
-import type { ReportCalibreRow, ReportLote, ServiceReport } from "./types";
+import type { ReportCalibreRow, ReportLang, ReportLote, ServiceReport } from "./types";
 import { getQualiblickLogoDataUri } from "./logo";
+import { label as translate, strings, type ReportStrings } from "./i18n";
 
 const colors = {
   ink: "#172033",
@@ -39,211 +39,199 @@ const styles = StyleSheet.create({
   tableHeader: { flexDirection: "row", backgroundColor: colors.cyan, color: colors.white, paddingVertical: 6, paddingHorizontal: 7, fontSize: 8, fontWeight: 700 },
   tableRow: { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 7, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.white },
   tableRowAlt: { backgroundColor: colors.soft },
-  colLabel: { width: "46%" },
-  // Fila hija de una salida: sin borde propio y con sangria, para que se lea
-  // colgando del calibre de arriba y no como otro calibre.
-  salidaRow: { borderTopWidth: 0, paddingVertical: 3 },
-  mermaRow: { backgroundColor: "#FEF3C7" },
-  colSalidaLabel: { width: "46%", paddingLeft: 10, color: colors.muted, fontSize: 8 },
+  colLabel: { width: "52%" },
+  colUndeclared: { color: colors.muted },
   colBulbs: { width: "18%", textAlign: "right" },
-  colPercent: { width: "18%", textAlign: "right" },
-  colBins: { width: "18%", textAlign: "right" },
-  loteBlock: { marginBottom: 12 },
-  loteTitleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 4 },
-  loteTitle: { fontSize: 10.5, fontWeight: 700, color: colors.cyan },
-  loteTotal: { fontSize: 8.5, color: colors.muted },
-  detailLot: { width: "19%", fontWeight: 700 },
-  detailCalibre: { width: "30%" },
-  detailBulbs: { width: "13%", textAlign: "right" },
-  detailPercent: { width: "10%", textAlign: "right" },
-  detailBins: { width: "10%", textAlign: "right" },
+  colPercent: { width: "15%", textAlign: "right" },
+  colBins: { width: "15%", textAlign: "right" },
+  totalRow: { fontWeight: 700, backgroundColor: colors.cyanLight },
+  // Aire entre variedades. Va con el borde arriba, como una fila mas, para que
+  // el corte se lea como parte de la tabla y no como el final de una.
+  spacerRow: { height: 10, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.white },
+  detailVariedad: { width: "22%" },
+  detailLot: { width: "20%", fontWeight: 700 },
+  detailCalibre: { width: "16%" },
+  detailBulbs: { width: "16%", textAlign: "right" },
+  detailPercent: { width: "13%", textAlign: "right" },
+  detailBins: { width: "13%", textAlign: "right" },
   note: { color: colors.muted, fontSize: 8, lineHeight: 1.35, marginTop: 3 },
   footer: { position: "absolute", bottom: 18, left: 36, right: 36, flexDirection: "row", justifyContent: "space-between", color: colors.muted, fontSize: 7 },
 });
 
-function number(value: number) {
-  return new Intl.NumberFormat("es-CL", { maximumFractionDigits: 1 }).format(value);
+function makeNumber(lang: ReportLang) {
+  const formatter = new Intl.NumberFormat(strings(lang).locale, { maximumFractionDigits: 1 });
+  return (value: number) => formatter.format(value);
+}
+
+interface RenderContext {
+  lang: ReportLang;
+  t: ReportStrings;
+  number: (value: number) => string;
 }
 
 /**
- * Un servicio puede tener cientos de lotes; render por lote con estructuras que
- * no pueden partirse desborda el tiempo de la funcion serverless. Por eso las
- * secciones por lote se usan hasta este limite y mas alla se cae a una unica
- * tabla plana, que pagina barato.
+ * Una fila del detalle: un calibre del lote, su fila de total, o el aire que
+ * separa una variedad de la siguiente.
  */
-const MAX_LOT_SECTIONS = 40;
+type DetailRow = {
+  lote: ReportLote;
+  row: ReportCalibreRow | null;
+  total: boolean;
+  spacer?: boolean;
+};
 
-/**
- * Un bloque corto salta entero a la pagina siguiente en vez de partirse y dejar
- * filas huerfanas sin la cabecera de su lote. Por sobre este largo se permite
- * partir, porque un bloque mas alto que una pagina con wrap={false} se
- * renderizaria recortado.
- */
-const UNSPLITTABLE_ROWS = 20;
-
-function LoteSection({ lote }: { lote: ReportLote }) {
-  return (
-    <View style={styles.loteBlock} wrap={lote.rows.length > UNSPLITTABLE_ROWS}>
-      <View style={styles.loteTitleRow}>
-        <Text style={styles.loteTitle}>Lote / Lot {lote.codigoLote}</Text>
-        <Text style={styles.loteTotal}>
-          {number(lote.bulbs)} bulbos - {number(lote.percent)}% del total
-          {lote.mermaBulbs > 0 ? ` + ${number(lote.mermaBulbs)} merma` : ""}
-        </Text>
-      </View>
-      <View style={styles.table}>
-        <View style={styles.tableHeader}>
-          <Text style={styles.colLabel}>Calibre / Size</Text><Text style={styles.colBulbs}>Bulbos</Text><Text style={styles.colPercent}>%</Text><Text style={styles.colBins}>Bins</Text>
-        </View>
-        {lote.rows.length === 0 && lote.mermaBulbs === 0 ? (
-          <View style={styles.tableRow}><Text style={styles.colLabel}>Sin datos para el periodo</Text></View>
-        ) : lote.rows.map((row, index) => (
-          <View key={row.key} style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}]} wrap={false}>
-            <Text style={styles.colLabel}>{row.label}</Text>
-            <Text style={styles.colBulbs}>{number(row.bulbs)}</Text>
-            <Text style={styles.colPercent}>{number(row.percent)}%</Text>
-            <Text style={styles.colBins}>{row.bins ? number(row.bins) : "-"}</Text>
-          </View>
-        ))}
-        {/* Fila de merma del lote. Sin esto un lote que solo saco merma aparecia
-            como "sin datos", cuando en realidad si conto bulbos. */}
-        {lote.mermaBulbs > 0 && (
-          <View style={[styles.tableRow, styles.mermaRow]} wrap={false}>
-            <Text style={styles.colLabel}>Merma / Waste (fuera del total)</Text>
-            <Text style={styles.colBulbs}>{number(lote.mermaBulbs)}</Text>
-            <Text style={styles.colPercent}>-</Text>
-            <Text style={styles.colBins}>-</Text>
-          </View>
-        )}
-      </View>
-    </View>
-  );
+function detailRows(lotes: ReportLote[]): DetailRow[] {
+  let variedadAnterior: string | null | undefined;
+  return lotes.flatMap((lote): DetailRow[] => {
+    const corte =
+      variedadAnterior !== undefined && lote.variedad !== variedadAnterior
+        ? [{ lote, row: null, total: false, spacer: true }]
+        : [];
+    variedadAnterior = lote.variedad;
+    return [
+      ...corte,
+      ...(lote.rows.length === 0
+        ? [{ lote, row: null, total: false }]
+        : [
+            ...lote.rows.map((row) => ({ lote, row, total: false })),
+            { lote, row: null, total: true },
+          ]),
+    ];
+  });
 }
 
-/** Tabla unica y paginable, para servicios con demasiados lotes. */
-function FlatDetailTable({ lotes }: { lotes: ReportLote[] }) {
-  // `merma: true` es una fila propia del lote, no un calibre. Va aca y no solo en
-  // LoteSection para que un servicio con muchos lotes no pierda el descarte.
-  const rows = lotes.flatMap(
-    (lote): Array<{ lote: ReportLote; row: ReportCalibreRow | null; merma?: boolean }> => {
-      const calibres =
-        lote.rows.length === 0 && lote.mermaBulbs === 0
-          ? [{ lote, row: null }]
-          : lote.rows.map((row) => ({ lote, row }));
-      return lote.mermaBulbs > 0
-        ? [...calibres, { lote, row: null, merma: true }]
-        : calibres;
-    }
-  );
+/**
+ * Tabla unica del detalle: variedad y lote se repiten en cada fila y cada lote
+ * cierra con su total.
+ *
+ * Es una sola tabla plana y no una seccion por lote a proposito: un servicio
+ * puede tener cientos de lotes, y las estructuras que no pueden partirse hacen
+ * que el render desborde el tiempo de la funcion serverless. Plana pagina barato
+ * y ademas es el formato en que el cliente lee el reporte.
+ */
+function DetailTable({ lotes, lang, t, number }: { lotes: ReportLote[] } & RenderContext) {
+  const rows = detailRows(lotes);
 
   return (
     <View style={styles.table}>
       <View style={styles.tableHeader} fixed>
-        <Text style={styles.detailLot}>Lote / Lot</Text><Text style={styles.detailCalibre}>Calibre / Size</Text><Text style={styles.detailBulbs}>Bulbos</Text><Text style={styles.detailPercent}>%</Text><Text style={styles.detailBins}>Bins</Text>
+        <Text style={styles.detailVariedad}>{t.variety}</Text>
+        <Text style={styles.detailLot}>{t.lot}</Text>
+        <Text style={styles.detailCalibre}>{t.size}</Text>
+        <Text style={styles.detailBulbs}>{t.bulbs}</Text>
+        <Text style={styles.detailPercent}>%</Text>
+        <Text style={styles.detailBins}>{t.bins}</Text>
       </View>
       {rows.length === 0 ? (
-        <View style={styles.tableRow}><Text style={styles.colLabel}>Sin datos para el periodo</Text></View>
-      ) : rows.map(({ lote, row, merma }, index) => (
-        <View
-          key={`${lote.loteId}-${merma ? "merma" : row?.key ?? "empty"}`}
-          style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}, merma ? styles.mermaRow : {}]}
-          wrap={false}
-        >
-          <Text style={styles.detailLot}>{lote.codigoLote}</Text>
-          <Text style={styles.detailCalibre}>
-            {merma
-              ? "Merma / Waste (fuera del total)"
-              : row?.label ?? "Sin datos para el periodo"}
-          </Text>
-          <Text style={styles.detailBulbs}>
-            {merma ? number(lote.mermaBulbs) : row ? number(row.bulbs) : "-"}
-          </Text>
-          <Text style={styles.detailPercent}>{!merma && row ? `${number(row.percent)}%` : "-"}</Text>
-          <Text style={styles.detailBins}>{!merma && row?.bins ? number(row.bins) : "-"}</Text>
+        <View style={styles.tableRow}>
+          <Text style={styles.colLabel}>{t.noData}</Text>
         </View>
-      ))}
+      ) : (
+        rows.map(({ lote, row, total, spacer }, index) => {
+          if (spacer) {
+            return <View key={`${lote.loteId}-spacer`} style={styles.spacerRow} />;
+          }
+          const bins = total ? lote.rows.reduce((sum, item) => sum + item.bins, 0) : row?.bins ?? 0;
+          return (
+            <View
+              key={`${lote.loteId}-${total ? "total" : row?.key ?? "empty"}`}
+              style={[
+                styles.tableRow,
+                index % 2 ? styles.tableRowAlt : {},
+                total ? styles.totalRow : {},
+              ]}
+              wrap={false}
+            >
+              <Text style={styles.detailVariedad}>{lote.variedad ?? "-"}</Text>
+              <Text style={styles.detailLot}>{lote.codigoLote}</Text>
+              <Text
+                style={[styles.detailCalibre, row?.declarado === false ? styles.colUndeclared : {}]}
+              >
+                {total ? t.lotTotal : row ? translate(row.label, lang) : t.noData}
+              </Text>
+              <Text style={styles.detailBulbs}>
+                {total ? number(lote.bulbs) : row ? number(row.bulbs) : "-"}
+              </Text>
+              <Text style={styles.detailPercent}>
+                {total ? `${number(lote.percent)}%` : row ? `${number(row.percent)}%` : "-"}
+              </Text>
+              <Text style={styles.detailBins}>{bins ? number(bins) : "-"}</Text>
+            </View>
+          );
+        })
+      )}
     </View>
   );
 }
 
-function DetailTable({ lotes }: { lotes: ReportLote[] }) {
-  if (lotes.length > MAX_LOT_SECTIONS) return <FlatDetailTable lotes={lotes} />;
-  return (
-    <View>
-      {lotes.map((lote) => (
-        <LoteSection key={lote.loteId} lote={lote} />
-      ))}
-    </View>
+export function ServiceReportDocument({
+  report,
+  lang = "en",
+}: {
+  report: ServiceReport;
+  lang?: ReportLang;
+}): ReactElement {
+  const t = strings(lang);
+  const number = makeNumber(lang);
+  const title = report.kind === "daily" ? t.dailyTitle : t.totalTitle;
+  const bins = report.lotes.reduce(
+    (sum, lote) => sum + lote.rows.reduce((inner, row) => inner + row.bins, 0),
+    0
   );
-}
-
-export function ServiceReportDocument({ report }: { report: ServiceReport }): ReactElement {
-  const label = report.kind === "daily" ? "Resumen diario / Daily summary" : "Resumen acumulado / Service total summary";
   return (
-    <Document title={`${label} - ${report.serviceName}`} author="QUALIBLICK">
+    <Document title={`${title} - ${report.serviceName}`} author="QUALIBLICK">
       <Page size="A4" style={styles.page} wrap>
         <View style={styles.header}>
           <View style={styles.logoRow}>
             <Image src={getQualiblickLogoDataUri()} style={styles.logo} />
-            <Text style={styles.brand}>REPORTERIA / REPORTING</Text>
+            <Text style={styles.brand}>{t.reporting}</Text>
           </View>
-          <Text style={styles.title}>{label}</Text>
-          <Text style={styles.subtitle}>{report.companyName} - {report.serviceName}{report.processName ? ` - ${report.processName}` : ""}</Text>
-          <Text style={styles.subtitle}>Fecha reportada / Report date: {report.reportDate} | Generado / Generated: {new Date(report.generatedAt).toLocaleString("es-CL", { timeZone: "America/Santiago" })}</Text>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.subtitle}>
+            {report.companyName} - {report.serviceName}
+            {report.processName ? ` - ${report.processName}` : ""}
+          </Text>
+          <Text style={styles.subtitle}>
+            {t.reportDate}: {report.reportDate} | {t.generated}:{" "}
+            {new Date(report.generatedAt).toLocaleString(t.locale, {
+              timeZone: "America/Santiago",
+            })}
+          </Text>
         </View>
 
         <View style={styles.cards}>
-          {/* Ojo: no incluye la merma, que va en su propia tarjeta al lado. */}
-          <View style={styles.card}><Text style={styles.cardLabel}>Bulbos procesados{"\n"}/ Processed bulbs</Text><Text style={styles.cardValue}>{number(report.totalBulbs)}</Text></View>
-          {report.mermaBulbs > 0 && (
-            <View style={styles.card}><Text style={styles.cardLabel}>Merma / Waste{"\n"}(fuera del total)</Text><Text style={styles.cardValue}>{number(report.mermaBulbs)}</Text></View>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>{t.bulbsProcessed}</Text>
+            <Text style={styles.cardValue}>{number(report.totalBulbs)}</Text>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>{t.lots}</Text>
+            <Text style={styles.cardValue}>{number(report.lotes.length)}</Text>
+          </View>
+          {bins > 0 && (
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>{t.bins}</Text>
+              <Text style={styles.cardValue}>{number(bins)}</Text>
+            </View>
           )}
-          <View style={styles.card}><Text style={styles.cardLabel}>Lotes procesados{"\n"}/ Processed lots</Text><Text style={styles.cardValue}>{number(report.lotes.length)}</Text></View>
         </View>
 
-        {report.rows.length > 0 ? (
-          <>
-            <Text style={styles.sectionTitle}>Resumen por calibre / Size summary</Text>
-            <View style={styles.table}>
-              <View style={styles.tableHeader}>
-                <Text style={styles.colLabel}>Calibre / Size</Text><Text style={styles.colBulbs}>Bulbos</Text><Text style={styles.colPercent}>%</Text><Text style={styles.colBins}>Bins</Text>
-              </View>
-              {report.rows.map((row, index) => (
-                <React.Fragment key={row.key}>
-                  <View style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}]} wrap={false}>
-                    <Text style={styles.colLabel}>{row.label}</Text>
-                    <Text style={styles.colBulbs}>{number(row.bulbs)}</Text>
-                    <Text style={styles.colPercent}>{number(row.percent)}%</Text>
-                    <Text style={styles.colBins}>{row.bins ? number(row.bins) : "-"}</Text>
-                  </View>
-                  {/* Aporte de cada salida al calibre de arriba. El % es dentro
-                      del calibre, no sobre el total del reporte. */}
-                  {row.salidas.map((salida) => (
-                    <View
-                      key={`${row.key}-${salida.dispositivoNombre}`}
-                      style={[styles.tableRow, index % 2 ? styles.tableRowAlt : {}, styles.salidaRow]}
-                      wrap={false}
-                    >
-                      <Text style={styles.colSalidaLabel}>
-                        {salida.label} · {salida.dispositivoNombre}
-                      </Text>
-                      <Text style={styles.colBulbs}>{number(salida.bulbs)}</Text>
-                      <Text style={styles.colPercent}>{number(salida.percent)}%</Text>
-                      <Text style={styles.colBins}>-</Text>
-                    </View>
-                  ))}
-                </React.Fragment>
-              ))}
-            </View>
-          </>
-        ) : null}
-
-        <Text style={styles.sectionTitle}>Detalle por lote / Lot detail</Text>
-        {report.lotes.length === 0 ? <Text style={styles.note}>No se registraron bulbos procesados en este periodo / No bulbs were processed during this period.</Text> : <DetailTable lotes={report.lotes} />}
-        <Text style={styles.note}>Los bins reflejan la asignacion manual vigente / Bins reflect the current manual assignment.</Text>
+        {/* Sin resumen por calibre a nivel de servicio: el reporte se rige por el
+            lote. Agregar calibres entre lotes mezcla rangos que cada cierre
+            demarco por separado, asi que la unica escala valida es la del lote. */}
+        <Text style={styles.sectionTitle}>{t.lotDetail}</Text>
+        <Text style={styles.note}>
+          {report.calibreSource === "declarado" ? t.declaredNote : t.measuredNote}
+        </Text>
+        {report.lotes.length === 0 ? (
+          <Text style={styles.note}>{t.noBulbs}</Text>
+        ) : (
+          <DetailTable lotes={report.lotes} lang={lang} t={t} number={number} />
+        )}
+        <Text style={styles.note}>{t.binsNote}</Text>
 
         <View style={styles.footer} fixed>
-          <Text>QUALIBLICK - Reporte automatico / Automatic report</Text>
+          <Text>{t.footer}</Text>
           <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
@@ -251,6 +239,7 @@ export function ServiceReportDocument({ report }: { report: ServiceReport }): Re
   );
 }
 
-export async function renderServiceReportPdf(report: ServiceReport) {
-  return renderToBuffer(<ServiceReportDocument report={report} />);
+export async function renderServiceReportPdf(report: ServiceReport, lang: ReportLang = "en") {
+  return renderToBuffer(<ServiceReportDocument report={report} lang={lang} />);
 }
+
