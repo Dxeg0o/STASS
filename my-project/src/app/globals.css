@@ -267,6 +267,40 @@ body {
 .method-content li { display: flex; align-items: center; gap: 8px; color: #c8ceca; font-size: 13px; }
 .method-content li svg { width: 15px; color: var(--qb-green-light); }
 
+.solutions-section { background: #0a0e0b; }
+.solutions-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 62px; }
+.solution-card { overflow: hidden; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; background: #111612; transition: border-color .25s ease, transform .25s ease; }
+.solution-card:hover { transform: translateY(-4px); border-color: rgba(25,198,107,.3); }
+.solution-card-link { display: flex; height: 100%; flex-direction: column; padding: 30px; }
+.solution-card-tag { display: inline-flex; align-self: flex-start; align-items: center; gap: 7px; padding: 9px 12px; margin-bottom: 22px; color: white; border: 1px solid rgba(255,255,255,.14); border-radius: 6px; background: rgba(8,11,9,.78); font-size: 11px; font-weight: 800; }
+.solution-card-tag svg { width: 15px; color: var(--qb-yellow); }
+.solution-card-link h3 { font-size: 24px; letter-spacing: -.025em; }
+.solution-card-link > p { flex: 1; margin-top: 14px; color: #9aa49d; font-size: 14px; line-height: 1.65; }
+.solution-card-cta { display: flex; align-items: center; gap: 8px; margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.08); color: var(--qb-green-light); font-size: 13px; font-weight: 800; }
+.solution-card-cta svg { width: 15px; transition: transform .2s ease; }
+.solution-card:hover .solution-card-cta svg { transform: translateX(3px); }
+
+.solution-hero-section { position: relative; padding: 148px 0 0; background: #080b09; }
+.solution-back-link { display: inline-flex; align-items: center; gap: 8px; color: #9aa49d; font-size: 13px; font-weight: 700; }
+.solution-back-link svg { width: 15px; }
+.solution-back-link:hover { color: white; }
+.solution-hero-grid { display: grid; grid-template-columns: 1.03fr .97fr; gap: 72px; align-items: center; margin-top: 34px; padding-bottom: 96px; }
+.solution-hero-copy h1 { max-width: 640px; margin-top: 25px; font-size: clamp(38px, 4.6vw, 58px); line-height: 1.04; letter-spacing: -.045em; font-weight: 850; color: #f7faf8; }
+.solution-hero-visual { position: relative; }
+.solution-hero-image { height: auto; aspect-ratio: 1 / 1.04; border-radius: 16px; }
+
+.solution-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 62px; }
+.solution-step-card { padding: 32px; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; background: #111612; }
+.solution-step-card .method-number { position: static; display: block; margin-bottom: 18px; color: rgba(255,255,255,.16); font: 800 30px monospace; }
+.solution-step-card h3 { font-size: 21px; letter-spacing: -.02em; color: #f7faf8; }
+.solution-step-card p { margin-top: 12px; color: #9aa49d; font-size: 14px; line-height: 1.7; }
+
+.solution-proof { display: flex; align-items: center; gap: 14px; padding: 24px 28px; border: 1px solid #cfd5cf; border-radius: 12px; background: #e9ebe6; }
+.solution-proof svg { flex: 0 0 auto; width: 20px; color: var(--qb-green); }
+.solution-proof p { color: #3a423b; font-size: 15px; font-weight: 700; line-height: 1.6; }
+
+.solution-other-section { background: #0a0e0b; }
+
 .impact-section { color: #111611; background: var(--qb-yellow); }
 .impact-heading { max-width: 790px; }
 .impact-heading .section-label { color: #4f4a20; }
@@ -353,6 +387,7 @@ body {
   .outcome-list { grid-template-columns: 1fr; gap: 6px; }
   .outcome-item { padding: 10px 0; border: 0; }
   .edge-grid { gap: 45px; }
+  .solutions-grid, .solution-steps { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 900px) {
@@ -372,6 +407,8 @@ body {
   .video-frame { max-width: 650px; aspect-ratio: 1.2 / 1; margin: auto; }
   .split-heading { gap: 24px; }
   .comparison-grid, .methods-grid { grid-template-columns: 1fr; }
+  .solutions-grid, .solution-steps { grid-template-columns: 1fr; }
+  .solution-hero-grid { grid-template-columns: 1fr; gap: 54px; padding-bottom: 70px; }
   .impact-grid { grid-template-columns: 1fr; }
   .impact-card { min-height: 260px; }
   .impact-card h3 { margin-top: 36px; }
