@@ -83,7 +83,7 @@ export default function SolutionPage({ slug }: { slug: string }) {
             </Reveal>
 
             <Reveal delay={0.12} className="solution-hero-visual">
-              <div className={`method-image solution-hero-image ${solucion.slug === "diagnostico-de-recepcion" ? "solution-hero-image-bin-scan" : ""}`}>
+              <div className={`method-image solution-hero-image ${solucion.slug === "guigna" ? "solution-hero-image-bin-scan" : ""}`}>
                 {solucion.mediaType === "video" ? (
                   <LazyVideo src={solucion.mediaSrc} ariaLabel={solucion.name} />
                 ) : (

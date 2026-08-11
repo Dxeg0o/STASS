@@ -33,7 +33,7 @@ export type Solucion = {
 
 export const soluciones: Solucion[] = [
   {
-    slug: "diagnostico-de-recepcion",
+    slug: "guigna",
     moment: "Recepción",
     icon: Boxes,
     name: "GUIGNA®",
@@ -66,7 +66,7 @@ export const soluciones: Solucion[] = [
     ctaSubject: "GUIGNA",
   },
   {
-    slug: "control-de-linea-en-tiempo-real",
+    slug: "plancus",
     moment: "Proceso",
     icon: ScanLine,
     name: "PLANCUS®",
@@ -95,7 +95,7 @@ export const soluciones: Solucion[] = [
     ctaSubject: "PLANCUS",
   },
   {
-    slug: "preempaque-en-terreno",
+    slug: "culpaeus",
     moment: "Terreno",
     icon: Handshake,
     name: "CULPAEUS®",
