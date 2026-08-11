@@ -45,8 +45,8 @@ const principles = [
 ];
 
 const founders = [
-  { name: "Diego Soler", linkedin: "https://www.linkedin.com/in/diego-soler-olguin/" },
-  { name: "Cristobal Segu", linkedin: "https://www.linkedin.com/in/crist%C3%B3bal-seg%C3%BA-074606229/" },
+  { name: "Diego Soler", image: "/images/founders/diego-soler.png", linkedin: "https://www.linkedin.com/in/diego-soler-olguin/" },
+  { name: "Cristobal Segu", image: "/images/founders/cristobal-segu.png", linkedin: "https://www.linkedin.com/in/crist%C3%B3bal-seg%C3%BA-074606229/" },
 ];
 
 export default function AboutUs() {
@@ -155,12 +155,12 @@ export default function AboutUs() {
             <p>Somos un equipo comprometido con entregar tecnología útil para las decisiones complejas de la cadena agrícola.</p>
           </Reveal>
           <div className="founder-list">
-            {founders.map(({ name, linkedin }, index) => (
+            {founders.map(({ name, image, linkedin }, index) => (
               <Reveal key={name} delay={0.12 + index * 0.08} className="founder-card">
                 <a href={linkedin} target="_blank" rel="noreferrer" className="founder-linkedin" aria-label={`Ver el perfil de LinkedIn de ${name}`}>
                   <Linkedin aria-hidden="true" />
                 </a>
-                <div className="founder-monogram">{name.split(" ").map((part) => part[0]).join("")}</div>
+                <Image src={image} alt={`Retrato de ${name}`} width={800} height={800} className="founder-photo" />
                 <span>CO-FUNDADOR {String(index + 1).padStart(2, "0")}</span>
                 <h3>{name}</h3>
                 <p>Fundador de Qualiblick</p>
