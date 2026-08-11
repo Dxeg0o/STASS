@@ -2,11 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   BarChart3,
-  Boxes,
   Check,
   ChevronRight,
   CircleGauge,
@@ -23,92 +22,39 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { soluciones } from "../../data/soluciones";
+import { Reveal, SectionLabel } from "./shared";
 
 const demoHref =
-  "mailto:contacto@qualiblick.com?subject=Solicitud%20de%20demostraci%C3%B3n%20t%C3%A9cnica&body=Hola%20equipo%20Qualiblick%2C%0A%0AMe%20gustar%C3%ADa%20conocer%20c%C3%B3mo%20Qualiblick%20puede%20aplicarse%20a%20nuestra%20operaci%C3%B3n.%0A%0AEmpresa%3A%0ACultivo%3A%0AVolumen%20aproximado%3A%0ATipo%20de%20operaci%C3%B3n%20%28bins%20o%20l%C3%ADnea%29%3A%0A%0AGracias.";
+  "mailto:contacto@qualiblick.com?subject=Solicitud%20de%20demostraci%C3%B3n%20t%C3%A9cnica&body=Hola%20equipo%20Qualiblick%2C%0A%0AMe%20gustar%C3%ADa%20conocer%20c%C3%B3mo%20Qualiblick%20puede%20aplicarse%20a%20nuestra%20operaci%C3%B3n.%0A%0AEmpresa%3A%0ACultivo%3A%0AVolumen%20aproximado%3A%0ATipo%20de%20operaci%C3%B3n%20%28bins%2C%20l%C3%ADnea%20o%20terreno%29%3A%0A%0AGracias.";
 
 const outcomes = [
-  { icon: TrendingUp, text: "Vende antes, con mayor certeza" },
-  { icon: PackageCheck, text: "Más fruta al destino correcto" },
-  { icon: ShieldCheck, text: "Menos merma y reempaque" },
+  { icon: TrendingUp, text: "Decide con datos, no con estimaciones" },
+  { icon: PackageCheck, text: "Cada lote al destino correcto" },
+  { icon: ShieldCheck, text: "Menos riesgo en cada decisión comercial" },
 ];
 
 const impact = [
   {
     number: "01",
     icon: TrendingUp,
-    title: "Acelera las ventas",
-    text: "Ofrece tu inventario con mayor conocimiento de su calibre, color y calidad antes de que ingrese al empaque.",
+    title: "Decide antes, con certeza",
+    text: "Conoce calibre, color y calidad en el momento en que aún puedes actuar, no cuando el resultado ya está definido.",
   },
   {
     number: "02",
     icon: BarChart3,
-    title: "Optimiza el packout",
-    text: "Dirige cada fruta al programa comercial adecuado y alinea lo que recibes con lo que tus clientes necesitan.",
+    title: "Reduce la asimetría de información",
+    text: "Todas las partes de una decisión comercial —planta, ventas, comprador— parten del mismo dato objetivo.",
   },
   {
     number: "03",
     icon: PackageCheck,
-    title: "Reduce costos evitables",
-    text: "Detecta desviaciones a tiempo para disminuir reprocesos, reempaque y pérdida de valor durante la poscosecha.",
+    title: "Evita costos evitables",
+    text: "Detecta desviaciones a tiempo para disminuir reprocesos, reempaque y pérdida de valor en la cadena.",
   },
 ];
-
-function Reveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  const reduceMotion = useReducedMotion();
-  return (
-    <motion.div
-      initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-function LazyVideo({ src, ariaLabel }: { src: string; ariaLabel: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [shouldLoad, setShouldLoad] = useState(false);
-
-  useEffect(() => {
-    const node = containerRef.current;
-    if (!node) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setShouldLoad(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "200px" }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={containerRef} style={{ width: "100%", height: "100%" }}>
-      {shouldLoad && (
-        <video autoPlay loop muted playsInline aria-label={ariaLabel}>
-          <source src={src} type="video/mp4" />
-        </video>
-      )}
-    </div>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="section-label">
-      <span className="section-label-dot" />
-      {children}
-    </div>
-  );
-}
 
 export default function CommercialLanding() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -123,7 +69,7 @@ export default function CommercialLanding() {
           </Link>
 
           <div className="nav-links">
-            <Link href="#como-funciona">Cómo funciona</Link>
+            <Link href="#soluciones">Soluciones</Link>
             <Link href="#impacto">Impacto</Link>
             <Link href="#validacion">Resultados</Link>
           </div>
@@ -147,7 +93,7 @@ export default function CommercialLanding() {
 
         {menuOpen && (
           <div id="mobile-navigation" className="mobile-navigation">
-            <Link href="#como-funciona" onClick={closeMenu}>Cómo funciona</Link>
+            <Link href="#soluciones" onClick={closeMenu}>Soluciones</Link>
             <Link href="#impacto" onClick={closeMenu}>Impacto</Link>
             <Link href="#validacion" onClick={closeMenu}>Resultados</Link>
             <Link href="/login" onClick={closeMenu}>Ingresar</Link>
@@ -165,18 +111,18 @@ export default function CommercialLanding() {
             transition={{ duration: 0.7 }}
             className="hero-copy"
           >
-            <SectionLabel>Inteligencia de calidad para decisiones comerciales</SectionLabel>
-            <h1>Convierte cada lote en una decisión <span>más rentable.</span></h1>
+            <SectionLabel>Inteligencia de calidad para decisiones agrícolas</SectionLabel>
+            <h1>Convierte cada decisión comercial en una <span>decisión informada.</span></h1>
             <p className="hero-lead">
-              Conoce calibre, color y defectos antes y durante el empaque. Qualiblick transforma bins y líneas de proceso en datos en tiempo real para vender con mayor certeza, reducir reempaque y dirigir cada fruta al destino correcto.
+              Qualiblick mide calibre, color y calidad con visión por computador en los momentos donde una decisión comercial agrícola se juega: en la recepción, en la línea de proceso o en el predio antes de la venta. Menos estimaciones, más datos verificables.
             </p>
 
             <div className="hero-actions">
               <a href={demoHref} className="button button-primary">
                 Solicita una demostración <ArrowRight aria-hidden="true" />
               </a>
-              <Link href="#como-funciona" className="button button-secondary">
-                Ver cómo funciona <ChevronRight aria-hidden="true" />
+              <Link href="#soluciones" className="button button-secondary">
+                Ver soluciones <ChevronRight aria-hidden="true" />
               </Link>
             </div>
 
@@ -267,53 +213,26 @@ export default function CommercialLanding() {
         </div>
       </section>
 
-      <section id="como-funciona" className="methods-section section-space">
+      <section id="soluciones" className="solutions-section section-space">
         <div className="landing-container centered-heading">
           <Reveal>
             <SectionLabel>Se adapta a tu operación</SectionLabel>
-            <h2>Una plataforma. Dos momentos críticos.</h2>
-            <p>Obtén visibilidad antes de empacar y mantén el control mientras la producción está en movimiento.</p>
+            <h2>Una plataforma. Tres momentos críticos.</h2>
+            <p>Del predio a la planta, Qualiblick entrega el mismo tipo de dato objetivo en el momento en que cada decisión comercial se juega.</p>
           </Reveal>
         </div>
 
-        <div className="landing-container methods-grid">
-          <Reveal className="method-card">
-            <div className="method-image">
-              <Image src="/images/bin-scan-industrial.webp" alt="Bin de manzanas bajo una cámara industrial para análisis antes del empaque" fill sizes="(max-width: 900px) 100vw, 50vw" />
-              <div className="method-overlay" />
-              <div className="method-tag"><Boxes aria-hidden="true" /> Antes del empaque</div>
-              <div className="bin-data-chip"><span>LOTE RECEPCIONADO</span><strong>Perfil disponible</strong></div>
-            </div>
-            <div className="method-content">
-              <span className="method-number">01</span>
-              <h3>Escaneo de bins</h3>
-              <p>Conoce calibre, color y calidad desde la recepción para orientar ventas, almacenamiento y programas de empaque.</p>
-              <ul>
-                <li><Check aria-hidden="true" /> Medición rápida y estandarizada</li>
-                <li><Check aria-hidden="true" /> Perfil comercial por lote</li>
-                <li><Check aria-hidden="true" /> Sin infraestructura compleja</li>
-              </ul>
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.1} className="method-card">
-            <div className="method-image">
-              <LazyVideo src="/videos/example.mp4" ariaLabel="Conteo y medición continua de productos en una línea industrial" />
-              <div className="method-overlay" />
-              <div className="method-tag"><ScanLine aria-hidden="true" /> Durante el proceso</div>
-              <div className="line-status"><span /><strong>LÍNEA ACTIVA</strong><b>+20 obj/s</b></div>
-            </div>
-            <div className="method-content">
-              <span className="method-number">02</span>
-              <h3>Inspección continua</h3>
-              <p>Detecta desviaciones durante el proceso y segmenta la calidad por productor, lote, turno o destino comercial.</p>
-              <ul>
-                <li><Check aria-hidden="true" /> Operación continua 24/7</li>
-                <li><Check aria-hidden="true" /> Sin detener la línea</li>
-                <li><Check aria-hidden="true" /> Datos listos para decidir</li>
-              </ul>
-            </div>
-          </Reveal>
+        <div className="landing-container solutions-grid">
+          {soluciones.map(({ slug, moment, icon: Icon, name, tagline }, index) => (
+            <Reveal key={slug} delay={index * 0.08} className="solution-card">
+              <Link href={`/soluciones/${slug}`} className="solution-card-link">
+                <span className="solution-card-tag"><Icon aria-hidden="true" /> {moment}</span>
+                <h3>{name}</h3>
+                <p>{tagline}</p>
+                <span className="solution-card-cta">Ver solución <ArrowRight aria-hidden="true" /></span>
+              </Link>
+            </Reveal>
+          ))}
         </div>
       </section>
 
@@ -407,7 +326,7 @@ export default function CommercialLanding() {
             <p>Datos reales para capturar más valor en cada etapa de la poscosecha.</p>
           </div>
           <div className="footer-links">
-            <Link href="#como-funciona">Cómo funciona</Link>
+            <Link href="#soluciones">Soluciones</Link>
             <Link href="#impacto">Impacto</Link>
             <Link href="#edge">Tecnología</Link>
             <Link href="#validacion">Resultados</Link>
