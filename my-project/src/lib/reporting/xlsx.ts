@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
-import type { ServiceReport } from "./types";
+import { label as translate, strings, type ReportStrings } from "./i18n";
+import type { ReportLang, ServiceReport } from "./types";
 
 /**
  * Version Excel de los mismos datos que van en los PDF.
@@ -7,98 +8,76 @@ import type { ServiceReport } from "./types";
  * `xlsx` ya es dependencia del proyecto (se usa client-side en los exports de
  * /servicios y /lotes); aca se genera server-side con type "buffer", que
  * funciona en el runtime nodejs que declara la ruta del cron.
+ *
+ * No hay hoja ni bloque de resumen por calibre: el reporte se rige por el lote.
+ * Agregar calibres entre lotes mezcla rangos que cada cierre demarco por
+ * separado, asi que la unica escala valida es la de cada lote.
  */
 
 type Cell = string | number | null;
 
-const SHEET_DAILY = "Diario";
-const SHEET_TOTAL = "Acumulado";
-
-function calibreSourceLabel(report: ServiceReport) {
-  return report.calibreSource === "declarado"
-    ? "Declarado por salida / Declared per outlet"
-    : "Medido / Measured";
+function calibreSourceLabel(report: ServiceReport, t: ReportStrings) {
+  return report.calibreSource === "declarado" ? t.sizeSourceDeclared : t.sizeSourceMeasured;
 }
 
-function header(report: ServiceReport, title: string): Cell[][] {
+function header(report: ServiceReport, title: string, t: ReportStrings): Cell[][] {
+  const bins = report.lotes.reduce(
+    (sum, lote) => sum + lote.rows.reduce((inner, row) => inner + row.bins, 0),
+    0
+  );
   return [
     [title],
-    ["Empresa / Company", report.companyName],
-    ["Servicio / Service", report.serviceName],
-    ["Proceso / Process", report.processName ?? "-"],
-    ["Fecha reportada / Report date", report.reportDate],
-    [
-      "Generado / Generated",
-      new Date(report.generatedAt).toLocaleString("es-CL", { timeZone: "America/Santiago" }),
-    ],
-    ["Origen del calibre / Size source", calibreSourceLabel(report)],
+    [t.company, report.companyName],
+    [t.service, report.serviceName],
+    [t.process, report.processName ?? "-"],
+    [t.reportDate, report.reportDate],
+    [t.generated, new Date(report.generatedAt).toLocaleString(t.locale, { timeZone: "America/Santiago" })],
+    [t.sizeSource, calibreSourceLabel(report, t)],
     [],
     // Ojo: este numero NO incluye la merma, que va en la fila siguiente. La
     // etiqueta dice "procesados" por decision del cliente; el desglose de abajo
     // es lo que evita leerlo como el total de la linea.
-    ["Bulbos procesados / Processed bulbs", report.totalBulbs],
-    ["Merma / Waste (fuera del total)", report.mermaBulbs],
-    ["Lotes procesados / Processed lots", report.lotes.length],
+    [t.bulbsProcessed, report.totalBulbs],
+    [t.lots, report.lotes.length],
+    [t.bins, bins],
     [],
   ];
 }
 
 /**
- * Detalle agrupado por lote: el codigo va solo en la primera fila de su bloque
- * y los bloques se separan con una fila en blanco, para leerlo de corrido sin
- * la columna repetida. Se prefiere esto a `!merges` porque una celda combinada
- * rompe el ordenar y el filtrar sobre la tabla.
+ * Detalle plano: variedad y lote se repiten en cada fila, incluida la de total
+ * del lote. Antes el codigo iba solo en la primera fila del bloque, lo que se
+ * lee bien pero deja la tabla inservible para ordenar, filtrar o pegarla en una
+ * dinamica — que es lo que se hace con el Excel. Por lo mismo no hay celdas
+ * combinadas, y la unica fila en blanco es la que separa una variedad de la
+ * siguiente: entre lotes de la misma variedad la tabla sigue de corrido.
+ *
+ * El % de una fila de calibre es dentro de su lote; el de la fila de total es
+ * el peso del lote en el periodo.
  */
-function detailRows(report: ServiceReport, withSalidas: boolean): Cell[][] {
-  const head: Cell[] = withSalidas
-    ? ["Lote / Lot", "Calibre / Size", "Salida / Outlet", "Bulbos", "%", "Bins"]
-    : ["Lote / Lot", "Calibre / Size", "Bulbos", "%", "Bins"];
-  const rows: Cell[][] = [head];
+function detailRows(report: ServiceReport, lang: ReportLang, t: ReportStrings): Cell[][] {
+  const rows: Cell[][] = [[t.variety, t.lot, t.size, t.bulbs, "%", t.bins]];
+
+  let variedadAnterior: string | null | undefined;
   for (const lote of report.lotes) {
-    // Un lote que solo saco merma tiene rows vacio pero SI conto bulbos: sin esta
-    // condicion caia en "Sin datos para el periodo" y su merma no se mostraba.
-    if (lote.rows.length === 0 && lote.mermaBulbs === 0) {
-      rows.push(
-        withSalidas
-          ? [lote.codigoLote, "Sin datos para el periodo", null, null, null, null]
-          : [lote.codigoLote, "Sin datos para el periodo", null, null, null]
-      );
-      rows.push([]);
+    if (variedadAnterior !== undefined && lote.variedad !== variedadAnterior) rows.push([]);
+    variedadAnterior = lote.variedad;
+    const head: Cell[] = [lote.variedad ?? "-", lote.codigoLote];
+    if (lote.rows.length === 0) {
+      rows.push([...head, t.noData, null, null, null]);
       continue;
     }
-    lote.rows.forEach((row, index) => {
-      const codigo = index === 0 ? lote.codigoLote : null;
-      rows.push(
-        withSalidas
-          ? [codigo, row.label, "Todas / All", row.bulbs, row.percent, row.bins || null]
-          : [codigo, row.label, row.bulbs, row.percent, row.bins || null]
-      );
-      // Una fila por salida bajo su calibre: el % es el peso de la salida dentro
-      // de ese calibre, no sobre el lote.
-      if (withSalidas) {
-        for (const salida of row.salidas) {
-          rows.push([null, null, salida.label, salida.bulbs, salida.percent, null]);
-        }
-      }
-    });
-    // La merma del lote, antes del total y rotulada como fuera de el: sin esta
-    // fila el detalle por lote mostraba los calibres pero escondia el descarte.
-    // Si el lote solo saco merma, esta es su primera fila y le toca llevar el
-    // codigo — que va solo en la primera fila de cada bloque.
-    if (lote.mermaBulbs > 0) {
-      const codigo = lote.rows.length === 0 ? lote.codigoLote : null;
-      rows.push(
-        withSalidas
-          ? [codigo, "Merma / Waste (fuera del total)", null, lote.mermaBulbs, null, null]
-          : [codigo, "Merma / Waste (fuera del total)", lote.mermaBulbs, null, null]
-      );
+    for (const row of lote.rows) {
+      rows.push([
+        ...head,
+        translate(row.label, lang),
+        row.bulbs,
+        row.percent,
+        row.bins || null,
+      ]);
     }
-    rows.push(
-      withSalidas
-        ? [null, "Total lote / Lot total", null, lote.bulbs, lote.percent, null]
-        : [null, "Total lote / Lot total", lote.bulbs, lote.percent, null]
-    );
-    rows.push([]);
+    const bins = lote.rows.reduce((sum, row) => sum + row.bins, 0);
+    rows.push([...head, t.lotTotal, lote.bulbs, lote.percent, bins || null]);
   }
   return rows;
 }
@@ -108,53 +87,24 @@ function detailRows(report: ServiceReport, withSalidas: boolean): Cell[][] {
 const PERCENT_FORMAT = '0.00"%"';
 const BULBS_FORMAT = "#,##0";
 
-function reportSheet(report: ServiceReport, title: string) {
-  // La columna de salida solo se agrega si el servicio realmente declara por
-  // salida: en modo medido estaria vacia en todas las filas.
-  const withSalidas = report.rows.some((row) => row.salidas.length > 0);
-
-  const rows: Cell[][] = [
-    ...header(report, title),
-    ["Resumen por calibre / Size summary"],
-    withSalidas
-      ? ["Calibre / Size", "Salida / Outlet", "Bulbos", "%", "Bins"]
-      : ["Calibre / Size", "Bulbos", "%", "Bins"],
-  ];
-  const summaryFrom = rows.length;
-  for (const row of report.rows) {
-    rows.push(
-      withSalidas
-        ? [row.label, "Todas / All", row.bulbs, row.percent, row.bins || null]
-        : [row.label, row.bulbs, row.percent, row.bins || null]
-    );
-    // El % de la salida es su peso dentro del calibre, no sobre el total.
-    if (withSalidas) {
-      for (const salida of row.salidas) {
-        rows.push([null, salida.label, salida.bulbs, salida.percent, null]);
-      }
-    }
-  }
-  if (report.rows.length === 0) rows.push(["Sin datos para el periodo / No data for this period"]);
-  const summaryTo = rows.length - 1;
-
-  rows.push([], ["Detalle por lote / Lot detail"]);
+function reportSheet(report: ServiceReport, title: string, lang: ReportLang) {
+  const t = strings(lang);
+  const rows: Cell[][] = [...header(report, title, t), [t.lotDetail]];
   const detailFrom = rows.length + 1;
-  rows.push(...detailRows(report, withSalidas));
+  rows.push(...detailRows(report, lang, t));
   const detailTo = rows.length - 1;
 
   const sheet = XLSX.utils.aoa_to_sheet(rows);
-  sheet["!cols"] = withSalidas
-    ? [{ wch: 34 }, { wch: 34 }, { wch: 20 }, { wch: 16 }, { wch: 10 }, { wch: 10 }]
-    : [{ wch: 34 }, { wch: 34 }, { wch: 16 }, { wch: 10 }, { wch: 10 }];
-  // Las dos tablas tienen distinto orden de columnas, asi que el formato se
-  // acota por bloque: en el resumen los bulbos van en B y el % en C; en el
-  // detalle, desplazados una columna por el codigo de lote. Con la columna de
-  // salida, ambos bloques se desplazan una columna mas.
-  const offset = withSalidas ? 1 : 0;
-  formatCells(sheet, 1 + offset, summaryFrom, summaryTo, BULBS_FORMAT);
-  formatCells(sheet, 2 + offset, summaryFrom, summaryTo, PERCENT_FORMAT);
-  formatCells(sheet, 2 + offset, detailFrom, detailTo, BULBS_FORMAT);
-  formatCells(sheet, 3 + offset, detailFrom, detailTo, PERCENT_FORMAT);
+  sheet["!cols"] = [
+    { wch: 22 },
+    { wch: 20 },
+    { wch: 16 },
+    { wch: 14 },
+    { wch: 10 },
+    { wch: 10 },
+  ];
+  formatCells(sheet, 3, detailFrom, detailTo, BULBS_FORMAT);
+  formatCells(sheet, 4, detailFrom, detailTo, PERCENT_FORMAT);
   return sheet;
 }
 
@@ -172,13 +122,14 @@ function formatCells(
   }
 }
 
-export function renderServiceReportWorkbook(daily: ServiceReport, total: ServiceReport): Buffer {
+export function renderServiceReportWorkbook(
+  daily: ServiceReport,
+  total: ServiceReport,
+  lang: ReportLang = "en"
+): Buffer {
+  const t = strings(lang);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, reportSheet(daily, "Resumen diario / Daily summary"), SHEET_DAILY);
-  XLSX.utils.book_append_sheet(
-    workbook,
-    reportSheet(total, "Resumen acumulado / Service total summary"),
-    SHEET_TOTAL
-  );
+  XLSX.utils.book_append_sheet(workbook, reportSheet(daily, t.dailyTitle, lang), t.sheetDaily);
+  XLSX.utils.book_append_sheet(workbook, reportSheet(total, t.totalTitle, lang), t.sheetTotal);
   return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
 }

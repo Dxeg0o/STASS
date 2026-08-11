@@ -29,6 +29,12 @@ function safeFilePart(value: string) {
     .slice(0, 80) || "servicio";
 }
 
+/**
+ * Idioma de los entregables. Los reportes que salen al cliente van en ingles;
+ * el castellano existe solo para revisar el contenido internamente.
+ */
+const REPORT_LANG = "en" as const;
+
 export async function buildReportPair(serviceId: string, reportDate: string): Promise<ReportPair> {
   // Antes de leer nada: el resumen declarado se materializa aca y no en el
   // dispatch, para que el envio de prueba y cualquier otro consumidor futuro
@@ -39,10 +45,16 @@ export async function buildReportPair(serviceId: string, reportDate: string): Pr
     buildServiceReport(serviceId, "total", reportDate),
   ]);
   const [dailyPdf, totalPdf] = await Promise.all([
-    renderServiceReportPdf(daily),
-    renderServiceReportPdf(total),
+    renderServiceReportPdf(daily, REPORT_LANG),
+    renderServiceReportPdf(total, REPORT_LANG),
   ]);
-  return { daily, total, dailyPdf, totalPdf, workbook: renderServiceReportWorkbook(daily, total) };
+  return {
+    daily,
+    total,
+    dailyPdf,
+    totalPdf,
+    workbook: renderServiceReportWorkbook(daily, total, REPORT_LANG),
+  };
 }
 
 /**
@@ -137,16 +149,16 @@ export async function sendReportToRecipient(
     const filename = safeFilePart(pair.daily.serviceName);
     await sendEmail({
       to: recipient.correo,
-      subject: `Reporte QUALIBLICK - ${pair.daily.serviceName} - ${reportDate}`,
+      subject: `QUALIBLICK report - ${pair.daily.serviceName} - ${reportDate}`,
       react: React.createElement(ServiceReportEmail, {
         daily: pair.daily,
-        total: pair.total,
         recipientName: recipient.nombre,
+        lang: REPORT_LANG,
       }),
       attachments: [
-        { filename: `reporte-diario-${filename}-${reportDate}.pdf`, content: pair.dailyPdf },
-        { filename: `reporte-total-${filename}.pdf`, content: pair.totalPdf },
-        { filename: `reporte-${filename}-${reportDate}.xlsx`, content: pair.workbook },
+        { filename: `daily-report-${filename}-${reportDate}.pdf`, content: pair.dailyPdf },
+        { filename: `total-report-${filename}.pdf`, content: pair.totalPdf },
+        { filename: `report-${filename}-${reportDate}.xlsx`, content: pair.workbook },
         getQualiblickLogoAttachment(),
       ],
     });
