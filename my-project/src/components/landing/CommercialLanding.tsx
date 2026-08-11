@@ -72,6 +72,7 @@ export default function CommercialLanding() {
             <Link href="#soluciones">Soluciones</Link>
             <Link href="#impacto">Impacto</Link>
             <Link href="#validacion">Resultados</Link>
+            <Link href="/sobre-nosotros">Sobre nosotros</Link>
           </div>
 
           <div className="nav-actions">
@@ -96,6 +97,7 @@ export default function CommercialLanding() {
             <Link href="#soluciones" onClick={closeMenu}>Soluciones</Link>
             <Link href="#impacto" onClick={closeMenu}>Impacto</Link>
             <Link href="#validacion" onClick={closeMenu}>Resultados</Link>
+            <Link href="/sobre-nosotros" onClick={closeMenu}>Sobre nosotros</Link>
             <Link href="/login" onClick={closeMenu}>Ingresar</Link>
             <a href={demoHref} className="button button-primary" onClick={closeMenu}>Solicita una demo</a>
           </div>
@@ -331,6 +333,7 @@ export default function CommercialLanding() {
             <Link href="#impacto">Impacto</Link>
             <Link href="#edge">Tecnología</Link>
             <Link href="#validacion">Resultados</Link>
+            <Link href="/sobre-nosotros">Sobre nosotros</Link>
           </div>
           <div className="footer-contact">
             <a href="mailto:contacto@qualiblick.com"><Mail aria-hidden="true" /> contacto@qualiblick.com</a>
