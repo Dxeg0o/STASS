@@ -82,7 +82,7 @@ export default function SolutionPage({ slug }: { slug: string }) {
             </Reveal>
 
             <Reveal delay={0.12} className="solution-hero-visual">
-              <div className="method-image solution-hero-image">
+              <div className={`method-image solution-hero-image ${solucion.slug === "diagnostico-de-recepcion" ? "solution-hero-image-bin-scan" : ""}`}>
                 {solucion.mediaType === "video" ? (
                   <LazyVideo src={solucion.mediaSrc} ariaLabel={solucion.name} />
                 ) : (
@@ -126,6 +126,26 @@ export default function SolutionPage({ slug }: { slug: string }) {
           ))}
         </div>
       </section>
+
+      {solucion.resultsMedia && (
+        <section className="solution-results-section section-space">
+          <div className="landing-container solution-results-grid">
+            <Reveal className="solution-results-copy">
+              <SectionLabel>El resultado</SectionLabel>
+              <h2>Un perfil del bin listo para decidir.</h2>
+              <p>En una sola vista, el equipo puede entender la composición real del producto y usarla para definir su mejor destino.</p>
+              <ul>
+                <li><strong>Color:</strong> identifica el nivel de madurez predominante.</li>
+                <li><strong>Tamaño:</strong> muestra la distribución por calibre.</li>
+                <li><strong>Calidad:</strong> separa fruta apta y defectuosa con criterios consistentes.</li>
+              </ul>
+            </Reveal>
+            <Reveal delay={0.12} className="solution-results-visual">
+              <Image src={solucion.resultsMedia.src} alt={solucion.resultsMedia.alt} width={1448} height={1086} sizes="(max-width: 900px) 100vw, 55vw" />
+            </Reveal>
+          </div>
+        </section>
+      )}
 
       <section className="impact-section section-space">
         <div className="landing-container">

@@ -22,6 +22,7 @@ export type Solucion = {
   heroLead: string;
   mediaType: "image" | "video";
   mediaSrc: string;
+  resultsMedia?: { src: string; alt: string };
   problem: { title: string; text: string };
   steps: { number: string; title: string; text: string }[];
   benefits: { icon: LucideIcon; title: string; text: string }[];
@@ -40,7 +41,11 @@ export const soluciones: Solucion[] = [
     heroLead:
       "Los bins llegan a planta y las decisiones de venta, almacenamiento y programa de empaque suelen tomarse con una muestra mínima. Cuando el dato real llega, ya es tarde para reaccionar. El Diagnóstico de Recepción mide cada bin en el punto de entrada y entrega un perfil comercial antes de moverlo.",
     mediaType: "image",
-    mediaSrc: "/images/bin-scan-industrial.webp",
+    mediaSrc: "/images/Qualiblick-Bin-Scan.png",
+    resultsMedia: {
+      src: "/images/Qualiblick-Bin-Scan-RESULTS.png",
+      alt: "Resultado de análisis de bins: color, tamaño y calidad de manzanas",
+    },
     problem: {
       title: "Una muestra pequeña decide el destino de todo el lote.",
       text: "Sin un dato representativo en recepción, ventas, almacenamiento y planificación de empaque operan a ciegas hasta la calibración final, cuando ya no hay margen de acción.",
