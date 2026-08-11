@@ -275,6 +275,7 @@ body {
 .solution-card-tag { display: inline-flex; align-self: flex-start; align-items: center; gap: 7px; padding: 9px 12px; margin-bottom: 22px; color: white; border: 1px solid rgba(255,255,255,.14); border-radius: 6px; background: rgba(8,11,9,.78); font-size: 11px; font-weight: 800; }
 .solution-card-tag svg { width: 15px; color: var(--qb-yellow); }
 .solution-card-link h3 { font-size: 24px; letter-spacing: -.025em; }
+.solution-card-descriptor { display: block; margin-top: 8px; color: var(--qb-green-light); font-size: 12px; font-weight: 750; letter-spacing: .015em; }
 .solution-card-link > p { flex: 1; margin-top: 14px; color: #9aa49d; font-size: 14px; line-height: 1.65; }
 .solution-card-cta { display: flex; align-items: center; gap: 8px; margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.08); color: var(--qb-green-light); font-size: 13px; font-weight: 800; }
 .solution-card-cta svg { width: 15px; transition: transform .2s ease; }
@@ -286,6 +287,8 @@ body {
 .solution-back-link:hover { color: white; }
 .solution-hero-grid { display: grid; grid-template-columns: 1.03fr .97fr; gap: 72px; align-items: center; margin-top: 34px; padding-bottom: 96px; }
 .solution-hero-copy h1 { max-width: 640px; margin-top: 25px; font-size: clamp(38px, 4.6vw, 58px); line-height: 1.04; letter-spacing: -.045em; font-weight: 850; color: #f7faf8; }
+.solution-brand-descriptor { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-top: 22px; color: #f7faf8; font-size: 17px; font-weight: 850; letter-spacing: .04em; }
+.solution-brand-descriptor span { color: #aab5ae; font-size: 12px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
 .solution-hero-visual { position: relative; }
 .solution-hero-image { height: auto; aspect-ratio: 1 / 1.04; border-radius: 16px; }
 .solution-hero-image-bin-scan { aspect-ratio: 16 / 10; }

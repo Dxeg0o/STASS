@@ -72,6 +72,7 @@ export default function SolutionPage({ slug }: { slug: string }) {
           <div className="solution-hero-grid">
             <Reveal className="solution-hero-copy">
               <SectionLabel><Icon aria-hidden="true" /> {solucion.moment}</SectionLabel>
+              <p className="solution-brand-descriptor">{solucion.name} <span>{solucion.descriptor}</span></p>
               <h1>{solucion.heroTitle}</h1>
               <p className="hero-lead">{solucion.heroLead}</p>
               <div className="hero-actions">
@@ -199,11 +200,12 @@ export default function SolutionPage({ slug }: { slug: string }) {
           </Reveal>
         </div>
         <div className="landing-container solutions-grid">
-          {otherSoluciones.map(({ slug, moment, icon: OtherIcon, name, tagline }, index) => (
+          {otherSoluciones.map(({ slug, moment, icon: OtherIcon, name, descriptor, tagline }, index) => (
             <Reveal key={slug} delay={index * 0.08} className="solution-card">
               <Link href={`/soluciones/${slug}`} className="solution-card-link">
                 <span className="solution-card-tag"><OtherIcon aria-hidden="true" /> {moment}</span>
                 <h3>{name}</h3>
+                <span className="solution-card-descriptor">{descriptor}</span>
                 <p>{tagline}</p>
                 <span className="solution-card-cta">Ver solución <ArrowRight aria-hidden="true" /></span>
               </Link>

@@ -223,11 +223,12 @@ export default function CommercialLanding() {
         </div>
 
         <div className="landing-container solutions-grid">
-          {soluciones.map(({ slug, moment, icon: Icon, name, tagline }, index) => (
+          {soluciones.map(({ slug, moment, icon: Icon, name, descriptor, tagline }, index) => (
             <Reveal key={slug} delay={index * 0.08} className="solution-card">
               <Link href={`/soluciones/${slug}`} className="solution-card-link">
                 <span className="solution-card-tag"><Icon aria-hidden="true" /> {moment}</span>
                 <h3>{name}</h3>
+                <span className="solution-card-descriptor">{descriptor}</span>
                 <p>{tagline}</p>
                 <span className="solution-card-cta">Ver solución <ArrowRight aria-hidden="true" /></span>
               </Link>

@@ -17,6 +17,7 @@ export type Solucion = {
   moment: string;
   icon: LucideIcon;
   name: string;
+  descriptor: string;
   tagline: string;
   heroTitle: string;
   heroLead: string;
@@ -33,13 +34,14 @@ export type Solucion = {
 export const soluciones: Solucion[] = [
   {
     slug: "diagnostico-de-recepcion",
-    moment: "Antes del empaque",
+    moment: "Recepción",
     icon: Boxes,
-    name: "Diagnóstico de Recepción",
-    tagline: "Conoce calibre, color y calidad de cada bin apenas llega, antes de decidir qué hacer con él.",
-    heroTitle: "Sabe qué tienes antes de decidir qué hacer con ello.",
+    name: "GUIGNA®",
+    descriptor: "Diagnóstico de recepción",
+    tagline: "Conoce la composición de cada bin antes de procesarlo.",
+    heroTitle: "Conoce lo que tienes antes de procesarlo.",
     heroLead:
-      "Los bins llegan a planta y las decisiones de venta, almacenamiento y programa de empaque suelen tomarse con una muestra mínima. Cuando el dato real llega, ya es tarde para reaccionar. El Diagnóstico de Recepción mide cada bin en el punto de entrada y entrega un perfil comercial antes de moverlo.",
+      "Mide calibre, color y calidad al recibir cada bin para decidir su mejor destino con datos reales.",
     mediaType: "image",
     mediaSrc: "/images/Qualiblick-Bin-Scan.png",
     resultsMedia: {
@@ -61,17 +63,18 @@ export const soluciones: Solucion[] = [
       { icon: ShieldCheck, title: "Menos sorpresas en calibración final", text: "El dato de recepción y el de salida dejan de estar tan separados en el tiempo." },
     ],
     proofPoint: "Metodología validada en planta: 97,54% de precisión en conteo sobre lotes reales.",
-    ctaSubject: "Diagnóstico de Recepción",
+    ctaSubject: "GUIGNA",
   },
   {
     slug: "control-de-linea-en-tiempo-real",
-    moment: "Durante el proceso",
+    moment: "Proceso",
     icon: ScanLine,
-    name: "Control de Línea en Tiempo Real",
-    tagline: "Monitorea calibre y calidad en vivo sobre la línea activa, sin detener la producción.",
+    name: "PLANCUS®",
+    descriptor: "Control de línea en tiempo real",
+    tagline: "Mide cada lote mientras la producción avanza.",
     heroTitle: "Ve lo que pasa en tu línea mientras está pasando.",
     heroLead:
-      "La calidad puede variar por turno, por productor o por lote sin que nadie lo note hasta que el resultado final ya está empacado. El Control de Línea en Tiempo Real mide cada unidad mientras se procesa y expone desviaciones al instante.",
+      "Mide calibre y calidad en vivo sobre la línea activa para detectar desviaciones antes de que avancen.",
     mediaType: "video",
     mediaSrc: "/videos/example.mp4",
     problem: {
@@ -89,17 +92,18 @@ export const soluciones: Solucion[] = [
       { icon: BarChart3, title: "Sin infraestructura compleja", text: "Se integra al punto de la línea que ya tienes, sin rediseñar el proceso." },
     ],
     proofPoint: "97,54% de precisión validada en condiciones reales de alta velocidad (caso Valdivia Lilies).",
-    ctaSubject: "Control de Línea en Tiempo Real",
+    ctaSubject: "PLANCUS",
   },
   {
     slug: "preempaque-en-terreno",
-    moment: "Antes de la venta",
+    moment: "Terreno",
     icon: Handshake,
-    name: "Preempaque en Terreno",
-    tagline: "Una tasación objetiva en el predio, antes de negociar el precio.",
+    name: "CULPAEUS®",
+    descriptor: "Tasación objetiva en terreno",
+    tagline: "Conoce el potencial comercial antes de decidir.",
     heroTitle: "Negocia con datos, no con estimaciones.",
     heroLead:
-      "Cuando la fruta se vende antes del empaque, comprador y productor suelen negociar con información limitada: una muestra manual, un cálculo aproximado o la palabra de una de las partes. Preempaque en Terreno entrega una tasación objetiva, compartida por ambos, antes de cerrar el trato.",
+      "Lleva una medición objetiva al predio para que productor y comprador decidan sobre la misma evidencia.",
     mediaType: "image",
     mediaSrc: "/images/valdivia_lilies.jpg",
     problem: {
@@ -117,7 +121,7 @@ export const soluciones: Solucion[] = [
       { icon: MapPin, title: "Se adapta a distintos cultivos", text: "Servicio móvil, sin infraestructura fija, ajustable al predio y al producto." },
     ],
     proofPoint: "Servicio en validación con productores y compradores: agenda una prueba en tu próxima cosecha.",
-    ctaSubject: "Preempaque en Terreno",
+    ctaSubject: "CULPAEUS",
   },
 ];
 
