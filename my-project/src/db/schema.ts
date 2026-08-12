@@ -753,18 +753,30 @@ export const conteo = pgTable(
 
 // ─── Conteo Archive Index ─────────────────────────────────
 
-export const conteoArchiveIndex = pgTable("conteo_archive_index", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  date: timestamp("date", { withTimezone: false, mode: "date" })
-    .notNull()
-    .unique(),
-  filePath: text("file_path").notNull(),
-  rowCount: integer("row_count").notNull(),
-  checksum: text("checksum"),
-  archivedAt: timestamp("archived_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const conteoArchiveIndex = pgTable(
+  "conteo_archive_index",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    date: timestamp("date", { withTimezone: false, mode: "date" }).notNull(),
+    // NULL = archivo del dia completo (cron `archive-conteo`); con valor = el
+    // archivo cubre solo ese servicio. La unicidad es (date, servicio_id).
+    servicioId: uuid("servicio_id").references(() => servicio.id),
+    filePath: text("file_path").notNull(),
+    rowCount: integer("row_count").notNull(),
+    checksum: text("checksum"),
+    archivedAt: timestamp("archived_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    // Un día grande se parte en varios .csv.gz (tope de 100 MB del bucket) y
+    // cada parte es una fila, así que la unicidad es por objeto archivado.
+    unique("conteo_archive_index_objeto_unique")
+      .on(t.date, t.servicioId, t.filePath)
+      .nullsNotDistinct(),
+    index("idx_archive_servicio").on(t.servicioId, t.date),
+  ]
+);
 
 // ─── Invitation Link ──────────────────────────────────────
 

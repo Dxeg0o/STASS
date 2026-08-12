@@ -69,7 +69,7 @@ export default function AboutUs() {
 
           <div className="nav-actions">
             <Link href="/login" className="nav-login">Ingresar</Link>
-            <a href={demoHref} className="button button-small button-primary">Solicita una demo</a>
+            <a href={demoHref} className="button button-small button-primary">Agenda una evaluación</a>
           </div>
 
           <button type="button" className="mobile-menu-button" onClick={() => setMenuOpen((value) => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}>
@@ -83,7 +83,7 @@ export default function AboutUs() {
             <Link href="/#impacto" onClick={closeMenu}>Impacto</Link>
             <Link href="/sobre-nosotros" onClick={closeMenu}>Sobre nosotros</Link>
             <Link href="/login" onClick={closeMenu}>Ingresar</Link>
-            <a href={demoHref} className="button button-primary" onClick={closeMenu}>Solicita una demo</a>
+            <a href={demoHref} className="button button-primary" onClick={closeMenu}>Agenda una evaluación</a>
           </div>
         )}
       </nav>
@@ -185,7 +185,7 @@ export default function AboutUs() {
 
       <footer className="landing-footer">
         <div className="landing-container footer-grid">
-          <div><Image src="/images/qb.png" alt="Qualiblick" width={170} height={40} className="footer-logo" /><p>Datos reales para capturar más valor en cada etapa de la poscosecha.</p></div>
+          <div><Image src="/images/qb.png" alt="Qualiblick" width={170} height={40} className="footer-logo" /><p>Datos reales para proteger el valor de cada lote.</p></div>
           <div className="footer-links"><Link href="/#soluciones">Soluciones</Link><Link href="/#impacto">Impacto</Link><Link href="/sobre-nosotros">Sobre nosotros</Link></div>
           <div className="footer-contact"><a href="mailto:contacto@qualiblick.com"><Mail aria-hidden="true" /> contacto@qualiblick.com</a><span><MapPin aria-hidden="true" /> Santiago, Chile</span></div>
         </div>
