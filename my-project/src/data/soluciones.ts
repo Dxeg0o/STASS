@@ -38,10 +38,10 @@ export const soluciones: Solucion[] = [
     icon: Boxes,
     name: "GUIGNA®",
     descriptor: "Diagnóstico de recepción",
-    tagline: "Conoce la composición de cada bin antes de procesarlo.",
-    heroTitle: "Conoce lo que tienes antes de procesarlo.",
+    tagline: "Decide qué vender, guardar o procesar antes de mover cada bin.",
+    heroTitle: "Decide el destino de cada bin conociendo su calidad real.",
     heroLead:
-      "Mide calibre, color y calidad al recibir cada bin para decidir su mejor destino con datos reales.",
+      "Mide calibre, color y defectos al recibir cada bin para vender, guardar o procesar con menos riesgo.",
     mediaType: "image",
     mediaSrc: "/images/Qualiblick-Bin-Scan.png",
     resultsMedia: {
@@ -71,10 +71,10 @@ export const soluciones: Solucion[] = [
     icon: ScanLine,
     name: "PLANCUS®",
     descriptor: "Control de línea en tiempo real",
-    tagline: "Mide cada lote mientras la producción avanza.",
-    heroTitle: "Ve lo que pasa en tu línea mientras está pasando.",
+    tagline: "Corrige desviaciones antes de que lleguen al empaque final.",
+    heroTitle: "Corrige la línea antes de que el problema llegue al empaque.",
     heroLead:
-      "Mide calibre y calidad en vivo sobre la línea activa para detectar desviaciones antes de que avancen.",
+      "Mide calibre y calidad en vivo sobre la línea activa para detectar y corregir desviaciones mientras todavía puedes actuar.",
     mediaType: "video",
     mediaSrc: "/videos/example.mp4",
     problem: {
@@ -100,10 +100,10 @@ export const soluciones: Solucion[] = [
     icon: Handshake,
     name: "CULPAEUS®",
     descriptor: "Tasación objetiva en terreno",
-    tagline: "Conoce el potencial comercial antes de decidir.",
-    heroTitle: "Negocia con datos, no con estimaciones.",
+    tagline: "Cierra acuerdos con productor y comprador mirando el mismo dato.",
+    heroTitle: "Negocia el valor del lote con evidencia compartida.",
     heroLead:
-      "Lleva una medición objetiva al predio para que productor y comprador decidan sobre la misma evidencia.",
+      "Lleva una medición objetiva al predio para que productor y comprador acuerden precio y destino sobre la misma evidencia.",
     mediaType: "image",
     mediaSrc: "/images/valdivia_lilies.jpg",
     problem: {

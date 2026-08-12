@@ -7,13 +7,13 @@ import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.qualiblick.com"),
-  title: "Qualiblick | Más valor por cada lote",
+  title: "Qualiblick | Decide el destino de cada lote con datos reales",
   description:
-    "Conoce calibre, color y calidad antes y durante el empaque. Qualiblick convierte bins y líneas de proceso en datos para vender mejor, optimizar el packout y reducir reempaque.",
+    "Qualiblick ayuda a packings y exportadoras agrícolas a conocer la calidad real de sus lotes antes de vender, procesar o guardar. Mide calibre, color y defectos en recepción, línea o terreno.",
   openGraph: {
-    title: "Convierte cada lote en una decisión más rentable",
+    title: "Decide el destino de cada lote con datos reales",
     description:
-      "Datos de calidad en tiempo real para vender con mayor certeza, dirigir cada fruta al destino correcto y reducir merma y reempaque.",
+      "Mide calibre, color y defectos antes de que sea tarde para vender, procesar, guardar o corregir.",
     url: "https://www.qualiblick.com",
     siteName: "Qualiblick",
     images: [
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
         url: "/og.png",
         width: 1200,
         height: 630,
-        alt: "Qualiblick: convierte cada lote en una decisión más rentable",
+        alt: "Qualiblick: decide el destino de cada lote con datos reales",
       },
     ],
     locale: "es_CL",
@@ -44,8 +44,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Convierte cada lote en una decisión más rentable",
-    description: "Datos de calidad en tiempo real para vender mejor, optimizar el packout y reducir reempaque.",
+    title: "Decide el destino de cada lote con datos reales",
+    description: "Mide calidad a tiempo para vender mejor, reducir reprocesos y proteger el valor de cada lote.",
     images: ["/og.png"],
   },
 };

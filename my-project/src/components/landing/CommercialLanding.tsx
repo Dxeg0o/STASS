@@ -27,32 +27,32 @@ import { soluciones } from "../../data/soluciones";
 import { Reveal, SectionLabel } from "./shared";
 
 const demoHref =
-  "mailto:contacto@qualiblick.com?subject=Solicitud%20de%20demostraci%C3%B3n%20t%C3%A9cnica&body=Hola%20equipo%20Qualiblick%2C%0A%0AMe%20gustar%C3%ADa%20conocer%20c%C3%B3mo%20Qualiblick%20puede%20aplicarse%20a%20nuestra%20operaci%C3%B3n.%0A%0AEmpresa%3A%0ACultivo%3A%0AVolumen%20aproximado%3A%0ATipo%20de%20operaci%C3%B3n%20%28bins%2C%20l%C3%ADnea%20o%20terreno%29%3A%0A%0AGracias.";
+  "mailto:contacto@qualiblick.com?subject=Agenda%20una%20evaluaci%C3%B3n%20de%20operaci%C3%B3n&body=Hola%20equipo%20Qualiblick%2C%0A%0AMe%20gustar%C3%ADa%20identificar%20qu%C3%A9%20medir%20primero%20en%20nuestra%20operaci%C3%B3n.%0A%0AEmpresa%3A%0ACultivo%3A%0AVolumen%20aproximado%3A%0ATipo%20de%20operaci%C3%B3n%20%28bins%2C%20l%C3%ADnea%20o%20terreno%29%3A%0A%0AGracias.";
 
 const outcomes = [
-  { icon: TrendingUp, text: "Decide con datos, no con estimaciones" },
-  { icon: PackageCheck, text: "Cada lote al destino correcto" },
-  { icon: ShieldCheck, text: "Menos riesgo en cada decisión comercial" },
+  { icon: TrendingUp, text: "Vende conociendo el lote real" },
+  { icon: PackageCheck, text: "Envía cada lote al destino correcto" },
+  { icon: ShieldCheck, text: "Reduce reprocesos y reclamos" },
 ];
 
 const impact = [
   {
     number: "01",
     icon: TrendingUp,
-    title: "Decide antes, con certeza",
-    text: "Conoce calibre, color y calidad en el momento en que aún puedes actuar, no cuando el resultado ya está definido.",
+    title: "Decide antes de perder valor",
+    text: "Conoce calibre, color y calidad cuando todavía puedes vender, guardar, procesar o corregir.",
   },
   {
     number: "02",
     icon: BarChart3,
-    title: "Reduce la asimetría de información",
-    text: "Todas las partes de una decisión comercial —planta, ventas, comprador— parten del mismo dato objetivo.",
+    title: "Todos negocian sobre el mismo dato",
+    text: "Planta, ventas, productor y comprador parten de una lectura objetiva del lote, no de supuestos distintos.",
   },
   {
     number: "03",
     icon: PackageCheck,
-    title: "Evita costos evitables",
-    text: "Detecta desviaciones a tiempo para disminuir reprocesos, reempaque y pérdida de valor en la cadena.",
+    title: "Evita costos que se pueden anticipar",
+    text: "Detecta desviaciones antes de que se conviertan en reproceso, reempaque, descuento o reclamo.",
   },
 ];
 
@@ -77,7 +77,7 @@ export default function CommercialLanding() {
 
           <div className="nav-actions">
             <Link href="/login" className="nav-login">Ingresar</Link>
-            <a href={demoHref} className="button button-small button-primary">Solicita una demo</a>
+            <a href={demoHref} className="button button-small button-primary">Agenda una evaluación</a>
           </div>
 
           <button
@@ -99,7 +99,7 @@ export default function CommercialLanding() {
             <Link href="#validacion" onClick={closeMenu}>Resultados</Link>
             <Link href="/sobre-nosotros" onClick={closeMenu}>Sobre nosotros</Link>
             <Link href="/login" onClick={closeMenu}>Ingresar</Link>
-            <a href={demoHref} className="button button-primary" onClick={closeMenu}>Solicita una demo</a>
+            <a href={demoHref} className="button button-primary" onClick={closeMenu}>Agenda una evaluación</a>
           </div>
         )}
       </nav>
@@ -113,15 +113,15 @@ export default function CommercialLanding() {
             transition={{ duration: 0.7 }}
             className="hero-copy"
           >
-            <SectionLabel>Inteligencia de calidad para decisiones agrícolas</SectionLabel>
-            <h1>Convierte cada decisión comercial en una <span>decisión informada.</span></h1>
+            <SectionLabel>Para packings y exportadoras agrícolas</SectionLabel>
+            <h1>Conoce la calidad real de cada lote <span>antes de decidir su destino.</span></h1>
             <p className="hero-lead">
-              Qualiblick mide calibre, color y calidad con visión por computador en los momentos donde una decisión comercial agrícola se juega: en la recepción, en la línea de proceso o en el predio antes de la venta. Menos estimaciones, más datos verificables.
+              Qualiblick es una solución integrada de equipo, software y servicio que mide calibre, color y defectos en recepción, línea o terreno. Así puedes vender, procesar, guardar o corregir a tiempo, antes de que el resultado ya esté definido.
             </p>
 
             <div className="hero-actions">
               <a href={demoHref} className="button button-primary">
-                Solicita una demostración <ArrowRight aria-hidden="true" />
+                Agenda una evaluación <ArrowRight aria-hidden="true" />
               </a>
               <Link href="#soluciones" className="button button-secondary">
                 Ver soluciones <ChevronRight aria-hidden="true" />
@@ -176,11 +176,11 @@ export default function CommercialLanding() {
       <section className="blindspot-section section-space">
         <div className="landing-container split-heading">
           <Reveal>
-            <SectionLabel>Visibilidad antes de actuar</SectionLabel>
-            <h2>Conoce lo que tienes antes de decidir qué hacer con ello.</h2>
+            <SectionLabel>El costo de decidir tarde</SectionLabel>
+            <h2>Cuando conoces la calidad al final, ya perdiste opciones.</h2>
           </Reveal>
           <Reveal delay={0.1} className="split-heading-copy">
-            <p>Una muestra pequeña puede ocultar la verdadera distribución de tu producción. Cuando el dato llega tarde, ventas, almacenamiento y empaque deciden con información incompleta.</p>
+            <p>Una muestra pequeña puede ocultar la distribución real de tu producción. Si el dato llega después del empaque, ya no puedes cambiar el destino del lote, corregir la línea ni negociar con la misma evidencia.</p>
           </Reveal>
         </div>
 
@@ -210,7 +210,7 @@ export default function CommercialLanding() {
             <div className="sample-visual sample-large">
               {[...Array(35)].map((_, index) => <i key={index} className={index < 30 ? "active" : ""} />)}
             </div>
-            <p className="sample-caption"><strong>Mayor cobertura</strong><span>Visibilidad en tiempo real</span></p>
+            <p className="sample-caption"><strong>Mayor cobertura</strong><span>Más opciones antes de decidir</span></p>
           </Reveal>
         </div>
       </section>
@@ -218,9 +218,9 @@ export default function CommercialLanding() {
       <section id="soluciones" className="solutions-section section-space">
         <div className="landing-container centered-heading">
           <Reveal>
-            <SectionLabel>Se adapta a tu operación</SectionLabel>
-            <h2>Una plataforma. Tres momentos críticos.</h2>
-            <p>Del predio a la planta, Qualiblick entrega el mismo tipo de dato objetivo en el momento en que cada decisión comercial se juega.</p>
+            <SectionLabel>Una misma promesa, donde la necesitas</SectionLabel>
+            <h2>Mide a tiempo para tomar la decisión correcta.</h2>
+            <p>Qualiblick lleva una lectura objetiva del lote al punto donde todavía puedes cambiar su destino: recepción, línea de proceso o terreno.</p>
           </Reveal>
         </div>
 
@@ -243,8 +243,8 @@ export default function CommercialLanding() {
         <div className="landing-container">
           <div className="impact-heading">
             <Reveal>
-              <SectionLabel>De la medición a la rentabilidad</SectionLabel>
-              <h2>Más información no es el objetivo. <span>Mejores decisiones sí.</span></h2>
+              <SectionLabel>Lo que cambia en tu operación</SectionLabel>
+              <h2>El dato importa cuando te permite <span>proteger el valor del lote.</span></h2>
             </Reveal>
           </div>
 
@@ -264,9 +264,9 @@ export default function CommercialLanding() {
       <section id="edge" className="edge-section section-space">
         <div className="landing-container edge-grid">
           <Reveal className="edge-copy">
-            <SectionLabel>Funciona donde produces</SectionLabel>
-            <h2>Tus datos siguen llegando, incluso cuando internet falla.</h2>
-            <p>El equipo de Qualiblick analiza las imágenes dentro de tu planta. Por eso puedes ver resultados al instante y seguir trabajando aunque la conexión a internet sea inestable.</p>
+            <SectionLabel>Equipo + software + servicio</SectionLabel>
+            <h2>La medición ocurre dentro de tu operación, no en una oficina.</h2>
+            <p>Qualiblick combina cámaras, análisis y acompañamiento operativo. El equipo analiza las imágenes dentro de tu planta, entrega resultados al instante y sigue funcionando aunque la conexión a internet sea inestable.</p>
             <div className="edge-benefits">
               <div><Clock3 aria-hidden="true" /><span><strong>Al instante</strong>Resultados mientras trabajas</span></div>
               <div><Cpu aria-hidden="true" /><span><strong>Dentro de tu planta</strong>Sin enviar videos a internet</span></div>
@@ -294,9 +294,9 @@ export default function CommercialLanding() {
           </Reveal>
 
           <Reveal delay={0.1} className="validation-copy">
-            <SectionLabel>Validación en operación real</SectionLabel>
-            <h2>Validado donde medir es realmente difícil.</h2>
-            <p>Formas irregulares, superposición y suciedad: el caso Valdivia Lilies llevó la tecnología a un entorno donde la visión artificial debe demostrar precisión, no prometerla.</p>
+            <SectionLabel>Prueba en operación real</SectionLabel>
+            <h2>La precisión se probó donde el proceso no espera.</h2>
+            <p>En Valdivia Lilies, la solución midió productos con formas irregulares, superposición y suciedad: condiciones reales donde un dato equivocado puede terminar en una mala clasificación, reproceso o pérdida de valor.</p>
             <blockquote>“Si podemos medir con precisión en estas condiciones, podemos llevar datos confiables a los puntos más exigentes de tu producción.”</blockquote>
             <div className="validation-metrics">
               <div><strong>97,54%</strong><span>Precisión validada</span></div>
@@ -307,15 +307,46 @@ export default function CommercialLanding() {
         </div>
       </section>
 
+      <section className="trust-section section-space" aria-labelledby="trust-title">
+        <div className="landing-container trust-grid">
+          <Reveal className="trust-copy">
+            <SectionLabel>Confianza que acompaña el crecimiento</SectionLabel>
+            <h2 id="trust-title">Una tecnología que ya mueve decisiones reales.</h2>
+            <p>Contamos con el respaldo de organizaciones que impulsan la innovación y el crecimiento de soluciones de alto impacto.</p>
+          </Reveal>
+
+          <Reveal delay={0.1} className="trust-proof-card">
+            <div className="trust-proof-stat">
+              <strong>+100<span>M</span></strong>
+              <span>ítems procesados</span>
+            </div>
+            <div className="trust-proof-divider" aria-hidden="true" />
+            <p>Lecturas que convierten el volumen de tu operación en información accionable.</p>
+          </Reveal>
+        </div>
+
+        <div className="landing-container backers-row" aria-label="Organizaciones que respaldan a Qualiblick">
+          <span className="backers-label">Respaldado por</span>
+          <div className="backer-logos">
+            <div className="backer-logo backer-logo-cgv">
+              <Image src="/images/chile-global-ventures.png" alt="Chile Global Ventures" width={582} height={138} />
+            </div>
+            <div className="backer-logo backer-logo-corfo">
+              <Image src="/images/corfo.png" alt="CORFO" width={740} height={216} />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="contacto" className="cta-section">
         <div className="landing-container cta-card">
           <div className="cta-grid" aria-hidden="true" />
           <Reveal className="cta-content">
             <div className="cta-icon"><Sparkles aria-hidden="true" /></div>
-            <h2>Descubre cuánto valor estás dejando fuera de cada lote.</h2>
-            <p>Conversemos sobre tu cultivo, volumen y proceso de empaque.</p>
+            <h2>Descubre dónde puedes proteger más valor en cada lote.</h2>
+            <p>Agenda una evaluación de tu cultivo, volumen y proceso para identificar qué medir primero y qué decisión puedes mejorar.</p>
             <a href={demoHref} className="button button-primary button-large">
-              Solicita una demostración <ArrowRight aria-hidden="true" />
+              Agenda una evaluación <ArrowRight aria-hidden="true" />
             </a>
             <span className="cta-contact"><Mail aria-hidden="true" /> contacto@qualiblick.com</span>
           </Reveal>
@@ -326,7 +357,7 @@ export default function CommercialLanding() {
         <div className="landing-container footer-grid">
           <div>
             <Image src="/images/qb.png" alt="Qualiblick" width={170} height={40} className="footer-logo" />
-            <p>Datos reales para capturar más valor en cada etapa de la poscosecha.</p>
+            <p>Datos reales para proteger el valor de cada lote.</p>
           </div>
           <div className="footer-links">
             <Link href="#soluciones">Soluciones</Link>

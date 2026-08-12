@@ -13,7 +13,7 @@ export default function SolutionPage({ slug }: { slug: string }) {
   if (!solucion) return null;
   const closeMenu = () => setMenuOpen(false);
   const demoHref = `mailto:contacto@qualiblick.com?subject=${encodeURIComponent(
-    `Solicitud de demostración — ${solucion.ctaSubject}`
+    `Evaluación de operación — ${solucion.ctaSubject}`
   )}&body=${encodeURIComponent(
     `Hola equipo Qualiblick,\n\nMe gustaría conocer más sobre ${solucion.name}.\n\nEmpresa:\nCultivo:\nVolumen aproximado:\n\nGracias.`
   )}`;
@@ -37,7 +37,7 @@ export default function SolutionPage({ slug }: { slug: string }) {
 
           <div className="nav-actions">
             <Link href="/login" className="nav-login">Ingresar</Link>
-            <a href={demoHref} className="button button-small button-primary">Solicita una demo</a>
+            <a href={demoHref} className="button button-small button-primary">Agenda una evaluación</a>
           </div>
 
           <button
@@ -58,7 +58,7 @@ export default function SolutionPage({ slug }: { slug: string }) {
             <Link href="/#impacto" onClick={closeMenu}>Impacto</Link>
             <Link href="/#validacion" onClick={closeMenu}>Resultados</Link>
             <Link href="/login" onClick={closeMenu}>Ingresar</Link>
-            <a href={demoHref} className="button button-primary" onClick={closeMenu}>Solicita una demo</a>
+            <a href={demoHref} className="button button-primary" onClick={closeMenu}>Agenda una evaluación</a>
           </div>
         )}
       </nav>
@@ -77,7 +77,7 @@ export default function SolutionPage({ slug }: { slug: string }) {
               <p className="hero-lead">{solucion.heroLead}</p>
               <div className="hero-actions">
                 <a href={demoHref} className="button button-primary">
-                  Solicita una demostración <ArrowRight aria-hidden="true" />
+                  Agenda una evaluación <ArrowRight aria-hidden="true" />
                 </a>
               </div>
             </Reveal>
@@ -133,8 +133,8 @@ export default function SolutionPage({ slug }: { slug: string }) {
           <div className="landing-container solution-results-grid">
             <Reveal className="solution-results-copy">
               <SectionLabel>El resultado</SectionLabel>
-              <h2>Un perfil del bin listo para decidir.</h2>
-              <p>En una sola vista, el equipo puede entender la composición real del producto y usarla para definir su mejor destino.</p>
+              <h2>Una lectura del lote lista para decidir.</h2>
+              <p>En una sola vista, el equipo entiende la composición real del producto y puede definir su mejor destino antes de comprometerlo.</p>
               <ul>
                 <li><strong>Color:</strong> identifica el nivel de madurez predominante.</li>
                 <li><strong>Tamaño:</strong> muestra la distribución por calibre.</li>
@@ -182,10 +182,10 @@ export default function SolutionPage({ slug }: { slug: string }) {
         <div className="landing-container cta-card">
           <div className="cta-grid" aria-hidden="true" />
           <Reveal className="cta-content">
-            <h2>¿Conversamos sobre {solucion.name.toLowerCase()}?</h2>
-            <p>Cuéntanos tu cultivo, volumen y momento del proceso que quieres cubrir.</p>
+            <h2>¿Dónde necesitas decidir antes?</h2>
+            <p>Cuéntanos tu cultivo, volumen y momento del proceso. Identificaremos qué medir primero y qué decisión puedes mejorar.</p>
             <a href={demoHref} className="button button-primary button-large">
-              Solicita una demostración <ArrowRight aria-hidden="true" />
+              Agenda una evaluación <ArrowRight aria-hidden="true" />
             </a>
             <span className="cta-contact"><Mail aria-hidden="true" /> contacto@qualiblick.com</span>
           </Reveal>
@@ -218,7 +218,7 @@ export default function SolutionPage({ slug }: { slug: string }) {
         <div className="landing-container footer-grid">
           <div>
             <Image src="/images/qb.png" alt="Qualiblick" width={170} height={40} className="footer-logo" />
-            <p>Datos reales para capturar más valor en cada etapa de la poscosecha.</p>
+            <p>Datos reales para proteger el valor de cada lote.</p>
           </div>
           <div className="footer-links">
             <Link href="/#soluciones">Soluciones</Link>
