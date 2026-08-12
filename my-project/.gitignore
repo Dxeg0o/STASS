@@ -40,5 +40,8 @@ next-env.d.ts
 # keys
 backend/keys/stass.json
 
+# volcados locales del archivado de conteo (GB de .csv.gz)
+/outputs/archive_pelchuquin/
+
 __pycache__/
 venv/
