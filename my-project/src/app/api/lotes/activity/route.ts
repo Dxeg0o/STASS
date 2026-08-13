@@ -134,6 +134,7 @@ export async function POST(request: Request) {
     dispositivoIds.map((dispositivoId) => ({
       loteId,
       dispositivoId,
+      servicioId,
       startTime: now,
     })),
     { retirarCajas: true, retiradoAt: now }

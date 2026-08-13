@@ -502,6 +502,10 @@ export const loteSession = pgTable("lote_session", {
   dispositivoId: uuid("dispositivo_id")
     .notNull()
     .references(() => dispositivo.id),
+  // El servicio se congela al abrir la sesión. Puede ser null para sesiones
+  // históricas o aperturas durante un hueco/ambigüedad de asignación; en ese
+  // caso el correlativo de caja degrada al máximo global del lote.
+  servicioId: uuid("servicio_id").references(() => servicio.id),
   startTime: timestamp("start_time", { withTimezone: true })
     .notNull()
     .defaultNow(),

@@ -30,6 +30,7 @@ const migrations = [
   "0034_refresh_declarado_dia_por_rango.sql",
   "0035_archive_index_servicio.sql",
   "0036_archive_index_por_objeto.sql",
+  "0037_lote_session_servicio.sql",
 ];
 const sql = postgres(databaseUrl, { max: 1 });
 

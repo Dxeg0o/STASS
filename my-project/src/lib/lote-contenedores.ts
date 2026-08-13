@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { loteCierreCalibreBin } from "@/db/schema";
 import { eq, isNotNull, isNull, sql } from "drizzle-orm";
-import { getCajaCountForLote } from "@/lib/app-session";
+import { getCajaCountForLoteGlobal } from "@/lib/app-session";
 
 /**
  * Contenedores de un lote: los que entraron y los que salieron.
@@ -25,7 +25,7 @@ export interface ContenedoresLote {
 export async function contenedoresDelLote(loteId: string): Promise<ContenedoresLote> {
   // Cajas distintas, misma definición que ya usa la tablet para el numero de
   // orden de caja — se reutiliza para no tener dos formas de contar lo mismo.
-  const cajasEntrada = await getCajaCountForLote(loteId);
+  const cajasEntrada = await getCajaCountForLoteGlobal(loteId);
 
   // La tabla convive en dos regímenes (ver schema): filas por salida
   // (dispositivo_id NOT NULL) y filas legacy a nivel de lote. Sumar ambas

@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gt, inArray, isNull, lte, ne, or } from "drizzle-orm";
 import { db } from "@/db";
-import { caja, cajaLoteSession, dispositivo, loteSession } from "@/db/schema";
+import { caja, cajaLoteSession, dispositivo, dispositivoServicio, loteSession } from "@/db/schema";
 import { fetchLoteById, type LoteDTO } from "@/lib/app-lote";
 import {
   serializeCaja,
@@ -24,11 +24,7 @@ const EMPTY_SNAPSHOT: SessionSnapshotDTO = {
   caja_orden: 0,
 };
 
-// Número máximo de caja que ha tenido un lote a lo largo de sus lote_session.
-// El código es la fuente de verdad del correlativo: contar filas distintas
-// falla cuando hay reintentos, cajas compartidas por varios dispositivos o
-// códigos no consecutivos.
-export async function getCajaCountForLote(loteId: string): Promise<number> {
+export async function getCajaCountForLoteGlobal(loteId: string): Promise<number> {
   const sessions = await db
     .select({ id: loteSession.id })
     .from(loteSession)
@@ -41,6 +37,26 @@ export async function getCajaCountForLote(loteId: string): Promise<number> {
     .from(cajaLoteSession)
     .innerJoin(caja, eq(cajaLoteSession.cajaId, caja.id))
     .where(inArray(cajaLoteSession.loteSessionId, ids));
+
+  const suffixes = cajaSessions
+    .map((row) => row.codigo.match(/(\d+)$/)?.[1])
+    .filter((suffix): suffix is string => Boolean(suffix))
+    .map(Number)
+    .filter(Number.isFinite);
+
+  return suffixes.length > 0 ? Math.max(...suffixes) : 0;
+}
+
+export async function getCajaCountForLoteServicio(
+  loteId: string,
+  servicioId: string
+): Promise<number> {
+  const cajaSessions = await db
+    .select({ codigo: caja.codigo })
+    .from(cajaLoteSession)
+    .innerJoin(caja, eq(cajaLoteSession.cajaId, caja.id))
+    .innerJoin(loteSession, eq(cajaLoteSession.loteSessionId, loteSession.id))
+    .where(and(eq(loteSession.loteId, loteId), eq(loteSession.servicioId, servicioId)));
 
   const suffixes = cajaSessions
     .map((row) => row.codigo.match(/(\d+)$/)?.[1])
@@ -82,6 +98,8 @@ export interface OpenLoteSessionInput {
   id?: string;
   loteId: string;
   dispositivoId: string;
+  /** Servicio ya conocido por un flujo administrativo. */
+  servicioId?: string | null;
   startTime: Date;
 }
 
@@ -94,6 +112,28 @@ export type OpenLoteSessionResult = {
 };
 
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function resolveServicioIdForLoteSession(
+  tx: DbTransaction,
+  dispositivoId: string,
+  startTime: Date
+): Promise<string | null> {
+  const rows = await tx
+    .select({ servicioId: dispositivoServicio.servicioId })
+    .from(dispositivoServicio)
+    .where(
+      and(
+        eq(dispositivoServicio.dispositivoId, dispositivoId),
+        lte(dispositivoServicio.fechaInicio, startTime),
+        or(
+          isNull(dispositivoServicio.fechaTermino),
+          gt(dispositivoServicio.fechaTermino, startTime)
+        )
+      )
+    );
+  const ids = [...new Set(rows.map((row) => row.servicioId))];
+  return ids.length === 1 ? ids[0] : null;
+}
 
 /**
  * Abre una `lote_session` cerrando atómicamente cualquier otra que el
@@ -194,12 +234,25 @@ export async function openLoteSessionExclusiveInTransaction(
       .orderBy(asc(loteSession.startTime))
       .limit(1);
 
+    const servicioId =
+      input.servicioId === undefined
+        ? await resolveServicioIdForLoteSession(tx, dispositivoId, startTime)
+        : input.servicioId;
+    if (servicioId === null) {
+      console.warn("lote_session_service_unresolved", {
+        loteId,
+        dispositivoId,
+        startTime: startTime.toISOString(),
+      });
+    }
+
     const [created] = await tx
       .insert(loteSession)
       .values({
         ...(id ? { id } : {}),
         loteId,
         dispositivoId,
+        servicioId,
         startTime,
         ...(next ? { endTime: next.startTime } : {}),
       })
@@ -338,11 +391,23 @@ export async function getActiveSessionSnapshot(
       : null;
 
   // La tablet muestra este número junto a `caja`; por tanto debe representar
-  // la caja activa visible, no el total histórico del lote. El endpoint
-  // /cajas-count sigue usando getCajaCountForLote para numerar la próxima caja.
+  // la caja activa visible, no el total histórico del lote. Sin caja activa,
+  // se usa el servicio persistido si todas las sesiones abiertas coinciden;
+  // si no, se conserva el fallback global y queda una alerta operativa.
+  const serviceIds = [...new Set(activeSessions.map((session) => session.servicioId))];
+  const servicioId = serviceIds.length === 1 ? serviceIds[0] : null;
+  if (!servicioId) {
+    console.warn("caja_order_service_fallback", {
+      loteId: activeLoteId,
+      sessionIds,
+      serviceIds,
+    });
+  }
   const cajaOrden =
     getCajaOrdenFromCodigo(cajaActiva?.codigo) ??
-    (await getCajaCountForLote(activeLoteId));
+    (servicioId
+      ? await getCajaCountForLoteServicio(activeLoteId, servicioId)
+      : await getCajaCountForLoteGlobal(activeLoteId));
 
   return {
     lote,

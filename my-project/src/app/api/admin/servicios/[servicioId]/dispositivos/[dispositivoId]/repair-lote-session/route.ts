@@ -47,6 +47,7 @@ export async function POST(req: Request, context: RouteContext) {
     const opened = await openLoteSessionExclusiveInTransaction(tx, {
       loteId,
       dispositivoId,
+      servicioId,
       startTime: effectiveAt,
     });
     if (opened.closedSessionIds.length > 0) {

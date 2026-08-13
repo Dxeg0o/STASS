@@ -157,6 +157,7 @@ export async function assignDeviceToServicio(input: {
     const opened = await openLoteSessionExclusiveInTransaction(tx, {
       loteId,
       dispositivoId: input.dispositivoId,
+      servicioId: input.servicioId,
       startTime: now,
     });
     if (opened.closedSessionIds.length > 0) {

@@ -335,12 +335,14 @@ async function applyRepair(sql: Sql) {
     INSERT INTO lote_session (
       lote_id,
       dispositivo_id,
+      servicio_id,
       start_time,
       end_time
     )
     SELECT
       rw.lote_id,
       rw.dispositivo_id,
+      rw.servicio_id,
       rw.start_ts,
       rw.end_ts
     FROM repair_windows rw
