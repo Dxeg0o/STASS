@@ -7,11 +7,11 @@ import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.qualiblick.com"),
-  title: "Qualiblick | Convierte tus muestreos en sistemas de medición",
+  title: "Qualiblick | Mide más de tu operación, decide con mejores datos",
   description:
-    "Qualiblick digitaliza y estandariza mediciones que hoy se hacen a mano o sobre muestras demasiado pequeñas. Configuramos captura, variables, hardware e integración para medir en terreno, recepción y línea de proceso.",
+    "La agroindustria decide con información obtenida de una fracción muy pequeña de lo que realmente ocurre. Qualiblick transforma esos muestreos en sistemas de medición objetivos y automatizados, configurados para terreno, recepción y línea de proceso.",
   openGraph: {
-    title: "Convierte tus muestreos en sistemas de medición",
+    title: "Mide más de tu operación. Decide con mejores datos.",
     description:
       "Una sola plataforma configurable para medir con mayor cobertura, un mismo criterio y datos estructurados, en terreno y en planta.",
     url: "https://www.qualiblick.com",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Convierte tus muestreos en sistemas de medición",
+    title: "Mide más de tu operación. Decide con mejores datos.",
     description:
       "Mayor cobertura, un mismo criterio y datos estructurados para las decisiones que hoy dependen de una muestra pequeña.",
     images: ["/og.png"],

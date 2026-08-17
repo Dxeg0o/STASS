@@ -173,7 +173,7 @@ export default function AplicacionPage({ slug }: { slug: string }) {
               <Link href={`/aplicaciones/${otherSlug}`} className="solution-card-link">
                 <span className="solution-card-tag"><OtherIcon aria-hidden="true" /> {contexto}</span>
                 <p>{summary}</p>
-                <span className="solution-card-cta">Ver esta configuración <ArrowRight aria-hidden="true" /></span>
+                <span className="solution-card-cta">Ver aplicación <ArrowRight aria-hidden="true" /></span>
               </Link>
             </Reveal>
           ))}

@@ -50,7 +50,7 @@ const captureModes = [
 const heroVariables = ["Conteo", "Calibre", "Color", "Defectos"];
 
 const capabilities = [
-  { icon: Hash, title: "Conteo", text: "Unidades medidas una por una, no estimadas a partir de una muestra." },
+  { icon: Hash, title: "Conteo", text: "Aumenta significativamente la cantidad de unidades observadas frente a un muestreo tradicional." },
   { icon: Ruler, title: "Calibre", text: "Dimensiones y distribución de tamaños con un criterio único." },
   { icon: Palette, title: "Color", text: "Lectura consistente del color, sin depender de la apreciación de cada turno." },
   { icon: AlertTriangle, title: "Defectos", text: "Clasificación de lo que se aparta del estándar definido con tu equipo." },
@@ -63,7 +63,7 @@ const applications = [
     slug: "terreno",
     contexto: "Terreno",
     icon: Sprout,
-    text: "Medición en el predio, con captura móvil y el mismo criterio que se usa en planta.",
+    text: "Medición en el predio, con el mismo criterio que se usa en planta.",
   },
   {
     slug: "recepcion",
@@ -77,58 +77,35 @@ const applications = [
     icon: ScanLine,
     text: "Medición continua sobre la línea activa, a alta velocidad y sin detener la producción.",
   },
-  {
-    slug: null,
-    contexto: "Equipos existentes",
-    icon: Wrench,
-    text: "Retrofit sobre maquinaria que ya opera, sin reemplazar la inversión que ya hiciste.",
-  },
-  {
-    slug: null,
-    contexto: "Captura móvil",
-    icon: Smartphone,
-    text: "Dispositivos móviles o smartphone para medir donde no tiene sentido instalar un equipo fijo.",
-  },
-  {
-    slug: null,
-    contexto: "Nuevos puntos de medición",
-    icon: Plus,
-    text: "Selección, embalaje u otro punto donde hoy se decide con una estimación.",
-  },
 ];
 
 const expansion = [
-  { stage: "1 punto", title: "Calibre en recepción" },
-  { stage: "2 puntos", title: "Calibre y conteo en proceso" },
-  { stage: "3 puntos", title: "Recepción, proceso y terreno" },
-  { stage: "Infraestructura común", title: "Datos comparables a lo largo de la operación" },
+  { stage: "01 — Recepción", title: "Calibre y distribución del lote" },
+  { stage: "02 — Proceso", title: "Conteo y control durante la línea" },
+  { stage: "03 — Terreno", title: "Medición antes de llegar a planta" },
+  { stage: "En conjunto", title: "Una misma infraestructura de medición" },
 ];
 
 const process = [
   {
     number: "01",
-    title: "Identificamos la decisión",
-    text: "Entendemos qué decisión quieres mejorar y qué información necesitas para tomarla.",
+    title: "Entendemos",
+    text: "Qué decisión quieres mejorar, qué información necesitas y cómo se obtiene hoy.",
   },
   {
     number: "02",
-    title: "Evaluamos el muestreo actual",
-    text: "Analizamos cómo se obtiene hoy esa información y dónde están sus limitaciones.",
+    title: "Configuramos",
+    text: "Variables, forma de captura y hardware según tu operación.",
   },
   {
     number: "03",
-    title: "Configuramos Qualiblick",
-    text: "Definimos variables, forma de captura, hardware e instalación para tu caso.",
+    title: "Instalamos",
+    text: "Integramos la medición en el proceso existente, con el mínimo cambio operacional.",
   },
   {
     number: "04",
-    title: "Integramos la medición",
-    text: "Implementamos la medición dentro del proceso existente, con el mínimo cambio operacional.",
-  },
-  {
-    number: "05",
-    title: "Convertimos mediciones en datos",
-    text: "Estructuramos los resultados por lote, proceso, ubicación o período para poder usarlos.",
+    title: "Medimos",
+    text: "Resultados estructurados por lote, proceso, ubicación o período, listos para usarse.",
   },
 ];
 
@@ -147,18 +124,6 @@ const reasons = [
   },
   {
     number: "03",
-    icon: Wrench,
-    title: "Integración con lo existente",
-    text: "Se instala en el proceso y sobre los equipos que ya tienes.",
-  },
-  {
-    number: "04",
-    icon: Boxes,
-    title: "Múltiples aplicaciones",
-    text: "Una misma plataforma para distintos puntos, variables y formas de captura.",
-  },
-  {
-    number: "05",
     icon: BarChart3,
     title: "Información estructurada",
     text: "Resultados organizados y comparables, listos para usarse en tus decisiones.",
@@ -180,9 +145,9 @@ export default function CommercialLanding() {
             className="hero-copy"
           >
             <SectionLabel>Medición inteligente para la agroindustria</SectionLabel>
-            <h1>Convierte tus muestreos en <span>sistemas de medición.</span></h1>
+            <h1>Mide más de tu operación. <span>Decide con mejores datos.</span></h1>
             <p className="hero-lead">
-              Qualiblick digitaliza y estandariza mediciones que hoy se hacen a mano o sobre muestras demasiado pequeñas. Configuramos la captura, el análisis y la instalación según tu operación, en terreno y en planta.
+              Qualiblick transforma muestreos manuales y poco representativos en sistemas de medición objetivos y automatizados. Configuramos qué medir, cómo capturarlo y dónde instalarlo según las necesidades de tu operación.
             </p>
 
             <div className="hero-actions">
@@ -254,7 +219,7 @@ export default function CommercialLanding() {
             <h2>Decisiones grandes todavía dependen de muestras muy pequeñas.</h2>
           </Reveal>
           <Reveal delay={0.1} className="split-heading-copy">
-            <p>Miles o millones de unidades terminan representadas por una muestra revisada a mano. Ese resultado se usa después para vender, planificar, negociar y ajustar el proceso, aunque nadie sepa cuánto se parece al total.</p>
+            <p>Miles o millones de unidades pueden terminar representadas por una muestra de apenas una fracción del total. Ese resultado se usa después para vender, planificar, negociar y ajustar el proceso, sin saber con certeza qué tan representativa es del total.</p>
           </Reveal>
         </div>
 
@@ -290,7 +255,7 @@ export default function CommercialLanding() {
 
         <div className="landing-container">
           <Reveal className="section-closing-note">
-            <p>El desafío no es simplemente medir. Es asegurarse de que el dato represente lo que realmente está ocurriendo.</p>
+            <p>Más cobertura significa más información para respaldar cada decisión.</p>
           </Reveal>
         </div>
       </section>
@@ -299,21 +264,10 @@ export default function CommercialLanding() {
         <div className="landing-container split-heading">
           <Reveal>
             <SectionLabel>Una sola plataforma</SectionLabel>
-            <h2>Qualiblick transforma muestreos en sistemas de medición.</h2>
+            <h2>Qualiblick es una plataforma de medición configurable.</h2>
           </Reveal>
           <Reveal delay={0.1} className="split-heading-copy">
-            <p>No vendemos una cámara distinta para cada problema. Partimos entendiendo qué necesitas medir, dónde necesitas medirlo y qué decisión depende de esa información. A partir de eso configuramos Qualiblick con la forma de captura y las capacidades que tengan más sentido para tu operación.</p>
-          </Reveal>
-        </div>
-
-        <div className="landing-container platform-contrast">
-          <Reveal className="platform-contrast-card platform-contrast-no">
-            <span className="comparison-kicker">Lo que no somos</span>
-            <p><X aria-hidden="true" /> «Cuéntanos tu problema y desarrollamos una solución desde cero.»</p>
-          </Reveal>
-          <Reveal delay={0.1} className="platform-contrast-card platform-contrast-yes">
-            <span className="comparison-kicker">Lo que hacemos</span>
-            <p><Check aria-hidden="true" /> «Cuéntanos qué necesitas medir y configuramos Qualiblick para tu operación.»</p>
+            <p>Definimos qué necesitas medir, elegimos la forma de captura adecuada y la integramos a tu operación. Una misma plataforma puede adaptarse a distintos procesos, variables y puntos de medición.</p>
           </Reveal>
         </div>
       </section>
@@ -322,7 +276,7 @@ export default function CommercialLanding() {
         <div className="landing-container centered-heading">
           <Reveal>
             <SectionLabel>Qué puede medir</SectionLabel>
-            <h2>Variables que se configuran, no productos que se eligen.</h2>
+            <h2>Distintas variables. Una misma plataforma.</h2>
             <p>Definimos con tu equipo qué variables importan para la decisión que quieres mejorar.</p>
           </Reveal>
         </div>
@@ -356,21 +310,21 @@ export default function CommercialLanding() {
 
         <div className="landing-container solutions-grid">
           {applications.map(({ slug, contexto, icon: Icon, text }, index) => (
-            <Reveal key={contexto} delay={index * 0.06} className={`solution-card${slug ? "" : " solution-card-static"}`}>
-              {slug ? (
-                <Link href={`/aplicaciones/${slug}`} className="solution-card-link">
-                  <span className="solution-card-tag"><Icon aria-hidden="true" /> {contexto}</span>
-                  <p>{text}</p>
-                  <span className="solution-card-cta">Ver esta configuración <ArrowRight aria-hidden="true" /></span>
-                </Link>
-              ) : (
-                <div className="solution-card-link">
-                  <span className="solution-card-tag"><Icon aria-hidden="true" /> {contexto}</span>
-                  <p>{text}</p>
-                </div>
-              )}
+            <Reveal key={contexto} delay={index * 0.06} className="solution-card">
+              <Link href={`/aplicaciones/${slug}`} className="solution-card-link">
+                <span className="solution-card-tag"><Icon aria-hidden="true" /> {contexto}</span>
+                <p>{text}</p>
+                <span className="solution-card-cta">Ver aplicación <ArrowRight aria-hidden="true" /></span>
+              </Link>
             </Reveal>
           ))}
+        </div>
+
+        <div className="landing-container">
+          <Reveal className="capture-note">
+            <Camera aria-hidden="true" />
+            <p>Distintas formas de captura según el proceso: equipos fijos, retrofit sobre maquinaria existente o dispositivos móviles.</p>
+          </Reveal>
         </div>
       </section>
 
@@ -459,36 +413,27 @@ export default function CommercialLanding() {
             </div>
           </Reveal>
         </div>
-      </section>
 
-      <section className="trust-section section-space" aria-labelledby="trust-title">
-        <div className="landing-container trust-grid">
-          <Reveal className="trust-copy">
-            <SectionLabel>Escala verificada</SectionLabel>
-            <h2 id="trust-title">Una medición que ya opera a escala productiva.</h2>
-            <p>Contamos con el respaldo de organizaciones que impulsan el desarrollo de tecnología de alto impacto en Chile.</p>
-          </Reveal>
-
-          <Reveal delay={0.1} className="trust-proof-card">
+        <div className="landing-container evidence-strip">
+          <Reveal className="evidence-stat">
             <div className="trust-proof-stat">
               <strong>+100<span>M</span></strong>
               <span>ítems procesados</span>
             </div>
-            <div className="trust-proof-divider" aria-hidden="true" />
             <p>Mediciones acumuladas en operación, no en pruebas de laboratorio.</p>
           </Reveal>
-        </div>
 
-        <div className="landing-container backers-row" aria-label="Organizaciones que respaldan a Qualiblick">
-          <span className="backers-label">Respaldado por</span>
-          <div className="backer-logos">
-            <div className="backer-logo backer-logo-cgv">
-              <Image src="/images/chile-global-ventures.png" alt="Chile Global Ventures" width={582} height={138} />
+          <Reveal delay={0.1} className="evidence-backers" aria-label="Organizaciones que respaldan a Qualiblick">
+            <span className="backers-label">Respaldado por</span>
+            <div className="backer-logos">
+              <div className="backer-logo backer-logo-cgv">
+                <Image src="/images/chile-global-ventures.png" alt="Chile Global Ventures" width={582} height={138} />
+              </div>
+              <div className="backer-logo backer-logo-corfo">
+                <Image src="/images/corfo.png" alt="CORFO" width={740} height={216} />
+              </div>
             </div>
-            <div className="backer-logo backer-logo-corfo">
-              <Image src="/images/corfo.png" alt="CORFO" width={740} height={216} />
-            </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -498,7 +443,7 @@ export default function CommercialLanding() {
           <div className="impact-heading">
             <Reveal>
               <SectionLabel>Por qué Qualiblick</SectionLabel>
-              <h2>Una misma plataforma, <span>en más puntos de tu operación.</span></h2>
+              <h2>Mejores datos <span>sin multiplicar soluciones.</span></h2>
             </Reveal>
           </div>
 

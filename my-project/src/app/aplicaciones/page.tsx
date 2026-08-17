@@ -34,7 +34,7 @@ export default function AplicacionesPage() {
               <Link href={`/aplicaciones/${slug}`} className="solution-card-link">
                 <span className="solution-card-tag"><Icon aria-hidden="true" /> {contexto}</span>
                 <p>{summary}</p>
-                <span className="solution-card-cta">Ver esta configuración <ArrowRight aria-hidden="true" /></span>
+                <span className="solution-card-cta">Ver aplicación <ArrowRight aria-hidden="true" /></span>
               </Link>
             </Reveal>
           ))}
