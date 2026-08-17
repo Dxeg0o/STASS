@@ -11,7 +11,7 @@ export default function LandingFooter({ isHome = false }: { isHome?: boolean }) 
       <div className="landing-container footer-grid">
         <div>
           <Image src="/images/qb.png" alt="Qualiblick" width={170} height={40} className="footer-logo" />
-          <p>Medición objetiva y representativa para la agroindustria.</p>
+          <p>Medición consistente y representativa para la agroindustria.</p>
         </div>
         <div className="footer-links">
           {footerLinks.map(({ label, hash }) => (

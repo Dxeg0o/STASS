@@ -481,6 +481,10 @@ body {
 .platform-section .split-heading-copy p { color: #9ba49e; }
 
 
+/* Qualifying statement inside "Una sola plataforma" */
+.platform-statement { max-width: 880px; margin-top: 46px; padding: 24px 0 24px 28px; border-left: 3px solid var(--qb-green); }
+.platform-statement p { color: #e2e8e4; font-size: clamp(18px, 1.7vw, 22px); font-weight: 700; line-height: 1.5; letter-spacing: -.022em; }
+
 /* Measurable variables */
 .capability-section { color: #111611; background: #e9ebe6; }
 .capability-section .centered-heading { margin-inline: auto; }

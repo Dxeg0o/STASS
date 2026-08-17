@@ -59,7 +59,7 @@ export default function AboutUs() {
             <Link href="/" className="solution-back-link"><ArrowLeft aria-hidden="true" /> Volver al inicio</Link>
             <SectionLabel>Sobre Qualiblick</SectionLabel>
             <h1>Construimos la infraestructura de medición de <span>la agroindustria.</span></h1>
-            <p>Qualiblick nace para que las decisiones de una operación agrícola dejen de depender de muestras pequeñas y criterios que varían entre personas. Convertimos esos muestreos en sistemas de medición objetivos, consistentes y representativos.</p>
+            <p>Qualiblick nace para que las decisiones de una operación agrícola dejen de depender de muestras pequeñas y criterios que varían entre personas. Convertimos esos muestreos en sistemas de medición consistentes y representativos.</p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: 0.15 }} className="about-signal-card" aria-label="Propósito de Qualiblick">
@@ -82,7 +82,7 @@ export default function AboutUs() {
             <p>En la agroindustria, miles o millones de unidades terminan representadas por una muestra revisada a mano. Ese resultado define ventas, programas de empaque y acuerdos completos, aunque nadie sepa cuánto se parece al total.</p>
             <p>Qualiblick une conocimiento agrícola, inteligencia artificial y software para medir con mayor cobertura y un criterio único, y para dejar esa información estructurada donde se toman las decisiones.</p>
             <div className="about-story-points">
-              <span><Check aria-hidden="true" /> Mediciones objetivas</span>
+              <span><Check aria-hidden="true" /> Mediciones consistentes</span>
               <span><Check aria-hidden="true" /> Resultados oportunos</span>
               <span><Check aria-hidden="true" /> Datos comparables</span>
             </div>

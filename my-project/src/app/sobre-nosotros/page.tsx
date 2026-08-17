@@ -3,7 +3,7 @@ import AboutUs from "../../components/landing/AboutUs";
 
 const title = "Sobre nosotros | Qualiblick";
 const description =
-  "Qualiblick construye la infraestructura de medición de la agroindustria: convertimos muestreos manuales en sistemas de medición objetivos, consistentes y representativos.";
+  "Qualiblick construye la infraestructura de medición de la agroindustria: convertimos muestreos manuales en sistemas de medición consistentes y representativos.";
 
 export const metadata: Metadata = {
   title,

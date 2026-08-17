@@ -36,7 +36,7 @@ import LandingFooter from "./LandingFooter";
 import { contactEmail, demoHref } from "./cta";
 
 const heroPoints = [
-  { icon: Layers, text: "Más representatividad" },
+  { icon: Layers, text: "Mayor cobertura" },
   { icon: Check, text: "Un mismo criterio" },
   { icon: Clock3, text: "Datos a tiempo" },
 ];
@@ -63,7 +63,7 @@ const applications = [
     slug: "terreno",
     contexto: "Terreno",
     icon: Sprout,
-    text: "Medición en el predio, con el mismo criterio que se usa en planta.",
+    text: "Medición directamente en el predio para obtener más información antes de cosechar, comprar o planificar.",
   },
   {
     slug: "recepcion",
@@ -114,7 +114,7 @@ const reasons = [
     number: "01",
     icon: Layers,
     title: "Mayor cobertura",
-    text: "Muchas más unidades medidas que en un muestreo manual, en el mismo tiempo de operación.",
+    text: "Aumenta significativamente la cantidad de producto observado sin aumentar proporcionalmente el trabajo de muestreo.",
   },
   {
     number: "02",
@@ -147,7 +147,7 @@ export default function CommercialLanding() {
             <SectionLabel>Medición inteligente para la agroindustria</SectionLabel>
             <h1>Mide más de tu operación. <span>Decide con mejores datos.</span></h1>
             <p className="hero-lead">
-              Qualiblick transforma muestreos manuales y poco representativos en sistemas de medición objetivos y automatizados. Configuramos qué medir, cómo capturarlo y dónde instalarlo según las necesidades de tu operación.
+              Qualiblick transforma muestreos manuales y poco representativos en sistemas de medición consistentes y automatizados. Configuramos qué medir, cómo capturarlo y dónde instalarlo según las necesidades de tu operación.
             </p>
 
             <div className="hero-actions">
@@ -244,7 +244,7 @@ export default function CommercialLanding() {
             <ul>
               <li><Check aria-hidden="true" /> Mayor cobertura</li>
               <li><Check aria-hidden="true" /> Medición automatizada</li>
-              <li><Check aria-hidden="true" /> Datos objetivos y estructurados</li>
+              <li><Check aria-hidden="true" /> Datos consistentes y estructurados</li>
             </ul>
             <div className="sample-visual sample-large">
               {[...Array(35)].map((_, index) => <i key={index} className={index < 30 ? "active" : ""} />)}
@@ -268,6 +268,12 @@ export default function CommercialLanding() {
           </Reveal>
           <Reveal delay={0.1} className="split-heading-copy">
             <p>Definimos qué necesitas medir, elegimos la forma de captura adecuada y la integramos a tu operación. Una misma plataforma puede adaptarse a distintos procesos, variables y puntos de medición.</p>
+          </Reveal>
+        </div>
+
+        <div className="landing-container">
+          <Reveal className="platform-statement">
+            <p>No siempre necesitas medir todo. Pero sí necesitas que lo que mides represente mejor lo que está ocurriendo.</p>
           </Reveal>
         </div>
       </section>
@@ -332,8 +338,8 @@ export default function CommercialLanding() {
         <div className="landing-container differentiation-grid">
           <Reveal className="differentiation-copy">
             <SectionLabel>Configurable, no hecho desde cero</SectionLabel>
-            <h2>Nos adaptamos al muestreo. No al revés.</h2>
-            <p>Buena parte de la tecnología agrícola está construida alrededor de una sola máquina, variable, cultivo o etapa del proceso. Qualiblick no parte de un equipo, parte de una pregunta: qué necesitas medir.</p>
+            <h2>Nos adaptamos a tu operación. No al revés.</h2>
+            <p>Qualiblick no parte de una máquina o una única variable. Parte de una pregunta: qué necesitas medir.</p>
             <p>Eso permite empezar resolviendo un punto concreto y después extender la misma plataforma a otros puntos de medición dentro de la misma empresa.</p>
           </Reveal>
 
@@ -404,7 +410,7 @@ export default function CommercialLanding() {
           <Reveal delay={0.1} className="validation-copy">
             <SectionLabel>Probado en condiciones reales</SectionLabel>
             <h2>Medir bien cuando el proceso no se detiene.</h2>
-            <p>En Valdivia Lilies, Qualiblick ha medido productos con formas irregulares, en movimiento, superpuestos, con suciedad y a altos flujos. Son las condiciones donde un muestreo manual pierde representatividad más rápido.</p>
+            <p>En Valdivia Lilies, Qualiblick ha medido productos con formas irregulares, en movimiento, superpuestos, con suciedad y a altos flujos.</p>
             <blockquote>“No buscamos reemplazar una muestra manual por una muestra digital. Buscamos aumentar la cantidad y la calidad de la información disponible para decidir.”</blockquote>
             <div className="validation-metrics">
               <div><strong>97,54%</strong><span>Precisión validada</span></div>

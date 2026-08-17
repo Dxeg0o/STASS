@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.qualiblick.com"),
   title: "Qualiblick | Mide más de tu operación, decide con mejores datos",
   description:
-    "La agroindustria decide con información obtenida de una fracción muy pequeña de lo que realmente ocurre. Qualiblick transforma esos muestreos en sistemas de medición objetivos y automatizados, configurados para terreno, recepción y línea de proceso.",
+    "La agroindustria decide con información obtenida de una fracción muy pequeña de lo que realmente ocurre. Qualiblick transforma esos muestreos en sistemas de medición consistentes y automatizados, configurados para terreno, recepción y línea de proceso.",
   openGraph: {
     title: "Mide más de tu operación. Decide con mejores datos.",
     description:
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
         url: "/og.png",
         width: 1200,
         height: 630,
-        alt: "Qualiblick: medición objetiva y representativa para la agroindustria",
+        alt: "Qualiblick: medición consistente y representativa para la agroindustria",
       },
     ],
     locale: "es_CL",
