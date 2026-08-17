@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description,
   alternates: { canonical: "https://www.qualiblick.com/sobre-nosotros" },
   openGraph: {
-    title,
+    title: "Construimos la infraestructura de medición de la agroindustria",
     description,
     url: "https://www.qualiblick.com/sobre-nosotros",
     siteName: "Qualiblick",

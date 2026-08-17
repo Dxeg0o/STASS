@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/login", "/api/"],
+      disallow: ["/login", "/register", "/reset-password", "/forgot-password", "/select-empresa", "/registro-invitacion", "/app/", "/admin/", "/api/", "/demo/"],
     },
     sitemap: "https://www.qualiblick.com/sitemap.xml",
   };

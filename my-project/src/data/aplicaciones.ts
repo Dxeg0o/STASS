@@ -14,6 +14,8 @@ export type Aplicacion = {
   cardHeadline: string;
   cardText: string;
   eyebrow: string;
+  metaTitle: string;
+  metaDescription: string;
   heroTitle: string;
   heroLead: string[];
   mediaType: "image" | "video";
@@ -38,6 +40,9 @@ export const aplicaciones: Aplicacion[] = [
     cardText:
       "Obtén más información directamente en el predio para mejorar estimaciones, planificación y decisiones previas a cosecha.",
     eyebrow: "Qualiblick en terreno",
+    metaTitle: "Medición en terreno",
+    metaDescription:
+      "Configura Qualiblick para medir conteo, calibre y distribución directamente en el predio, con mayor cobertura y un criterio consistente, antes de cosechar, comprar o planificar.",
     heroTitle: "Mide antes de que el producto llegue a planta.",
     heroLead: [
       "Muchas decisiones en campo todavía dependen de recorridos, conteos manuales y pequeñas muestras.",
@@ -80,6 +85,9 @@ export const aplicaciones: Aplicacion[] = [
     cardText:
       "Aumenta la información disponible sobre cada lote antes de decidir su destino, proceso o almacenamiento.",
     eyebrow: "Qualiblick en recepción",
+    metaTitle: "Medición en recepción",
+    metaDescription:
+      "Configura Qualiblick para medir cada lote que entra —conteo, calibre, color, defectos y distribución— antes de decidir su destino, proceso, almacenamiento o venta.",
     heroTitle: "Conoce mejor lo que está entrando antes de decidir su destino.",
     heroLead: [
       "Un lote completo puede terminar caracterizado a partir de una pequeña muestra.",
@@ -120,6 +128,9 @@ export const aplicaciones: Aplicacion[] = [
     cardText:
       "Integra Qualiblick sobre equipos y líneas existentes para observar continuamente lo que está pasando.",
     eyebrow: "Qualiblick en proceso",
+    metaTitle: "Medición en línea de proceso",
+    metaDescription:
+      "Integra Qualiblick sobre líneas y equipos existentes para medir de forma continua a alta velocidad, con 97,54% de precisión validada en conteo y operación 24/7.",
     heroTitle: "Mide mientras el proceso está ocurriendo.",
     heroLead: [
       "Entre una muestra y otra pueden pasar miles de unidades.",

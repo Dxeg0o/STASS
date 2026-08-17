@@ -11,14 +11,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const aplicacion = getAplicacionBySlug(slug);
   if (!aplicacion) return {};
   const url = `https://www.qualiblick.com/aplicaciones/${aplicacion.slug}`;
-  const title = `${aplicacion.eyebrow} | Qualiblick`;
-  const description = aplicacion.heroLead.join(" ");
+  const title = `${aplicacion.metaTitle} | Qualiblick`;
+  const description = aplicacion.metaDescription;
   return {
     title,
     description,
     alternates: { canonical: url },
     openGraph: {
-      title,
+      title: aplicacion.heroTitle,
       description,
       url,
       siteName: "Qualiblick",
