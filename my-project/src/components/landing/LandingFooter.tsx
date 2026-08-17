@@ -1,11 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Mail, MapPin } from "lucide-react";
-import { contactEmail, footerLinks } from "./cta";
+import { contactEmail, navLinks } from "./cta";
 
-export default function LandingFooter({ isHome = false }: { isHome?: boolean }) {
-  const href = (hash: string) => (isHome ? hash : `/${hash}`);
-
+export default function LandingFooter() {
   return (
     <footer className="landing-footer">
       <div className="landing-container footer-grid">
@@ -14,10 +12,9 @@ export default function LandingFooter({ isHome = false }: { isHome?: boolean }) 
           <p>Medición consistente y representativa para la agroindustria.</p>
         </div>
         <div className="footer-links">
-          {footerLinks.map(({ label, hash }) => (
-            <Link key={label} href={href(hash)}>{label}</Link>
+          {navLinks.map(({ label, href }) => (
+            <Link key={label} href={href}>{label}</Link>
           ))}
-          <Link href="/sobre-nosotros">Sobre nosotros</Link>
         </div>
         <div className="footer-contact">
           <a href={`mailto:${contactEmail}`}><Mail aria-hidden="true" /> {contactEmail}</a>

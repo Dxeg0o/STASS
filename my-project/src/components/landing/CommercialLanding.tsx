@@ -4,36 +4,25 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle,
   ArrowRight,
   BarChart3,
-  Boxes,
   Camera,
   Check,
   ChevronRight,
-  CircleGauge,
   Clock3,
-  Cpu,
-  Hash,
   Layers,
-  Locate,
   Mail,
-  MapPin,
-  Palette,
-  Plus,
-  Ruler,
   ScanLine,
   Smartphone,
   Sparkles,
-  Sprout,
   Wrench,
   X,
-  Zap,
 } from "lucide-react";
 import { Reveal, SectionLabel } from "./shared";
 import LandingNav from "./LandingNav";
 import LandingFooter from "./LandingFooter";
 import { contactEmail, demoHref } from "./cta";
+import { aplicaciones, metrics } from "../../data/aplicaciones";
 
 const heroPoints = [
   { icon: Layers, text: "Mayor cobertura" },
@@ -48,66 +37,6 @@ const captureModes = [
 ];
 
 const heroVariables = ["Conteo", "Calibre", "Color", "Defectos"];
-
-const capabilities = [
-  { icon: Hash, title: "Conteo", text: "Aumenta significativamente la cantidad de unidades observadas frente a un muestreo tradicional." },
-  { icon: Ruler, title: "Calibre", text: "Dimensiones y distribución de tamaños con un criterio único." },
-  { icon: Palette, title: "Color", text: "Lectura consistente del color, sin depender de la apreciación de cada turno." },
-  { icon: AlertTriangle, title: "Defectos", text: "Clasificación de lo que se aparta del estándar definido con tu equipo." },
-  { icon: BarChart3, title: "Distribución", text: "Cómo se reparte el volumen entre categorías, no solo el promedio." },
-  { icon: Locate, title: "Densidad y posición", text: "Cuántas unidades hay y cómo están dispuestas en el espacio medido." },
-];
-
-const applications = [
-  {
-    slug: "terreno",
-    contexto: "Terreno",
-    icon: Sprout,
-    text: "Medición directamente en el predio para obtener más información antes de cosechar, comprar o planificar.",
-  },
-  {
-    slug: "recepcion",
-    contexto: "Recepción",
-    icon: Boxes,
-    text: "Medición del producto que entra, antes de moverlo a línea, frío o venta.",
-  },
-  {
-    slug: "proceso",
-    contexto: "Línea de proceso",
-    icon: ScanLine,
-    text: "Medición continua sobre la línea activa, a alta velocidad y sin detener la producción.",
-  },
-];
-
-const expansion = [
-  { stage: "01 — Recepción", title: "Calibre y distribución del lote" },
-  { stage: "02 — Proceso", title: "Conteo y control durante la línea" },
-  { stage: "03 — Terreno", title: "Medición antes de llegar a planta" },
-  { stage: "En conjunto", title: "Una misma infraestructura de medición" },
-];
-
-const process = [
-  {
-    number: "01",
-    title: "Entendemos",
-    text: "Qué decisión quieres mejorar, qué información necesitas y cómo se obtiene hoy.",
-  },
-  {
-    number: "02",
-    title: "Configuramos",
-    text: "Variables, forma de captura y hardware según tu operación.",
-  },
-  {
-    number: "03",
-    title: "Instalamos",
-    text: "Integramos la medición en el proceso existente, con el mínimo cambio operacional.",
-  },
-  {
-    number: "04",
-    title: "Medimos",
-    text: "Resultados estructurados por lote, proceso, ubicación o período, listos para usarse.",
-  },
-];
 
 const reasons = [
   {
@@ -133,7 +62,7 @@ const reasons = [
 export default function CommercialLanding() {
   return (
     <main className="commercial-landing">
-      <LandingNav isHome />
+      <LandingNav />
 
       <section id="inicio" className="hero-section">
         <div className="hero-grid-bg" aria-hidden="true" />
@@ -154,8 +83,8 @@ export default function CommercialLanding() {
               <a href={demoHref} className="button button-primary">
                 Agenda una evaluación <ArrowRight aria-hidden="true" />
               </a>
-              <Link href="#como-funciona" className="button button-secondary">
-                Conoce cómo funciona <ChevronRight aria-hidden="true" />
+              <Link href="/solucion" className="button button-secondary">
+                Conoce la solución <ChevronRight aria-hidden="true" />
               </Link>
             </div>
 
@@ -255,196 +184,12 @@ export default function CommercialLanding() {
 
         <div className="landing-container">
           <Reveal className="section-closing-note">
-            <p>Más cobertura significa más información para respaldar cada decisión.</p>
-          </Reveal>
-        </div>
-      </section>
-
-      <section id="solucion" className="platform-section section-space">
-        <div className="landing-container split-heading">
-          <Reveal>
-            <SectionLabel>Una sola plataforma</SectionLabel>
-            <h2>Qualiblick es una plataforma de medición configurable.</h2>
-          </Reveal>
-          <Reveal delay={0.1} className="split-heading-copy">
-            <p>Definimos qué necesitas medir, elegimos la forma de captura adecuada y la integramos a tu operación. Una misma plataforma puede adaptarse a distintos procesos, variables y puntos de medición.</p>
-          </Reveal>
-        </div>
-
-        <div className="landing-container">
-          <Reveal className="platform-statement">
             <p>No siempre necesitas medir todo. Pero sí necesitas que lo que mides represente mejor lo que está ocurriendo.</p>
           </Reveal>
         </div>
       </section>
 
-      <section id="variables" className="capability-section section-space">
-        <div className="landing-container centered-heading">
-          <Reveal>
-            <SectionLabel>Qué puede medir</SectionLabel>
-            <h2>Distintas variables. Una misma plataforma.</h2>
-            <p>Definimos con tu equipo qué variables importan para la decisión que quieres mejorar.</p>
-          </Reveal>
-        </div>
-
-        <div className="landing-container capability-grid">
-          {capabilities.map(({ icon: Icon, title, text }, index) => (
-            <Reveal key={title} delay={index * 0.06} className="capability-card">
-              <span className="capability-icon"><Icon aria-hidden="true" /></span>
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </Reveal>
-          ))}
-          <Reveal delay={0.36} className="capability-card capability-card-open">
-            <span className="capability-icon"><Plus aria-hidden="true" /></span>
-            <h3>¿Necesitas medir otra variable?</h3>
-            <p>Evaluamos si puede incorporarse dentro de Qualiblick.</p>
-            <a href={demoHref} className="capability-open-cta">Conversemos <ArrowRight aria-hidden="true" /></a>
-          </Reveal>
-        </div>
-      </section>
-
-      <section id="aplicaciones" className="solutions-section section-space">
-        <span id="soluciones" className="anchor-alias" aria-hidden="true" />
-        <div className="landing-container centered-heading">
-          <Reveal>
-            <SectionLabel>Dónde puede usarse</SectionLabel>
-            <h2>Una plataforma que se adapta a tu operación.</h2>
-            <p>La misma plataforma se configura para distintos puntos de medición, dentro y fuera de la planta.</p>
-          </Reveal>
-        </div>
-
-        <div className="landing-container solutions-grid">
-          {applications.map(({ slug, contexto, icon: Icon, text }, index) => (
-            <Reveal key={contexto} delay={index * 0.06} className="solution-card">
-              <Link href={`/aplicaciones/${slug}`} className="solution-card-link">
-                <span className="solution-card-tag"><Icon aria-hidden="true" /> {contexto}</span>
-                <p>{text}</p>
-                <span className="solution-card-cta">Ver aplicación <ArrowRight aria-hidden="true" /></span>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
-
-        <div className="landing-container">
-          <Reveal className="capture-note">
-            <Camera aria-hidden="true" />
-            <p>Distintas formas de captura según el proceso: equipos fijos, retrofit sobre maquinaria existente o dispositivos móviles.</p>
-          </Reveal>
-        </div>
-      </section>
-
-      <section id="diferenciacion" className="differentiation-section section-space">
-        <div className="landing-container differentiation-grid">
-          <Reveal className="differentiation-copy">
-            <SectionLabel>Configurable, no hecho desde cero</SectionLabel>
-            <h2>Nos adaptamos a tu operación. No al revés.</h2>
-            <p>Qualiblick no parte de una máquina o una única variable. Parte de una pregunta: qué necesitas medir.</p>
-            <p>Eso permite empezar resolviendo un punto concreto y después extender la misma plataforma a otros puntos de medición dentro de la misma empresa.</p>
-          </Reveal>
-
-          <Reveal delay={0.12} className="expansion-ladder" aria-label="Expansión de la medición dentro de una misma operación">
-            {expansion.map(({ stage, title }, index) => (
-              <div key={stage} className={`expansion-step${index === expansion.length - 1 ? " expansion-step-final" : ""}`}>
-                <span className="expansion-stage">{stage}</span>
-                <strong>{title}</strong>
-              </div>
-            ))}
-          </Reveal>
-        </div>
-      </section>
-
-      <section id="como-funciona" className="methods-section section-space">
-        <div className="landing-container centered-heading">
-          <Reveal>
-            <SectionLabel>Cómo funciona</SectionLabel>
-            <h2>De una decisión concreta a una medición en operación.</h2>
-          </Reveal>
-        </div>
-
-        <div className="landing-container process-grid">
-          {process.map(({ number, title, text }, index) => (
-            <Reveal key={number} delay={index * 0.06} className="process-card">
-              <span className="method-number">{number}</span>
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      <section id="tecnologia" className="edge-section section-space">
-        <span id="edge" className="anchor-alias" aria-hidden="true" />
-        <div className="landing-container edge-grid">
-          <Reveal className="edge-copy">
-            <SectionLabel>Equipo + software + inteligencia artificial</SectionLabel>
-            <h2>La medición ocurre donde ocurre tu operación.</h2>
-            <p>Detrás de Qualiblick hay hardware adaptado al proceso, modelos de inteligencia artificial y software para estructurar los resultados. El análisis se hace dentro de tu instalación, así que los resultados están disponibles de inmediato y la medición sigue funcionando con conectividad limitada.</p>
-            <div className="edge-benefits">
-              <div><Cpu aria-hidden="true" /><span><strong>Procesamiento local</strong>El análisis ocurre en tu instalación</span></div>
-              <div><Clock3 aria-hidden="true" /><span><strong>Resultados en el momento</strong>Sin esperar un informe posterior</span></div>
-              <div><Zap aria-hidden="true" /><span><strong>Operación continua</strong>Funciona con conectividad limitada</span></div>
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.12} className="edge-visual">
-            <div className="edge-rings" aria-hidden="true"><i /><i /><i /></div>
-            <div className="edge-device"><Cpu aria-hidden="true" /><span>QUALIBLICK</span><strong>EN OPERACIÓN</strong></div>
-            <div className="edge-node node-camera"><ScanLine aria-hidden="true" /><span>Captura</span></div>
-            <div className="edge-node node-data"><Cpu aria-hidden="true" /><span>Modelo</span></div>
-            <div className="edge-node node-action"><CircleGauge aria-hidden="true" /><span>Dato</span></div>
-          </Reveal>
-        </div>
-      </section>
-
-      <section id="resultados" className="validation-section section-space">
-        <span id="validacion" className="anchor-alias" aria-hidden="true" />
-        <div className="landing-container validation-grid">
-          <Reveal className="validation-image">
-            <Image src="/images/valdivia_lilies.jpg" alt="Planta de Valdivia Lilies, donde Qualiblick opera en condiciones reales" fill sizes="(max-width: 900px) 100vw, 50vw" />
-            <div className="validation-image-overlay" />
-            <div className="case-label"><MapPin aria-hidden="true" /> Valdivia, Chile</div>
-            <div className="case-result"><strong>97,54%</strong><span>Precisión en conteo</span></div>
-          </Reveal>
-
-          <Reveal delay={0.1} className="validation-copy">
-            <SectionLabel>Probado en condiciones reales</SectionLabel>
-            <h2>Medir bien cuando el proceso no se detiene.</h2>
-            <p>En Valdivia Lilies, Qualiblick ha medido productos con formas irregulares, en movimiento, superpuestos, con suciedad y a altos flujos.</p>
-            <blockquote>“No buscamos reemplazar una muestra manual por una muestra digital. Buscamos aumentar la cantidad y la calidad de la información disponible para decidir.”</blockquote>
-            <div className="validation-metrics">
-              <div><strong>97,54%</strong><span>Precisión validada</span></div>
-              <div><strong>+20 obj/s</strong><span>Alto flujo</span></div>
-              <div><strong>24/7</strong><span>Operación continua</span></div>
-            </div>
-          </Reveal>
-        </div>
-
-        <div className="landing-container evidence-strip">
-          <Reveal className="evidence-stat">
-            <div className="trust-proof-stat">
-              <strong>+100<span>M</span></strong>
-              <span>ítems procesados</span>
-            </div>
-            <p>Mediciones acumuladas en operación, no en pruebas de laboratorio.</p>
-          </Reveal>
-
-          <Reveal delay={0.1} className="evidence-backers" aria-label="Organizaciones que respaldan a Qualiblick">
-            <span className="backers-label">Respaldado por</span>
-            <div className="backer-logos">
-              <div className="backer-logo backer-logo-cgv">
-                <Image src="/images/chile-global-ventures.png" alt="Chile Global Ventures" width={582} height={138} />
-              </div>
-              <div className="backer-logo backer-logo-corfo">
-                <Image src="/images/corfo.png" alt="CORFO" width={740} height={216} />
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      <section id="por-que" className="impact-section section-space">
-        <span id="impacto" className="anchor-alias" aria-hidden="true" />
+      <section className="impact-section section-space">
         <div className="landing-container">
           <div className="impact-heading">
             <Reveal>
@@ -462,19 +207,75 @@ export default function CommercialLanding() {
               </Reveal>
             ))}
           </div>
+
+          <Reveal delay={0.2} className="impact-footer-link">
+            <Link href="/solucion">Conoce cómo funciona la plataforma <ArrowRight aria-hidden="true" /></Link>
+          </Reveal>
         </div>
       </section>
 
-      <section className="vision-section section-space">
+      <section className="solutions-section section-space">
         <div className="landing-container centered-heading">
           <Reveal>
-            <SectionLabel>Hacia dónde vamos</SectionLabel>
-            <h2>De resolver un muestreo a entender toda la operación.</h2>
-            <p>Hoy una empresa puede usar Qualiblick para resolver una medición específica. Mañana puede usar la misma plataforma para medir distintos puntos de su cadena productiva, desde el terreno hasta la planta.</p>
+            <SectionLabel>Aplicaciones</SectionLabel>
+            <h2>Una plataforma que se adapta a tu operación.</h2>
+            <p>El punto de instalación cambia. Qualiblick sigue siendo el mismo.</p>
           </Reveal>
-          <Reveal delay={0.12} className="vision-highlight">
-            <p>Queremos construir la infraestructura de medición de la agroindustria.</p>
+        </div>
+
+        <div className="landing-container solutions-grid">
+          {aplicaciones.map(({ slug, contexto, icon: Icon, cardHeadline }, index) => (
+            <Reveal key={slug} delay={index * 0.06} className="solution-card">
+              <Link href={`/aplicaciones/${slug}`} className="solution-card-link">
+                <span className="solution-card-tag"><Icon aria-hidden="true" /> {contexto}</span>
+                <p>{cardHeadline}</p>
+                <span className="solution-card-cta">Ver aplicación <ArrowRight aria-hidden="true" /></span>
+              </Link>
+            </Reveal>
+          ))}
+        </div>
+
+        <div className="landing-container">
+          <Reveal className="capture-note">
+            <Camera aria-hidden="true" />
+            <p>Distintas formas de captura según el proceso: equipos fijos, retrofit sobre maquinaria existente o dispositivos móviles.</p>
           </Reveal>
+        </div>
+      </section>
+
+      <section className="validation-section section-space">
+        <div className="landing-container split-heading">
+          <Reveal>
+            <SectionLabel>Resultados</SectionLabel>
+            <h2>Probado en operación real.</h2>
+          </Reveal>
+          <Reveal delay={0.1} className="split-heading-copy">
+            <p>Qualiblick ya opera en procesos agroindustriales donde existen movimiento, superposición, suciedad, productos irregulares y altos flujos.</p>
+            <Link href="/resultados" className="inline-link">Ver resultados y validación <ArrowRight aria-hidden="true" /></Link>
+          </Reveal>
+        </div>
+
+        <div className="landing-container">
+          <Reveal className="metrics-row metrics-row-light">
+            {metrics.map(({ value, label }) => (
+              <div key={label}>
+                <strong>{value}</strong>
+                <span>{label}</span>
+              </div>
+            ))}
+          </Reveal>
+        </div>
+
+        <div className="landing-container evidence-backers-row" aria-label="Organizaciones que respaldan a Qualiblick">
+          <span className="backers-label">Respaldado por</span>
+          <div className="backer-logos">
+            <div className="backer-logo backer-logo-cgv">
+              <Image src="/images/chile-global-ventures.png" alt="Chile Global Ventures" width={582} height={138} />
+            </div>
+            <div className="backer-logo backer-logo-corfo">
+              <Image src="/images/corfo.png" alt="CORFO" width={740} height={216} />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -493,7 +294,7 @@ export default function CommercialLanding() {
         </div>
       </section>
 
-      <LandingFooter isHome />
+      <LandingFooter />
     </main>
   );
 }

@@ -1,135 +1,162 @@
-import {
-  BarChart3,
-  Boxes,
-  Clock3,
-  Handshake,
-  MapPin,
-  PackageCheck,
-  ScanLine,
-  ShieldCheck,
-  TrendingUp,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
+import { Boxes, ScanLine, Sprout, type LucideIcon } from "lucide-react";
+
+export type DetailBlock = {
+  title: string;
+  text?: string;
+  items?: string[];
+};
 
 export type Aplicacion = {
   slug: string;
   contexto: string;
   icon: LucideIcon;
-  title: string;
-  summary: string;
-  captura: string;
-  variables: string[];
+  /** Titular corto para las tarjetas de home y del índice. */
+  cardHeadline: string;
+  cardText: string;
+  eyebrow: string;
   heroTitle: string;
-  heroLead: string;
+  heroLead: string[];
   mediaType: "image" | "video";
   mediaSrc: string;
   heroWide?: boolean;
-  resultsMedia?: { src: string; alt: string };
-  problem: { title: string; text: string };
-  steps: { number: string; title: string; text: string }[];
-  benefits: { icon: LucideIcon; title: string; text: string }[];
-  proofPoint: string;
+  variablesNote?: string;
+  variables: string[];
+  blocks: DetailBlock[];
+  techCards?: { title: string; text: string }[];
+  showMetrics?: boolean;
+  next?: { slug: string; label: string };
+  ctaTitle: string;
+  ctaText: string;
 };
 
 export const aplicaciones: Aplicacion[] = [
   {
+    slug: "terreno",
+    contexto: "Terreno",
+    icon: Sprout,
+    cardHeadline: "Mide antes de que el producto llegue a planta.",
+    cardText:
+      "Obtén más información directamente en el predio para mejorar estimaciones, planificación y decisiones previas a cosecha.",
+    eyebrow: "Qualiblick en terreno",
+    heroTitle: "Mide antes de que el producto llegue a planta.",
+    heroLead: [
+      "Muchas decisiones en campo todavía dependen de recorridos, conteos manuales y pequeñas muestras.",
+      "Qualiblick permite aumentar la cobertura y aplicar criterios consistentes directamente en terreno.",
+    ],
+    mediaType: "image",
+    mediaSrc: "/images/valdivia_lilies.jpg",
+    variablesNote: "Según la operación:",
+    variables: ["Conteo", "Calibre", "Distribución", "Densidad", "Posición", "Otras variables"],
+    blocks: [
+      {
+        title: "La captura se adapta al terreno.",
+        text: "Podemos configurar Qualiblick utilizando dispositivos móviles, cámaras instaladas sobre maquinaria u otras formas de captura según las condiciones reales del predio.",
+      },
+      {
+        title: "Información para decidir antes.",
+        text: "Los datos pueden utilizarse para:",
+        items: [
+          "estimaciones",
+          "planificación",
+          "comparación entre sectores",
+          "evaluación previa a cosecha",
+          "control de labores",
+        ],
+      },
+      {
+        title: "Del terreno a la planta.",
+        text: "La medición en campo puede ser el primer punto de una misma infraestructura que después continúa en recepción y proceso.",
+      },
+    ],
+    next: { slug: "recepcion", label: "Ver Qualiblick en recepción" },
+    ctaTitle: "¿Qué estás estimando hoy con un recorrido?",
+    ctaText: "Cuéntanos qué mides en terreno y qué decisión depende de ese resultado.",
+  },
+  {
     slug: "recepcion",
     contexto: "Recepción",
     icon: Boxes,
-    title: "Qualiblick en recepción",
-    summary:
-      "Mide el producto que entra antes de moverlo, con una cobertura mucho mayor que una muestra manual.",
-    captura: "Cámara fija en el punto de descarga",
-    variables: ["Conteo", "Calibre", "Color", "Defectos"],
-    heroTitle: "Mide lo que entra antes de decidir dónde va.",
-    heroLead:
-      "Configuramos Qualiblick en el punto de recepción para medir conteo, calibre, color y defectos sobre una cobertura mucho mayor que una muestra manual, con el mismo criterio en cada descarga.",
+    cardHeadline: "Conoce mejor lo que está entrando.",
+    cardText:
+      "Aumenta la información disponible sobre cada lote antes de decidir su destino, proceso o almacenamiento.",
+    eyebrow: "Qualiblick en recepción",
+    heroTitle: "Conoce mejor lo que está entrando antes de decidir su destino.",
+    heroLead: [
+      "Un lote completo puede terminar caracterizado a partir de una pequeña muestra.",
+      "Qualiblick aumenta la cobertura de medición antes de que el producto avance hacia proceso, frío, almacenamiento o venta.",
+    ],
     mediaType: "image",
     mediaSrc: "/images/Qualiblick-Bin-Scan.png",
     heroWide: true,
-    resultsMedia: {
-      src: "/images/Qualiblick-Bin-Scan-RESULTS.png",
-      alt: "Resultado de medición en recepción: color, tamaño y calidad del producto",
-    },
-    problem: {
-      title: "Una muestra pequeña define el destino de todo lo que entró.",
-      text: "En recepción se revisa una fracción mínima del volumen y ese resultado se usa para planificar, almacenar y negociar. Cuando la medición real aparece más adelante, ya no hay margen para corregir.",
-    },
-    steps: [
-      { number: "01", title: "Captura en el punto de descarga", text: "Instalamos el equipo donde llega el producto, sin alterar el flujo de recepción ni agregar pasos al operador." },
-      { number: "02", title: "Medición con criterio único", text: "Cada unidad medida se evalúa con el mismo criterio, turno tras turno y sin depender de quién esté a cargo." },
-      { number: "03", title: "Resultado estructurado", text: "La medición queda organizada por lote, productor o período antes de mover el producto a línea, frío o venta." },
+    variables: ["Conteo", "Calibre", "Color", "Defectos", "Distribución"],
+    blocks: [
+      {
+        title: "Entiende cómo está compuesto cada lote.",
+        text: "En vez de quedarte únicamente con un promedio, puedes observar cómo se distribuye el producto entre distintos calibres, colores, categorías u otras variables.",
+      },
+      {
+        title: "Usa el dato cuando todavía puedes decidir.",
+        text: "La información puede respaldar decisiones de:",
+        items: ["destino", "proceso", "segregación", "almacenamiento", "planificación", "comercialización"],
+      },
+      {
+        title: "Integrado al flujo existente.",
+        text: "Qualiblick puede utilizar cámaras fijas, estaciones de medición o retrofit sobre equipos existentes según cómo se mueve el producto dentro de tu operación.",
+      },
+      {
+        title: "Recepción puede ser solo el comienzo.",
+        text: "La misma plataforma puede continuar midiendo después durante el proceso.",
+      },
     ],
-    benefits: [
-      { icon: TrendingUp, title: "Mayor cobertura desde el inicio", text: "Muchas más unidades medidas que en un muestreo manual, con el mismo tiempo de operación." },
-      { icon: PackageCheck, title: "Un criterio comparable", text: "Recepciones distintas se pueden comparar entre sí porque se midieron igual." },
-      { icon: ShieldCheck, title: "Menos distancia entre entrada y salida", text: "El dato de recepción y el resultado final dejan de ser dos lecturas desconectadas." },
-    ],
-    proofPoint: "Metodología validada en planta: 97,54% de precisión en conteo sobre lotes reales.",
+    next: { slug: "proceso", label: "Ver Qualiblick en proceso" },
+    ctaTitle: "¿Qué estás midiendo hoy con una muestra?",
+    ctaText: "Cuéntanos qué revisas en recepción y qué decisión depende de ese resultado.",
   },
   {
     slug: "proceso",
     contexto: "Línea de proceso",
     icon: ScanLine,
-    title: "Qualiblick en línea de proceso",
-    summary:
-      "Medición continua sobre la línea activa, con criterios consistentes a alta velocidad.",
-    captura: "Cámara fija o retrofit sobre equipos existentes",
-    variables: ["Conteo", "Calibre", "Distribución", "Defectos"],
-    heroTitle: "Medición continua sobre la línea que ya tienes.",
-    heroLead:
-      "Configuramos Qualiblick sobre la línea activa —en un punto nuevo o sobre un equipo existente— para medir de forma continua a alta velocidad, en lugar de revisar muestras puntuales entre turnos.",
+    cardHeadline: "Mide mientras la operación está ocurriendo.",
+    cardText:
+      "Integra Qualiblick sobre equipos y líneas existentes para observar continuamente lo que está pasando.",
+    eyebrow: "Qualiblick en proceso",
+    heroTitle: "Mide mientras el proceso está ocurriendo.",
+    heroLead: [
+      "Entre una muestra y otra pueden pasar miles de unidades.",
+      "Qualiblick integra medición automatizada sobre líneas y equipos existentes para aumentar la cobertura y entender cómo cambia el proceso a lo largo del tiempo.",
+    ],
     mediaType: "video",
     mediaSrc: "/videos/example.mp4",
-    problem: {
-      title: "Entre una revisión manual y la siguiente, nadie está midiendo.",
-      text: "El control por muestreo revisa unidades aisladas cada cierto tiempo. La línea sigue produciendo con la misma desviación hasta la próxima revisión, y el resto del volumen queda sin medir.",
-    },
-    steps: [
-      { number: "01", title: "Captura sobre la línea activa", text: "Definimos el punto donde el dato es más útil y montamos el equipo ahí, incluso sobre maquinaria que ya existe." },
-      { number: "02", title: "Medición continua", text: "Cada unidad que pasa se mide y clasifica, a más de 20 objetos por segundo, sin frenar la producción." },
-      { number: "03", title: "Datos segmentados", text: "La información se organiza por lote, turno o productor para poder actuar mientras la línea sigue corriendo." },
+    variables: ["Conteo", "Calibre", "Color", "Defectos", "Distribución"],
+    blocks: [
+      {
+        title: "Retrofit sobre tu operación existente.",
+        text: "Cuando las condiciones lo permiten, instalamos Qualiblick sobre maquinaria que ya forma parte de tu proceso. No necesitas reemplazar una línea completa para comenzar a medir.",
+      },
+      {
+        title: "Convierte el flujo en datos.",
+        text: "Los resultados pueden estructurarse por:",
+        items: ["lote", "turno", "período", "proceso", "punto de medición", "categoría"],
+      },
     ],
-    benefits: [
-      { icon: Zap, title: "Cobertura, no muestras", text: "Se mide el flujo completo del punto configurado, no una fracción revisada cada cierto tiempo." },
-      { icon: Clock3, title: "Opera 24/7 sin fatiga", text: "El mismo criterio turno tras turno, sin la variabilidad de la inspección manual." },
-      { icon: BarChart3, title: "Sobre la infraestructura existente", text: "Se integra al punto de la línea que ya tienes, sin rediseñar el proceso." },
+    techCards: [
+      { title: "Procesamiento local", text: "Análisis directamente en la instalación." },
+      { title: "Operación continua", text: "La medición acompaña el flujo productivo." },
+      { title: "Conectividad limitada", text: "El sistema puede continuar operando aunque internet sea inestable." },
     ],
-    proofPoint: "97,54% de precisión validada en condiciones reales de alta velocidad y alto flujo.",
-  },
-  {
-    slug: "terreno",
-    contexto: "Terreno",
-    icon: Handshake,
-    title: "Qualiblick en terreno",
-    summary:
-      "Captura móvil en el predio para que las partes trabajen sobre la misma medición.",
-    captura: "Equipo móvil o smartphone",
-    variables: ["Conteo", "Calibre", "Distribución"],
-    heroTitle: "Lleva la misma medición al predio.",
-    heroLead:
-      "Configuramos Qualiblick en modo móvil para medir en terreno con el mismo criterio que en planta, de modo que productor y comprador trabajen sobre una base común y comparable.",
-    mediaType: "image",
-    mediaSrc: "/images/valdivia_lilies.jpg",
-    problem: {
-      title: "En terreno, la estimación de una persona se vuelve el dato oficial.",
-      text: "Sin una medición común y verificable, cada parte estima por su cuenta y alguien asume un riesgo que no eligió. Además, esos números no son comparables con lo que después se mide en planta.",
-    },
-    steps: [
-      { number: "01", title: "Captura móvil en el predio", text: "El equipo se traslada al predio o al punto de recepción acordado, sin requerir infraestructura fija." },
-      { number: "02", title: "Medición con el mismo criterio", text: "Se miden conteo, calibre y otras variables relevantes usando la misma configuración que en planta." },
-      { number: "03", title: "Resultado compartido", text: "La medición queda disponible como base común antes de cerrar el acuerdo o programar la cosecha." },
-    ],
-    benefits: [
-      { icon: ShieldCheck, title: "Una base común", text: "Ambas partes trabajan sobre la misma medición, no sobre dos estimaciones distintas." },
-      { icon: TrendingUp, title: "Datos comparables con planta", text: "Lo medido en terreno se puede comparar con lo medido después en recepción o proceso." },
-      { icon: MapPin, title: "Sin infraestructura fija", text: "Captura móvil, ajustable al predio, al producto y al momento de la temporada." },
-    ],
-    proofPoint: "Configuración en validación con productores y compradores: agenda una prueba en tu próxima temporada.",
+    showMetrics: true,
+    ctaTitle: "¿Qué estás controlando hoy con una muestra?",
+    ctaText: "Cuéntanos qué variable revisas y qué decisión depende de ese resultado.",
   },
 ];
 
 export function getAplicacionBySlug(slug: string) {
   return aplicaciones.find((aplicacion) => aplicacion.slug === slug);
 }
+
+export const metrics = [
+  { value: "97,54%", label: "Precisión validada en conteo" },
+  { value: "+20 obj/s", label: "Alto flujo" },
+  { value: "24/7", label: "Operación continua" },
+  { value: "+100M", label: "Ítems procesados" },
+];

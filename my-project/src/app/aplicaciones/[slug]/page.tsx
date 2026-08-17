@@ -11,8 +11,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const aplicacion = getAplicacionBySlug(slug);
   if (!aplicacion) return {};
   const url = `https://www.qualiblick.com/aplicaciones/${aplicacion.slug}`;
-  const title = `${aplicacion.title} | Qualiblick`;
-  const description = aplicacion.summary;
+  const title = `${aplicacion.eyebrow} | Qualiblick`;
+  const description = aplicacion.heroLead.join(" ");
   return {
     title,
     description,
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description,
       url,
       siteName: "Qualiblick",
-      images: [{ url: "/og.png", width: 1200, height: 630, alt: aplicacion.title }],
+      images: [{ url: "/og.png", width: 1200, height: 630, alt: aplicacion.eyebrow }],
       locale: "es_CL",
       type: "website",
     },

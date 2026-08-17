@@ -26,16 +26,8 @@ export const demoHref = buildDemoHref();
 export const contactEmail = CONTACT_EMAIL;
 
 export const navLinks = [
-  { label: "Solución", hash: "#solucion" },
-  { label: "Cómo funciona", hash: "#como-funciona" },
-  { label: "Aplicaciones", hash: "#aplicaciones" },
-  { label: "Resultados", hash: "#resultados" },
-] as const;
-
-export const footerLinks = [
-  { label: "Solución", hash: "#solucion" },
-  { label: "Cómo funciona", hash: "#como-funciona" },
-  { label: "Aplicaciones", hash: "#aplicaciones" },
-  { label: "Tecnología", hash: "#tecnologia" },
-  { label: "Resultados", hash: "#resultados" },
+  { label: "Solución", href: "/solucion" },
+  { label: "Aplicaciones", href: "/aplicaciones" },
+  { label: "Resultados", href: "/resultados" },
+  { label: "Sobre nosotros", href: "/sobre-nosotros" },
 ] as const;

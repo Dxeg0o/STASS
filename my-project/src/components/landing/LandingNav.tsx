@@ -7,37 +7,29 @@ import { useState } from "react";
 import { demoHref as defaultDemoHref, navLinks } from "./cta";
 
 export default function LandingNav({
-  isHome = false,
   currentPath,
   demoHref = defaultDemoHref,
 }: {
-  isHome?: boolean;
   currentPath?: string;
   demoHref?: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
-  const href = (hash: string) => (isHome ? hash : `/${hash}`);
-
-  const links = [
-    ...navLinks.map(({ label, hash }) => ({ label, href: href(hash), current: false })),
-    {
-      label: "Sobre nosotros",
-      href: "/sobre-nosotros",
-      current: currentPath === "/sobre-nosotros",
-    },
-  ];
 
   return (
     <nav className="landing-nav" aria-label="Navegación principal">
       <div className="landing-container nav-inner">
-        <Link href={isHome ? "#inicio" : "/"} className="brand-link" aria-label="Qualiblick, volver al inicio">
+        <Link href="/" className="brand-link" aria-label="Qualiblick, volver al inicio">
           <Image src="/images/qb.png" alt="Qualiblick" width={176} height={40} priority className="brand-logo" />
         </Link>
 
         <div className="nav-links">
-          {links.map(({ label, href: linkHref, current }) => (
-            <Link key={label} href={linkHref} aria-current={current ? "page" : undefined}>
+          {navLinks.map(({ label, href }) => (
+            <Link
+              key={label}
+              href={href}
+              aria-current={currentPath && currentPath.startsWith(href) ? "page" : undefined}
+            >
               {label}
             </Link>
           ))}
@@ -62,8 +54,8 @@ export default function LandingNav({
 
       {menuOpen && (
         <div id="mobile-navigation" className="mobile-navigation">
-          {links.map(({ label, href: linkHref }) => (
-            <Link key={label} href={linkHref} onClick={closeMenu}>{label}</Link>
+          {navLinks.map(({ label, href }) => (
+            <Link key={label} href={href} onClick={closeMenu}>{label}</Link>
           ))}
           <Link href="/login" onClick={closeMenu}>Ingresar</Link>
           <a href={demoHref} className="button button-primary" onClick={closeMenu}>Agenda una evaluación</a>

@@ -8,7 +8,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     { url: BASE_URL, lastModified, changeFrequency: "monthly", priority: 1 },
+    { url: `${BASE_URL}/solucion`, lastModified, changeFrequency: "monthly", priority: 0.9 },
     { url: `${BASE_URL}/aplicaciones`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${BASE_URL}/resultados`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     ...aplicaciones.map((aplicacion) => ({
       url: `${BASE_URL}/aplicaciones/${aplicacion.slug}`,
       lastModified,
