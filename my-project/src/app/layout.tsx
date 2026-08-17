@@ -7,13 +7,13 @@ import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.qualiblick.com"),
-  title: "Qualiblick | Decide el destino de cada lote con datos reales",
+  title: "Qualiblick | Convierte tus muestreos en sistemas de medición",
   description:
-    "Qualiblick ayuda a packings y exportadoras agrícolas a conocer la calidad real de sus lotes antes de vender, procesar o guardar. Mide calibre, color y defectos en recepción, línea o terreno.",
+    "Qualiblick digitaliza y estandariza mediciones que hoy se hacen a mano o sobre muestras demasiado pequeñas. Configuramos captura, variables, hardware e integración para medir en terreno, recepción y línea de proceso.",
   openGraph: {
-    title: "Decide el destino de cada lote con datos reales",
+    title: "Convierte tus muestreos en sistemas de medición",
     description:
-      "Mide calibre, color y defectos antes de que sea tarde para vender, procesar, guardar o corregir.",
+      "Una sola plataforma configurable para medir con mayor cobertura, un mismo criterio y datos estructurados, en terreno y en planta.",
     url: "https://www.qualiblick.com",
     siteName: "Qualiblick",
     images: [
@@ -21,21 +21,22 @@ export const metadata: Metadata = {
         url: "/og.png",
         width: 1200,
         height: 630,
-        alt: "Qualiblick: decide el destino de cada lote con datos reales",
+        alt: "Qualiblick: medición objetiva y representativa para la agroindustria",
       },
     ],
     locale: "es_CL",
     type: "website",
   },
   keywords: [
-    "control de calidad de fruta",
-    "packout",
-    "reducción de merma",
-    "visión artificial agroindustria",
-    "escaneo de bins",
-    "calibre de fruta",
-    "calidad poscosecha",
-    "Edge Computing",
+    "medición para la agroindustria",
+    "muestreo representativo",
+    "conteo automatizado",
+    "visión computacional agrícola",
+    "medición en línea de proceso",
+    "medición en recepción",
+    "medición en terreno",
+    "inteligencia artificial agroindustrial",
+    "procesamiento edge",
     "Qualiblick",
   ],
   authors: [{ name: "Qualiblick", url: "https://www.qualiblick.com" }],
@@ -44,8 +45,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Decide el destino de cada lote con datos reales",
-    description: "Mide calidad a tiempo para vender mejor, reducir reprocesos y proteger el valor de cada lote.",
+    title: "Convierte tus muestreos en sistemas de medición",
+    description:
+      "Mayor cobertura, un mismo criterio y datos estructurados para las decisiones que hoy dependen de una muestra pequeña.",
     images: ["/og.png"],
   },
 };

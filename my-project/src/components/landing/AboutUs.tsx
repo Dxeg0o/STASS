@@ -7,40 +7,38 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Leaf,
+  Layers,
   Linkedin,
   Mail,
-  MapPin,
-  Menu,
   ScanLine,
   Target,
   UsersRound,
-  X,
 } from "lucide-react";
-import { useState } from "react";
 import { Reveal, SectionLabel } from "./shared";
+import LandingNav from "./LandingNav";
+import LandingFooter from "./LandingFooter";
+import { buildDemoHref, contactEmail } from "./cta";
 
-const demoHref =
-  "mailto:contacto@qualiblick.com?subject=Conversemos%20con%20Qualiblick&body=Hola%20equipo%20Qualiblick%2C%0A%0AMe%20gustar%C3%ADa%20conocer%20m%C3%A1s%20sobre%20su%20tecnolog%C3%ADa.";
+const demoHref = buildDemoHref();
 
 const principles = [
   {
     icon: Target,
     number: "01",
-    title: "Datos que llevan a la acción",
-    text: "Diseñamos información clara y oportuna para que cada decisión comercial tenga una base objetiva.",
+    title: "Partimos de la decisión",
+    text: "Antes de hablar de equipos, entendemos qué decisión quiere mejorar el cliente y qué información necesita para tomarla.",
+  },
+  {
+    icon: Layers,
+    number: "02",
+    title: "Configurable, no a medida",
+    text: "Construimos una plataforma que se adapta a distintos puntos, variables y formas de captura, en lugar de un desarrollo nuevo por cliente.",
   },
   {
     icon: ScanLine,
-    number: "02",
-    title: "Tecnología en la operación real",
-    text: "Construimos para el ritmo de la cosecha, la planta y el campo: donde la precisión debe funcionar sin detener el proceso.",
-  },
-  {
-    icon: Leaf,
     number: "03",
-    title: "Más valor, menos desperdicio",
-    text: "Creemos que conocer mejor cada lote permite aprovechar mejor la producción y reducir pérdidas evitables.",
+    title: "Tecnología en la operación real",
+    text: "Diseñamos para el ritmo del campo y de la planta: la medición tiene que funcionar sin detener el proceso.",
   },
 ];
 
@@ -50,43 +48,9 @@ const founders = [
 ];
 
 export default function AboutUs() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const closeMenu = () => setMenuOpen(false);
-
   return (
     <main className="commercial-landing about-page">
-      <nav className="landing-nav" aria-label="Navegación principal">
-        <div className="landing-container nav-inner">
-          <Link href="/" className="brand-link" aria-label="Qualiblick, volver al inicio">
-            <Image src="/images/qb.png" alt="Qualiblick" width={176} height={40} priority className="brand-logo" />
-          </Link>
-
-          <div className="nav-links">
-            <Link href="/#soluciones">Soluciones</Link>
-            <Link href="/#impacto">Impacto</Link>
-            <Link href="/sobre-nosotros" aria-current="page">Sobre nosotros</Link>
-          </div>
-
-          <div className="nav-actions">
-            <Link href="/login" className="nav-login">Ingresar</Link>
-            <a href={demoHref} className="button button-small button-primary">Agenda una evaluación</a>
-          </div>
-
-          <button type="button" className="mobile-menu-button" onClick={() => setMenuOpen((value) => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}>
-            {menuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-          </button>
-        </div>
-
-        {menuOpen && (
-          <div id="mobile-navigation" className="mobile-navigation">
-            <Link href="/#soluciones" onClick={closeMenu}>Soluciones</Link>
-            <Link href="/#impacto" onClick={closeMenu}>Impacto</Link>
-            <Link href="/sobre-nosotros" onClick={closeMenu}>Sobre nosotros</Link>
-            <Link href="/login" onClick={closeMenu}>Ingresar</Link>
-            <a href={demoHref} className="button button-primary" onClick={closeMenu}>Agenda una evaluación</a>
-          </div>
-        )}
-      </nav>
+      <LandingNav currentPath="/sobre-nosotros" demoHref={demoHref} />
 
       <section className="about-hero">
         <div className="hero-grid-bg" aria-hidden="true" />
@@ -94,16 +58,16 @@ export default function AboutUs() {
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="about-hero-copy">
             <Link href="/" className="solution-back-link"><ArrowLeft aria-hidden="true" /> Volver al inicio</Link>
             <SectionLabel>Sobre Qualiblick</SectionLabel>
-            <h1>Hacemos visible el valor que ya existe en <span>cada lote.</span></h1>
-            <p>Qualiblick nace para acercar datos de calidad confiables a las decisiones que definen el resultado de una operación agrícola. Transformamos visión por computador en información útil, justo cuando aún puede cambiar el destino de la producción.</p>
+            <h1>Construimos la infraestructura de medición de <span>la agroindustria.</span></h1>
+            <p>Qualiblick nace para que las decisiones de una operación agrícola dejen de depender de muestras pequeñas y criterios que varían entre personas. Convertimos esos muestreos en sistemas de medición objetivos, consistentes y representativos.</p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: 0.15 }} className="about-signal-card" aria-label="Propósito de Qualiblick">
             <div className="about-signal-grid" aria-hidden="true" />
             <span className="about-signal-icon"><ScanLine aria-hidden="true" /></span>
             <span className="about-signal-kicker">NUESTRO PROPÓSITO</span>
-            <strong>Que cada decisión agrícola pueda apoyarse en evidencia.</strong>
-            <p>Más visibilidad para vender, procesar y planificar con mayor certeza.</p>
+            <strong>Que cada decisión agrícola pueda apoyarse en una medición y no en una estimación.</strong>
+            <p>Más cobertura, un mismo criterio y datos estructurados para decidir.</p>
           </motion.div>
         </div>
       </section>
@@ -112,15 +76,15 @@ export default function AboutUs() {
         <div className="landing-container about-story-grid">
           <Reveal>
             <SectionLabel>Por qué existimos</SectionLabel>
-            <h2>Cuando el dato llega tarde, una buena decisión ya no alcanza.</h2>
+            <h2>Decisiones grandes todavía dependen de muestras muy pequeñas.</h2>
           </Reveal>
           <Reveal delay={0.1} className="about-story-copy">
-            <p>En la poscosecha, una estimación puede definir una venta, un programa de empaque o el destino de una partida completa. Sin una lectura representativa y oportuna, el valor de la producción queda sujeto a supuestos.</p>
-            <p>Qualiblick une conocimiento agrícola y visión por computador para medir con consistencia, dar visibilidad a cada lote y convertir esa información en una ventaja concreta para quienes producen.</p>
+            <p>En la agroindustria, miles o millones de unidades terminan representadas por una muestra revisada a mano. Ese resultado define ventas, programas de empaque y acuerdos completos, aunque nadie sepa cuánto se parece al total.</p>
+            <p>Qualiblick une conocimiento agrícola, inteligencia artificial y software para medir con mayor cobertura y un criterio único, y para dejar esa información estructurada donde se toman las decisiones.</p>
             <div className="about-story-points">
-              <span><Check aria-hidden="true" /> Información objetiva</span>
+              <span><Check aria-hidden="true" /> Mediciones objetivas</span>
               <span><Check aria-hidden="true" /> Resultados oportunos</span>
-              <span><Check aria-hidden="true" /> Decisiones trazables</span>
+              <span><Check aria-hidden="true" /> Datos comparables</span>
             </div>
           </Reveal>
         </div>
@@ -131,8 +95,8 @@ export default function AboutUs() {
           <div className="centered-heading">
             <Reveal>
               <SectionLabel>Cómo construimos</SectionLabel>
-              <h2>La calidad es medible. El impacto, también.</h2>
-              <p>Estos principios orientan cómo llevamos la tecnología desde el problema real hasta la decisión diaria.</p>
+              <h2>Nos adaptamos al muestreo. No al revés.</h2>
+              <p>Estos principios orientan cómo llevamos la plataforma desde una decisión concreta hasta una medición en operación.</p>
             </Reveal>
           </div>
           <div className="about-principles-grid">
@@ -175,22 +139,15 @@ export default function AboutUs() {
           <div className="cta-grid" aria-hidden="true" />
           <Reveal className="cta-content">
             <div className="cta-icon"><UsersRound aria-hidden="true" /></div>
-            <h2>¿Quieres medir mejor lo que tu operación ya produce?</h2>
-            <p>Conversemos sobre cómo Qualiblick puede aportar visibilidad a tus decisiones.</p>
-            <a href={demoHref} className="button button-primary button-large">Conversemos <ArrowRight aria-hidden="true" /></a>
-            <span className="cta-contact"><Mail aria-hidden="true" /> contacto@qualiblick.com</span>
+            <h2>¿Qué estás midiendo hoy con una muestra?</h2>
+            <p>Cuéntanos qué necesitas medir y qué decisión depende de ese resultado.</p>
+            <a href={demoHref} className="button button-primary button-large">Agenda una evaluación <ArrowRight aria-hidden="true" /></a>
+            <span className="cta-contact"><Mail aria-hidden="true" /> {contactEmail}</span>
           </Reveal>
         </div>
       </section>
 
-      <footer className="landing-footer">
-        <div className="landing-container footer-grid">
-          <div><Image src="/images/qb.png" alt="Qualiblick" width={170} height={40} className="footer-logo" /><p>Datos reales para proteger el valor de cada lote.</p></div>
-          <div className="footer-links"><Link href="/#soluciones">Soluciones</Link><Link href="/#impacto">Impacto</Link><Link href="/sobre-nosotros">Sobre nosotros</Link></div>
-          <div className="footer-contact"><a href="mailto:contacto@qualiblick.com"><Mail aria-hidden="true" /> contacto@qualiblick.com</a><span><MapPin aria-hidden="true" /> Santiago, Chile</span></div>
-        </div>
-        <div className="landing-container footer-bottom"><span>© 2026 Qualiblick. Todos los derechos reservados.</span><Link href="/login">Acceso a plataforma</Link></div>
-      </footer>
+      <LandingFooter />
     </main>
   );
 }
