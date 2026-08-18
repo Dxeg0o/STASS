@@ -8,6 +8,7 @@ import { getAplicacionBySlug, metrics } from "../../data/aplicaciones";
 import { LazyVideo, Reveal, SectionLabel } from "./shared";
 import LandingNav from "./LandingNav";
 import LandingFooter from "./LandingFooter";
+import CountUp from "./CountUp";
 import { buildDemoHref, contactEmail } from "./cta";
 
 const techIcons = [Cpu, Zap, Clock3];
@@ -132,7 +133,7 @@ export default function AplicacionPage({ slug }: { slug: string }) {
             <Reveal className="metrics-row metrics-row-light">
               {metrics.map(({ value, label }) => (
                 <div key={label}>
-                  <strong>{value}</strong>
+                  <strong><CountUp value={value} /></strong>
                   <span>{label}</span>
                 </div>
               ))}

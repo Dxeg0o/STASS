@@ -21,8 +21,11 @@ import {
 import { Reveal, SectionLabel } from "./shared";
 import LandingNav from "./LandingNav";
 import LandingFooter from "./LandingFooter";
+import UnitField from "./UnitField";
+import CountUp from "./CountUp";
+import ApplicationsFlow from "./ApplicationsFlow";
+import FichaMetrics from "./FichaMetrics";
 import { contactEmail, demoHref } from "./cta";
-import { aplicaciones, metrics } from "../../data/aplicaciones";
 
 const heroPoints = [
   { icon: Layers, text: "Mayor cobertura" },
@@ -65,7 +68,9 @@ export default function CommercialLanding() {
       <LandingNav />
 
       <section id="inicio" className="hero-section">
-        <div className="hero-grid-bg" aria-hidden="true" />
+        <div className="hero-field" aria-hidden="true">
+          <UnitField cols={72} rows={30} square coverage={0.14} gap={3} animate />
+        </div>
         <div className="landing-container hero-grid">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
@@ -133,7 +138,7 @@ export default function CommercialLanding() {
                 </div>
                 <div className="panel-footer">
                   <span><Check aria-hidden="true" /> Resultado estructurado</span>
-                  <strong>1.284 unidades medidas</strong>
+                  <strong><CountUp value="1.284" /> unidades medidas</strong>
                 </div>
               </div>
             </div>
@@ -162,7 +167,7 @@ export default function CommercialLanding() {
               <li><X aria-hidden="true" /> Estimación y criterios que varían</li>
             </ul>
             <div className="sample-visual sample-small">
-              {[...Array(35)].map((_, index) => <i key={index} className={index < 4 ? "active" : ""} />)}
+              <UnitField cols={34} rows={14} square coverage={4 / 35} gap={3} round animate />
             </div>
             <p className="sample-caption"><strong>Muestra limitada</strong><span>Menor representatividad</span></p>
           </Reveal>
@@ -176,7 +181,7 @@ export default function CommercialLanding() {
               <li><Check aria-hidden="true" /> Datos consistentes y estructurados</li>
             </ul>
             <div className="sample-visual sample-large">
-              {[...Array(35)].map((_, index) => <i key={index} className={index < 30 ? "active" : ""} />)}
+              <UnitField cols={34} rows={14} square coverage={30 / 35} gap={3} round animate />
             </div>
             <p className="sample-caption"><strong>Mayor cobertura</strong><span>Más información para decidir</span></p>
           </Reveal>
@@ -214,7 +219,7 @@ export default function CommercialLanding() {
         </div>
       </section>
 
-      <section className="solutions-section section-space">
+      <section className="solutions-section solutions-section-flow section-space">
         <div className="landing-container centered-heading">
           <Reveal>
             <SectionLabel>Aplicaciones</SectionLabel>
@@ -223,17 +228,7 @@ export default function CommercialLanding() {
           </Reveal>
         </div>
 
-        <div className="landing-container solutions-grid">
-          {aplicaciones.map(({ slug, contexto, icon: Icon, cardHeadline }, index) => (
-            <Reveal key={slug} delay={index * 0.06} className="solution-card">
-              <Link href={`/aplicaciones/${slug}`} className="solution-card-link">
-                <span className="solution-card-tag"><Icon aria-hidden="true" /> {contexto}</span>
-                <p>{cardHeadline}</p>
-                <span className="solution-card-cta">Ver aplicación <ArrowRight aria-hidden="true" /></span>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
+        <ApplicationsFlow />
 
         <div className="landing-container">
           <Reveal className="capture-note">
@@ -256,13 +251,8 @@ export default function CommercialLanding() {
         </div>
 
         <div className="landing-container">
-          <Reveal className="metrics-row metrics-row-light">
-            {metrics.map(({ value, label }) => (
-              <div key={label}>
-                <strong>{value}</strong>
-                <span>{label}</span>
-              </div>
-            ))}
+          <Reveal>
+            <FichaMetrics />
           </Reveal>
         </div>
 

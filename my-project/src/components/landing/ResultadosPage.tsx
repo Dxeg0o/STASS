@@ -6,6 +6,7 @@ import { ArrowRight, Mail, MapPin } from "lucide-react";
 import { Reveal, SectionLabel } from "./shared";
 import LandingNav from "./LandingNav";
 import LandingFooter from "./LandingFooter";
+import CountUp from "./CountUp";
 import { contactEmail, demoHref } from "./cta";
 import { metrics } from "../../data/aplicaciones";
 
@@ -33,7 +34,7 @@ export default function ResultadosPage() {
           <Reveal delay={0.15} className="metrics-row">
             {metrics.map(({ value, label }) => (
               <div key={label}>
-                <strong>{value}</strong>
+                <strong><CountUp value={value} /></strong>
                 <span>{label}</span>
               </div>
             ))}

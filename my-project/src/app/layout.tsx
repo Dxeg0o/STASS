@@ -1,9 +1,24 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import AuthContext from "./context/AuthContext";
 import { Toaster } from "sonner";
+
+const qbSans = localFont({
+  src: "./fonts/GeistVF.woff",
+  variable: "--font-qb-sans",
+  weight: "100 900",
+  display: "swap",
+});
+
+const qbMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
+  variable: "--font-qb-mono",
+  weight: "100 900",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.qualiblick.com"),
@@ -58,7 +73,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="dark scroll-smooth">
+    <html lang="es" className={`dark scroll-smooth ${qbSans.variable} ${qbMono.variable}`}>
       <body
         className="antialiased bg-slate-950 text-white selection:bg-cyan-500/30"
       >

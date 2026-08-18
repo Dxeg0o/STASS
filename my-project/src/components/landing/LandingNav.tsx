@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { demoHref as defaultDemoHref, navLinks } from "./cta";
 
 export default function LandingNav({
@@ -14,10 +14,34 @@ export default function LandingNav({
   demoHref?: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [progress, setProgress] = useState(0);
   const closeMenu = () => setMenuOpen(false);
 
+  // La barra bajo la nav marca cuánto de la página se ha recorrido.
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      setScrolled(window.scrollY > 24);
+      setProgress(scrollable > 0 ? Math.min(1, window.scrollY / scrollable) : 0);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
   return (
-    <nav className="landing-nav" aria-label="Navegación principal">
+    <nav className={`landing-nav${scrolled ? " landing-nav-scrolled" : ""}`} aria-label="Navegación principal">
       <div className="landing-container nav-inner">
         <Link href="/" className="brand-link" aria-label="Qualiblick, volver al inicio">
           <Image src="/images/qb.png" alt="Qualiblick" width={176} height={40} priority className="brand-logo" />
@@ -61,6 +85,10 @@ export default function LandingNav({
           <a href={demoHref} className="button button-primary" onClick={closeMenu}>Agenda una evaluación</a>
         </div>
       )}
+
+      <div className="nav-progress" aria-hidden="true">
+        <i style={{ transform: `scaleX(${progress})` }} />
+      </div>
     </nav>
   );
 }
