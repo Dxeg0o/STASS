@@ -180,20 +180,39 @@ export async function POST(req: Request, context: RouteContext) {
           .where(and(eq(conteo.servicioId, servicioId), inArray(conteo.loteId, sources)));
 
         // 2. Re-apuntar las sesiones del servicio al lote destino (así las
-        //    caja_lote_session y caja_*_stats quedan bajo el destino)
+        //    caja_lote_session y caja_*_stats quedan bajo el destino). Las
+        //    sesiones modernas guardan servicio_id; las legacy (NULL) se
+        //    resuelven por la vigencia del dispositivo en ese servicio.
         await tx.execute(sql`
           UPDATE lote_session ls SET lote_id = ${targetId}::uuid
           WHERE ls.lote_id IN (${uuidList(sources)})
-            AND EXISTS (
-              SELECT 1 FROM dispositivo_servicio ds
-              WHERE ds.dispositivo_id = ls.dispositivo_id
-                AND ds.servicio_id = ${servicioId}::uuid
-                AND ls.start_time >= ds.fecha_inicio
-                AND (ds.fecha_termino IS NULL OR ls.start_time < ds.fecha_termino)
+            AND (
+              ls.servicio_id = ${servicioId}::uuid
+              OR (
+                ls.servicio_id IS NULL
+                AND EXISTS (
+                  SELECT 1 FROM dispositivo_servicio ds
+                  WHERE ds.dispositivo_id = ls.dispositivo_id
+                    AND ds.servicio_id = ${servicioId}::uuid
+                    AND ls.start_time >= ds.fecha_inicio
+                    AND (ds.fecha_termino IS NULL OR ls.start_time < ds.fecha_termino)
+                )
+              )
             )
         `);
 
-        // 3. Reconstruir stats de lote para (destino, servicio)
+        // 3. Mover los cierres por calibre del servicio. Estos cierres son la
+        //    fuente de verdad del resumen diario declarado; si el destino ya
+        //    tiene una vigencia que se solapa, PostgreSQL aborta la transacción
+        //    completa mediante lcc_sin_solape.
+        await tx.execute(sql`
+          UPDATE lote_cierre_calibre_bin
+          SET lote_id = ${targetId}::uuid
+          WHERE lote_id IN (${uuidList(sources)})
+            AND servicio_id = ${servicioId}::uuid
+        `);
+
+        // 4. Reconstruir stats de lote para (destino, servicio)
         await tx
           .delete(loteTotalStats)
           .where(
@@ -231,27 +250,42 @@ export async function POST(req: Request, context: RouteContext) {
           GROUP BY lote_id, servicio_id, dispositivo_id, ROUND(perimeter::numeric, 1)::real
         `);
 
-        // 4. Repuntar referencias de batches de recalibración (sin FK, sin
+        // 5. Reconstruir el resumen diario declarado desde conteo y los
+        //    cierres recién movidos. Sin este paso, los reportes diarios
+        //    seguirían apuntando al origen o quedarían desactualizados.
+        await tx.execute(sql`
+          DELETE FROM lote_calibre_declarado_dia
+          WHERE lote_id IN (${uuidList(allInvolved)})
+            AND servicio_id = ${servicioId}::uuid
+        `);
+        await tx.execute(sql`
+          SELECT refresh_lote_calibre_declarado_dia(
+            ${targetId}::uuid,
+            ${servicioId}::uuid
+          )
+        `);
+
+        // 6. Repuntar referencias de batches de recalibración (sin FK, sin
         //    modelo drizzle)
         await tx.execute(sql`
           UPDATE perimeter_recal_batches SET lote_id = ${targetId}::uuid
           WHERE lote_id IN (${uuidList(sources)})
         `);
 
-        // 5. Desvincular los lotes origen de este servicio
+        // 7. Desvincular los lotes origen de este servicio
         await tx
           .delete(loteServicio)
           .where(
             and(eq(loteServicio.servicioId, servicioId), inArray(loteServicio.loteId, sources))
           );
 
-        // 6. Asegurar que el destino queda enlazado al servicio
+        // 8. Asegurar que el destino queda enlazado al servicio
         await tx
           .insert(loteServicio)
           .values({ loteId: targetId, servicioId })
           .onConflictDoNothing();
 
-        // 7. Borrar los lotes origen totalmente consumidos (sin datos en ningún
+        // 9. Borrar los lotes origen totalmente consumidos (sin datos en ningún
         //    otro servicio)
         const deleted = await tx.execute(sql`
           DELETE FROM lote l
@@ -276,6 +310,15 @@ export async function POST(req: Request, context: RouteContext) {
           {
             error:
               "No se puede unificar: hay conteos protegidos por un proceso de recalibración.",
+          },
+          { status: 409 }
+        );
+      }
+      if (isPgErrorCode(e, "23P01")) {
+        return NextResponse.json(
+          {
+            error:
+              "No se puede unificar: los cierres de calibre del origen se solapan con los del destino.",
           },
           { status: 409 }
         );
